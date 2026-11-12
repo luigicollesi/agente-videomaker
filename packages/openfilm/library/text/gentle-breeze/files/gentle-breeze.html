@@ -56,7 +56,7 @@ function phases(){
  const entrance=Math.min(P.duration,Math.max(0,total-exit));
  return {total,entrance,exit,hold:Math.max(0,total-entrance-exit)};
 }
-function draw(t){make();const {w,h,glyphs,length,lens,fontSize}=layout;const {total,entrance,exit,hold}=phases();now=clamp(Number(t)||0,0,total);let p=clamp(now/Math.max(.001,entrance)),head=length*smooth(0,1,clamp(p*P.speed));c.clearRect(0,0,w,h);
+function draw(t){make();const {w,h,glyphs,length,lens,fontSize}=layout;const {total,entrance,exit,hold}=phases();now=clamp(Number(t)||0,0,total);let p=clamp(now/Math.max(.001,entrance)),head=length*smooth(0,1,p);c.clearRect(0,0,w,h);
 let exitAge=now-entrance-hold,exiting=exitAge>0,ep=clamp(exitAge/Math.max(.001,exit)),ew=smooth(0,1,ep);
 const left=Math.min(...glyphs.filter(g=>g.canvas).map(g=>g.left)),right=Math.max(...glyphs.filter(g=>g.canvas).map(g=>g.left+g.canvas.width));
 // Each character releases its own wind at a staggered time. No travelling wipe.
