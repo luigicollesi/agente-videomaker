@@ -1,35 +1,40 @@
-# Rain Type — água, hold e evaporação
+# Rain Type — contrato temporal da timeline
 
-Preset: `text/rain-type-liquid` (biblioteca **Text → In**).
+Preset: `text/rain-type-liquid` (Text → In). Motor atualizado: `rain-type-liquid-timeline-v2.html`.
 
-## Controles do inspetor
+## Controles temporais
 
-| Propriedade | CSS | Padrão |
-| --- | --- | --- |
-| Text | `.t` | `INFERNO` |
-| Entry duration (s) | `--rain-entry-duration` | `5.1` |
-| Hold duration (s) | `--rain-hold-duration` | `0.6` |
-| Exit duration (s) | `--rain-exit-duration` | `4.9` |
-| Drops | `--rain-drops` | `1` |
-| Glow | `--rain-glow` | `0.55` |
-| Wind | `--rain-wind` | `0.18` |
-| Vapor | `--rain-vapor` | `1` |
-| Refraction | `--rain-refraction` | `0.75` |
-| Seed | `--rain-seed` | `27` |
+- **Entrance time** (`--rain-entry-duration`): duração da formação por gotas.
+- **Exit time** (`--rain-exit-duration`): duração da evaporação e dispersão.
+- **`--clip-length`**: propriedade técnica registrada em `data-props`, oculta pelo inspetor e sincronizada pelo OpenFilm com o **fim efetivo do clipe em tempo de fonte**.
+- **Hold**: calculado internamente por `max(0, total - entrance - exit)`; sem controle independente.
 
-As três durações são independentes e o tempo total interno é sua soma. A entrada mantém o movimento de chuva original, o hold mantém a água animada e a saída converte a palavra em vapor de cima para baixo.
+A política de sobreposição prioriza a saída: `exit=min(requestedExit,total)`, `entrance=min(requestedEntrance,total-exit)`. Os valores configurados no inspetor não são alterados pelo redimensionamento da timeline.
 
-**Duração na timeline:** `saved.json` cria inicialmente um clip de 10,6 s. O inspetor altera o tempo *interno* do efeito, mas a mudança dessas variáveis CSS não redimensiona automaticamente o clip na timeline. Ao aumentar ou reduzir a soma das três durações, ajuste também o comprimento do clip na timeline para que as três fases sejam exibidas integralmente e não haja tempo ocioso após o término.
+O motor fornece `window.film = {frame, frameReadsOverrides:true}`, sem `duration` nativa. O player não deve limitar o relógio aos 10,6s de `saved.json`, que servem apenas como comprimento inicial. Os tempos são lidos novamente via `getComputedStyle(:root)` a cada frame absoluto.
 
-## Renderização
+## Teste executado (Chromium WebGL2 isolado)
 
-- HTML standalone com shaders WebGL2, Canvas 2D para máscara tipográfica e saída RGBA.
-- `window.film.frame(t)` usa tempo absoluto; renderizar frames fora de ordem não depende de estado acumulado.
-- A forma final é alimentada pelas gotas que chegam a destinos do texto.
-- Não existem assets externos, fontes remotas ou bibliotecas de terceiros.
-- WebGL2 é necessário; neste protótipo não há fallback Canvas 2D.
-- Qualidade e desempenho em 4K dependem do hardware e ainda precisam de teste no Desktop.
+Com entrada de 2 s e saída de 3 s:
 
-## Validação inicial
+| Timeline | Entrada | Hold | Saída |
+| --- | --- | --- | --- |
+| 8 s | 0–2 | 2–5 | 5–8 |
+| 10,5 s | 0–2 | 2–7,5 | 7,5–10,5 |
+| 20 s | 0–2 | 2–17 | 17–20 |
 
-Renderização local em Chromium com WebGL2: sem erros JavaScript observados; frame re-renderizado após frame fora de ordem foi idêntico; variação dos controles 2 + 3 + 2 resultou em 7 s; alfa inicial e final não apresentam conteúdo visível. O teste real de drag/drop, exportação e timeline do Desktop deve ser feito no aplicativo.
+- Quadro t=19s renderizado após o ponto inicial de 10,6s.
+- `frame(19), frame(2), frame(19)`: PNG idênticos.
+- Alfa sem conteúdo visível nos finais t=8, t=10,5 e t=20.
+- Entrada solicitada 25s + saída 3s em clip 20s: entrada efetiva 17s, hold 0, saída 3s.
+- Sem erros JavaScript observados.
+
+**Ainda pendentes**: execução pelo player real verificando t=19 em vez de 10.599, edição/resize/split/trim em Desktop, conferência de exportação versus prévia, e testes de 4K. Os testes headless acima não substituem integração end-to-end.
+
+## Recortes e arquivos antigos
+
+Para `clip.time=[start,end]` com `start>0`, o relógio de `frame(t)` é absoluto à **fonte** e `--clip-length=end`. A saída ancora no fim e funciona; a entrada não é reiniciada em um recorte/split à direita, pois o asset não recebe `start`. Não anunciar que os dois lados repetem entrada sem um contrato novo.
+
+O arquivo interno **v2** tem nome diferente do antigo `rain-type-liquid.html`. Os arquivos já copiados para `saved/openfilm/` permanecem inalterados. Para obter a correção em projetos existentes, reinserir o preset da biblioteca e confirmar que o clipe aponta para `rain-type-liquid-timeline-v2.html`.
+
+Fonte de verdade: `docs/vfx-timeline-timing-contract.md` e `.agents/skills/openfilm-vfx-timeline/SKILL.md`.
