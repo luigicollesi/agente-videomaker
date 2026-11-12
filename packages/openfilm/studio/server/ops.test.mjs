@@ -189,9 +189,13 @@ test('caption tracks: put in at a place, known by their file, kept though they h
   assert.deepEqual(ids(h), [['a', 'b'], ['v']]);
 });
 
-test('Gentle Breeze: changing Total duration resizes only its own timeline clip', () => {
-  const props = JSON.stringify([{ name: 'Total duration', type: 'var', var: '--wind-total' }]);
-  const base = {
+test('Gentle Breeze: timeline length is authoritative and keeps --clip-length in sync', () => {
+  const props = JSON.stringify([
+    { name: 'Entrance time', type: 'var', var: '--wind-duration' },
+    { name: 'Exit time', type: 'var', var: '--wind-dissolve' },
+    { name: 'Clip length (managed by timeline)', type: 'var', var: '--clip-length' },
+  ]);
+  const film = {
     stage: { w: 1920, h: 1080 },
     tracks: [{ clips: [
       { id: 'wind', src: 'saved/openfilm/text-gentle-breeze/gentle-breeze.html',
@@ -199,16 +203,20 @@ test('Gentle Breeze: changing Total duration resizes only its own timeline clip'
       { id: 'other', src: 'another.html', time: [0, 10.5] },
     ] }],
   };
-  const edit = (id, value) => ({ op: 'props', edits: [{
-    clip: id, prop: 'overrides', value: [{ at: ':root', style: { '--wind-total': String(value) } }],
-  }] });
-  const extended = applyOps(base, [edit('wind', 20)]);
-  assert.deepEqual(extended.tracks[0].clips[0].time, [0, 20]);
-  assert.deepEqual(extended.tracks[0].clips[1].time, [0, 10.5]);
-  const shortened = applyOps(extended, [edit('wind', 8)]);
-  assert.deepEqual(shortened.tracks[0].clips[0].time, [0, 8]);
-  const reset = applyOps(shortened, [{ op: 'props', edits: [{ clip: 'wind', prop: 'overrides', value: [] }] }]);
-  assert.deepEqual(reset.tracks[0].clips[0].time, [0, 10.5]);
-  const unrelated = applyOps(reset, [edit('other', 30)]);
-  assert.deepEqual(unrelated.tracks[0].clips[1].time, [0, 10.5]);
+  const resized = applyOps(film, [{ op: 'props', edits: [{ clip: 'wind', prop: 'end', value: 20 }] }]);
+  const wind = resized.tracks[0].clips[0];
+  assert.deepEqual(wind.time, [0, 20], 'timeline clip expands to 20 seconds');
+  const root = wind.overrides.find((o) => o.at === ':root');
+  assert.equal(root.style['--clip-length'], '20s', 'iframe receives the actual timeline end');
+  const custom = applyOps(resized, [{ op: 'props', edits: [{ clip: 'wind', prop: 'overrides', value: [
+    { at: ':root', style: { '--clip-length': '20s', '--wind-duration': '2', '--wind-dissolve': '3' } },
+  ] }] }]);
+  assert.deepEqual(custom.tracks[0].clips[0].time, [0, 20], 'editing phase durations does not resize the timeline');
+  const shrunk = applyOps(custom, [{ op: 'props', edits: [{ clip: 'wind', prop: 'end', value: 8 }] }]);
+  assert.deepEqual(shrunk.tracks[0].clips[0].time, [0, 8]);
+  const vars = shrunk.tracks[0].clips[0].overrides.find((o) => o.at === ':root').style;
+  assert.equal(vars['--clip-length'], '8s');
+  assert.equal(vars['--wind-duration'], '2');
+  assert.equal(vars['--wind-dissolve'], '3');
+  assert.deepEqual(shrunk.tracks[0].clips[1].time, [0, 10.5], 'unrelated clips are unchanged');
 });
