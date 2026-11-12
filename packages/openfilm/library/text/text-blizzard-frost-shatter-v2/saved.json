@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "kind": "clip",
+  "clip": {
+    "src": "blizzard-frost-shatter.html",
+    "time": [
+      0,
+      7
+    ],
+    "attrs": {
+      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Total duration (s)\",\"type\":\"var\",\"var\":\"--clip-length\"},{\"name\":\"Appearance time (s)\",\"type\":\"var\",\"var\":\"--blizzard-in\"},{\"name\":\"Exit time (s)\",\"type\":\"var\",\"var\":\"--blizzard-out\"},{\"name\":\"Freeze intensity\",\"type\":\"var\",\"var\":\"--blizzard-intensity\"},{\"name\":\"Fracture\",\"type\":\"var\",\"var\":\"--blizzard-fracture\"},{\"name\":\"Particles\",\"type\":\"var\",\"var\":\"--blizzard-particles\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--blizzard-seed\"}]"
+    }
+  },
+  "durationMs": 7000
+}

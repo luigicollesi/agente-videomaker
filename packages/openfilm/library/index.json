@@ -4040,7 +4040,7 @@
    ]
   },
   {
-   "id": "text/text-blizzard-frost-shatter",
+   "id": "text/text-blizzard-frost-shatter-v2",
    "cat": "text",
    "group": "blizzard",
    "name": {
@@ -4053,7 +4053,7 @@
    "kind": "page",
    "durationMs": 7000,
    "src": "blizzard-frost-shatter.html",
-   "about": "Crystalline ice grows out of nothing to form an editable word, holds fully readable, then freezes deeper, cracks and shatters into drifting ice fragments and snow. Transparent procedural Canvas 2D animation, deterministic by absolute time.",
+   "about": "Blizzard V2: ice forms editable letters, holds for clip length minus appearance and exit times, then freezes and shatters. Inspector overrides are read before each frame; reimport this version to avoid project-cached legacy copies.",
    "tags": [
     "blizzard",
     "frost",
@@ -4065,8 +4065,13 @@
     "fracture",
     "particles",
     "text",
-    "cinematic"
-   ]
+    "cinematic",
+    "timeline-duration",
+    "editable-timing",
+    "override-aware",
+    "v2"
+   ],
+   "poster": "text/text-blizzard-frost-shatter-v2/poster.svg"
   },
   {
    "id": "text/gentle-breeze",

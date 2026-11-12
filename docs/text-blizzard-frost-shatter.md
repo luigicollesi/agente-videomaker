@@ -66,3 +66,11 @@ To verify the fix in a timeline clip: set total 10 seconds, appearance 1 second,
 The preset exposes `--clip-length` as an inspector property to activate OpenFilm's standard `fitClipLengths` synchronization in `studio/server/ops.mjs`.
 
 The updated engine was checked locally in Chromium for CSS length strings, multiple timelines, zero hold, Unicode text, arbitrary frame order/repeatability, and JavaScript exceptions. Full Studio Desktop integration and 4K performance should be checked separately. No other preset or editor pipeline code was changed.
+
+## Versioned import (Blizzard V2)
+
+OpenFilm's library importer copies a built-in bundle into each project at `saved/openfilm/<id>` **only once**. Even after updating the bundled HTML in the Git repository, a project that imported the original `text/text-blizzard-frost-shatter` still uses the old file. Reimporting the same id can reuse that stale copy.
+
+Therefore the active catalog entry is **`text/text-blizzard-frost-shatter-v2`** (same display name, new bundle directory and id), which forces a fresh import with the corrected `frameReadsOverrides: true` engine. The previous directory remains in the repository for compatibility; it is not the active library listing.
+
+**Existing clips in projects are not migrated automatically.** Remove/replace the old clip with the new item from **Text → Blizzard · Ice & snow → Blizzard — Frost Shatter** after updating the application's library files. Reapply the same text and timing settings. Importing the new library item guarantees distinct copied asset paths from the old version.
