@@ -455,10 +455,25 @@ export async function loginShellEnvironment(options = {}) {
 /** What scripts/start.mjs passes on to Electron besides the OS identity: this app's own switches. */
 export const LAUNCHER_FLAGS = ['OPENFILM_DESKTOP_FLAVOR', 'OPENFILM_DESKTOP_CAPTURE', 'OPENFILM_EXAMPLES_INDEX', 'OPENFILM_API_URL', 'ELECTRON_ENABLE_LOGGING', 'ELECTRON_ENABLE_STACK_DUMPING'];
 
-/** Electron's environment when run from source: the OS identity, the login shell's PATH, LAUNCHER_FLAGS. */
+/** Linux display-server and session-bus variables needed by Electron (X11 or Wayland). */
+export const LINUX_GRAPHICAL_KEYS = [
+  'DISPLAY', 'WAYLAND_DISPLAY', 'XDG_SESSION_TYPE', 'XDG_RUNTIME_DIR',
+  'DBUS_SESSION_BUS_ADDRESS', 'XAUTHORITY',
+];
+
+/**
+ * Electron's environment when run from source: OS identity, login shell PATH,
+ * launch flags and (on Linux) the graphical session. Do not forward arbitrary
+ * shell variables, especially coding-agent state and credentials.
+ */
 export function launcherEnvironment(source, path) {
   const env = osEnvironment(source);
   for (const key of LAUNCHER_FLAGS) if (typeof source[key] === 'string') env[key] = source[key];
+  if (process.platform === 'linux') {
+    for (const key of LINUX_GRAPHICAL_KEYS) {
+      if (typeof source[key] === 'string' && source[key]) env[key] = source[key];
+    }
+  }
   env.PATH = path || mergePath('', env.HOME ?? env.USERPROFILE);
   return env;
 }
