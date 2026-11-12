@@ -1,0 +1,65 @@
+{
+  "version": 2,
+  "skills": {
+    "scenario-asset-analysis": {
+      "source": "scenario-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/scenario-asset-analysis/SKILL.md",
+      "computedHash": "b085669c3edc939055015c7418d5d5d2b8047953a4854bb5fbac77f2db34d997"
+    },
+    "scenario-kinetic-music-video": {
+      "source": "scenario-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/scenario-kinetic-music-video/SKILL.md",
+      "computedHash": "bcbc44bd9ef840487ea56e8efa72247468856dabf17fcd3bd8230ec6aa664bc2"
+    },
+    "scenario-motion-loops": {
+      "source": "scenario-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/scenario-motion-loops/SKILL.md",
+      "computedHash": "96bd3188d708eee830ce7a500bd610b71147654cf1e65fc8fe2a0aadd6b62d6c"
+    },
+    "scenario-quality-gate": {
+      "source": "scenario-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/scenario-quality-gate/SKILL.md",
+      "computedHash": "5d6800c401d1ae7e501d4194494b777c9d48a262c61ac9cf403879bbecd9581e"
+    },
+    "scenario-refine-loop": {
+      "source": "scenario-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/scenario-refine-loop/SKILL.md",
+      "computedHash": "7d417da1fcf623689277dce42cdb5289357fecd5f5845fab76be55d4a40fccb3"
+    },
+    "scenario-seedance-music-video": {
+      "source": "scenario-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/scenario-seedance-music-video/SKILL.md",
+      "computedHash": "6940057d8e77c12503635fbb07725cefc5ebe9e36e6e9989f09ef60fb1ab83be"
+    },
+    "scenario-storyboards": {
+      "source": "scenario-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/scenario-storyboards/SKILL.md",
+      "computedHash": "9f1e32e5bd72705503efb1257de45b463b14fcf538a5622a29c383a492aa866a"
+    },
+    "scenario-video-assembly": {
+      "source": "scenario-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/scenario-video-assembly/SKILL.md",
+      "computedHash": "98cd27f70771c411a8ff0b73db3ba6835fe8e8a7315c759eef12b5998e424950"
+    },
+    "scenario-video-color-grade": {
+      "source": "scenario-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/scenario-video-color-grade/SKILL.md",
+      "computedHash": "f6a46dbff91f6531e3262e8d82b1ff499fdf5417e11a24521b725fafb832299d"
+    },
+    "scenario-video-editing": {
+      "source": "scenario-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/scenario-video-editing/SKILL.md",
+      "computedHash": "c952de82d6a54e7bdc18dd7fec7312a4bb38a36dd87860e2f6732bac3347b70a"
+    }
+  }
+}
