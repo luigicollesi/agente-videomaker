@@ -842,7 +842,7 @@ async function start() {
     menuLanguage = language;
     Menu.setApplicationMenu(Menu.buildFromTemplate(applicationMenuTemplate({
       language,
-      productName: PRODUCT_NAME,
+      productName: DISPLAY_NAME,
       packaged: app.isPackaged,
       toggleChat: () => activeView()?.webContents.send('desktop:toggle-chat'),
       openProject: () => void openProjectFolder(),
