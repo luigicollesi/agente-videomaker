@@ -56,3 +56,8 @@ export function flavorName(env = process.env, isPackaged = packaged, built = isP
 export const FLAVOR = flavorName();
 export const IDENTITY = FLAVOR === 'bench' ? BENCH : FLAVORS[FLAVOR];
 export const PRODUCT_NAME = IDENTITY.productName;
+
+/** Presentation only: never use this for paths, bundle IDs or application locks. */
+export const DISPLAY_NAME = FLAVOR === 'release' ? 'Agente Videomaker'
+  : FLAVOR === 'preview' ? 'Agente Videomaker Preview'
+  : FLAVOR === 'dev' ? 'Agente Videomaker Dev' : 'Agente Videomaker Bench';
