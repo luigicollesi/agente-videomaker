@@ -3881,7 +3881,7 @@
    "kind": "sound",
    "durationMs": 8000
   },
-  {
+    {
    "id": "text/spatial-rift",
    "cat": "text",
    "group": "title",
@@ -3894,12 +3894,12 @@
    },
    "kind": "page",
    "durationMs": 6600,
-   "src": "spatial-rift.html",
+   "src": "spatial-rift-timeline-v2.html",
    "poster": "text/spatial-rift/poster.svg",
    "w": 1600,
    "h": 390,
    "fit": 0.23,
-   "about": "A thin crooked rift tears open, an editable title emerges, the fissure closes for an automatic hold, then reopens to retrieve the title. Set total clip time, entry and exit durations independently; hue controls the entire glow and title material. Uses deterministic transparent Canvas 2D.",
+   "about": "A thin spatial rift opens, releases an editable title, closes during the timeline-controlled hold, then reopens for the exit. Resize the clip to change total duration; configure only Entrance time and Exit time. Portal hue and material accents stay adjustable. Deterministic transparent Canvas 2D.",
    "tags": [
     "spatial-rift",
     "portal",
