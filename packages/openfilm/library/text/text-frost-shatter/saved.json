@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "kind": "clip",
+  "clip": {
+    "src": "frost-shatter.html",
+    "time": [
+      0,
+      4
+    ],
+    "attrs": {
+      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Duration\",\"type\":\"var\",\"var\":\"--frost-duration\"},{\"name\":\"Freeze intensity\",\"type\":\"var\",\"var\":\"--frost-intensity\"},{\"name\":\"Fracture\",\"type\":\"var\",\"var\":\"--frost-fracture\"},{\"name\":\"Particles\",\"type\":\"var\",\"var\":\"--frost-particles\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--frost-seed\"}]"
+    }
+  },
+  "durationMs": 4000
+}
