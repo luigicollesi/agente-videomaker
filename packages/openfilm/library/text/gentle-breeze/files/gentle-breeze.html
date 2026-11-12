@@ -1,5 +1,5 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gentle Breeze — Organic Wind Lettering</title><style>
-:root{--clip-length:10.5s;--wind-duration:5.5;--wind-total:10.5;--wind-dissolve:3.2;--wind-intensity:1;--wind-particles:1;--wind-glow:1;--wind-seed:23;--wind-color:#e2f4f0;--wind-speed:1;--wind-direction:1}
+:root{--wind-duration:5.5;--wind-total:10.5;--wind-dissolve:3.2;--wind-intensity:1;--wind-particles:1;--wind-glow:1;--wind-seed:23;--wind-color:#e2f4f0;--wind-speed:1;--wind-direction:1}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}canvas{position:absolute;inset:0;width:100%;height:100%;display:block}.t{position:absolute;opacity:0;pointer-events:none;white-space:pre}
 </style></head><body><span class="t">BRISA</span><canvas id="c"></canvas><script>
 (()=>{'use strict';
@@ -48,7 +48,7 @@ function pointAt(d){let {path,lens,length}=layout;d=clamp(d,0,length);let lo=0,h
 function phases(){
  const total=P.total;
  // Hold is calculated, never stored. Preserve the exit duration if the configured times overlap.
- const exit=Math.min(P.dissolve,total);
+ const exit=Math.min(P.dissolve,total-.25);
  const entrance=Math.min(P.duration,Math.max(0,total-exit));
  return {total,entrance,exit,hold:Math.max(0,total-entrance-exit)};
 }
@@ -154,7 +154,7 @@ if(exiting){
 
 }
 function frame(t){refresh();draw(t)}
-function refresh(){let cs=getComputedStyle(document.documentElement),get=(n,v)=>cs.getPropertyValue(n).trim()||String(v),num=(n,v)=>{const raw=Number(get(n,v));return Number.isFinite(raw)?raw:v},txt=document.querySelector('.t').textContent||'BRISA';let next={...P,text:txt,duration:clamp(num('--wind-duration',P.duration),.5,20),total:clamp(num('--wind-total',P.total),.5,120),dissolve:clamp(num('--wind-dissolve',P.dissolve),.5,12),intensity:clamp(num('--wind-intensity',P.intensity),.1,3),particles:clamp(num('--wind-particles',P.particles),0,3),glow:clamp(num('--wind-glow',P.glow),0,3),seed:num('--wind-seed',P.seed),color:get('--wind-color',P.color),direction:num('--wind-direction',P.direction),speed:clamp(num('--wind-speed',P.speed),.2,2)};if(next.text!==P.text||next.direction!==P.direction)lastKey='';P=next}
+function refresh(){let cs=getComputedStyle(document.documentElement),get=(n,v)=>cs.getPropertyValue(n).trim()||String(v),num=(n,v)=>{const raw=Number(get(n,v));return Number.isFinite(raw)?raw:v},txt=document.querySelector('.t').textContent||'BRISA';let next={...P,text:txt,duration:clamp(num('--wind-duration',P.duration),.5,20),total:clamp(num('--wind-total',P.total),.5,120),dissolve:clamp(num('--wind-dissolve',P.dissolve),.5,12),intensity:clamp(num('--wind-intensity',P.intensity),.1,3),particles:clamp(num('--wind-particles',P.particles),0,3),glow:clamp(num('--wind-glow',P.glow),0,3),seed:num('--wind-seed',P.seed),color:get('--wind-color',P.color),direction:num('--wind-direction',P.direction),speed:clamp(num('--wind-speed',P.speed),.2,2)};if(next.text!==P.text||next.direction!==P.direction)lastKey='';P=next;if(window.film)window.film.duration=P.total}
 window.film={frame,duration:P.total};window.gentleBreeze=window.windThread={setParams(o){P={...P,...o};document.querySelector('.t').textContent=P.text;for(let [key,val] of Object.entries(o)){if(key!=='text'&&key!=='hold')document.documentElement.style.setProperty('--wind-'+key,val)}lastKey='';window.film.duration=P.total;frame(now)},getParams:()=>({...P}),frame};
 new ResizeObserver(()=>frame(now)).observe(canvas);new MutationObserver(()=>frame(now)).observe(document.querySelector('.t'),{childList:true,characterData:true,subtree:true});document.fonts?.ready.then(()=>frame(now));frame(0);
 if(!window.filmHost){let begin=performance.now();function loop(){frame((performance.now()-begin)/1000/(P.total)%1*(P.total));requestAnimationFrame(loop)}requestAnimationFrame(loop)}
