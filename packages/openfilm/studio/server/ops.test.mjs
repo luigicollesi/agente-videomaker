@@ -198,7 +198,7 @@ test('Gentle Breeze: timeline length is authoritative and keeps --clip-length in
   const film = {
     stage: { w: 1920, h: 1080 },
     tracks: [{ clips: [
-      { id: 'wind', src: 'saved/openfilm/text-gentle-breeze/gentle-breeze.html',
+      { id: 'wind', src: 'saved/openfilm/text-gentle-breeze/gentle-breeze-timeline.html',
         time: [0, 10.5], attrs: { 'data-props': props } },
       { id: 'other', src: 'another.html', time: [0, 10.5] },
     ] }],
