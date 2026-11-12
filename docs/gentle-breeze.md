@@ -1,29 +1,34 @@
 # Gentle Breeze — organic wind lettering
 
-Native OpenFilm text effect: **Text → Word art → Gentle Breeze**.
+Built-in OpenFilm text effect: **Text → Word art → Gentle Breeze**.
 
-A fine, luminous thread follows the letter contours, leaves the text gently visible, and then disperses it as filaments originating from the glyphs. Procedural Canvas 2D, transparent background and deterministic absolute-time rendering via `window.film.frame(t)`.
+A thin wind thread traces the letter silhouettes, leaves the completed word readable, then organically releases letter-born filaments into the breeze. Procedural Canvas 2D with transparent output and deterministic `window.film.frame(t)`.
 
-## Three timing controls
+## Timing: the timeline is the source of truth
 
-- **Entrance time** (`--wind-duration`, default **5.5 s**): how long the wind takes to draw the word.
-- **Total duration** (`--wind-total`, default **10.5 s**): the full effect length, including entrance, hold and exit. Editing this field in the Studio inspector also changes the clip's length on the timeline.
-- **Exit time** (`--wind-dissolve`, default **3.2 s**): how long the letters take to release their own filaments and disappear.
+Only **two animation timing parameters** appear in the inspector:
 
-**Hold = max(0, Total duration − Entrance time − Exit time)**. Defaults: 10.5 − 5.5 − 3.2 = **1.8 seconds**.
+- **Entrance time** (`--wind-duration`, default **5.5 s**): how long it takes the wind to write the word.
+- **Exit time** (`--wind-dissolve`, default **3.2 s**): how long the word takes to unravel.
 
-If Entrance + Exit exceeds Total, the engine preserves the exit interval and shortens the entrance to avoid clipping. Prefer configuring Total at least as long as Entrance + Exit. The clip timeline is resized when **Total duration** is edited; manually resizing an existing clip does not change its configured total.
+**Total duration = the actual timeline clip length**, not a separate user-editable parameter. **Hold = max(0, clip length − entrance − exit)**.
 
-The former independent Hold field was removed. The previous hidden `--clip-length` proportional speedup was also removed, so setting entrance or exit independently never silently scales both phases.
+For a 20-second timeline clip, entrance 2 s and exit 3 s, the effect remains fully visible for 15 s before the exit runs from 17 s through 20 s. For a 10.5-second clip with the default phase times, hold is 1.8 s.
 
-Other parameters: **Text**, **Intensity**, **Particles**, **Glow**, **Color**, **Speed**, **Direction** and **Seed**.
+If entrance plus exit exceed the clip's duration, the shorter timeline interval is prioritized: exit time is preserved as far as possible and entrance is shortened. This is a fallback only; set a clip duration of at least entrance + exit for precise timing.
 
-## Implementation
+The effect reads **`--clip-length`** (seconds in CSS syntax, such as `20s`) supplied by OpenFilm. This property is listed in `data-props` so Studio's standard `fitClipLengths` mechanism keeps it synchronized with `clip.time`, but the inspector hides this technical variable: resize the clip directly on the timeline.
 
-The OpenFilm library uses `saved.json` and HTML assets in `files/`. The Studio server synchronizes the clip's end when `--wind-total` changes in this specific built-in effect. This is intentionally limited to Gentle Breeze and does not affect other text effects.
+The asset declares **`frameReadsOverrides: true`**: the host must apply root CSS variables and text before drawing the requested timestamp. The asset's `film.duration` getter also returns its timeline duration.
 
-No external media or third-party dependencies.
+Other user-editable controls: Text, Intensity, Particles, Glow, Color, Speed, Direction, and Seed.
 
-## Verification
+## Integration notes
 
-Chromium isolated animation tests cover default timing, a 20-second total with extended hold, customized faster entrance and exit, total shorter than their requested sum, Unicode text, transparent final frame, out-of-order frame repeatability, and absence of browser errors. Full Desktop integration and repository-wide pnpm tests require checking in the complete project environment.
+- The library bundle initially inserts a 10.5-second clip (`saved.json`, `time:[0,10.5]`), but this is a default, **not a maximum**.
+- Studio does not automatically replace an already-copied effect HTML in an existing project. If that project imported an older Gentle Breeze, its local `saved/openfilm/text-gentle-breeze/gentle-breeze.html` may still have the old behavior even after updating OpenFilm. Test in a new project or deliberately update the old copy while preserving customizations.
+- The obsolete Gentle Breeze-only server patch that resized clips when changing `--wind-total` was removed. The standard timeline mechanisms now own all clip-length changes.
+
+## Verification targets
+
+Test the isolated HTML using the supplied `--clip-length` property and simulate the host applying overrides before `frame(t)`. Verify a 20-second clip with 2-second entrance and 3-second exit at t=1, t=10, t=17, t=19, and t=20; test out-of-order frame reproducibility. Add server regression tests that assert changing `clip.time` from 10.5 to 20 updates `--clip-length`, without changing any unrelated effect. Run repository-wide tests and check Desktop preview and rendered output before production release.
