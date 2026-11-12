@@ -264,16 +264,16 @@ test("the person's own proxy wins over the system's; with none, the system's is 
 
 test('Linux desktop launcher inherits the graphical session without leaking unrelated shell variables', { skip: process.platform !== 'linux' }, () => {
   const source = {
-    HOME: '/home/tester',
+    HOME: '/tmp/tester',
     USER: 'tester',
     DISPLAY: ':0',
     WAYLAND_DISPLAY: 'wayland-0',
     XDG_SESSION_TYPE: 'wayland',
     XDG_RUNTIME_DIR: '/run/user/1000',
     DBUS_SESSION_BUS_ADDRESS: 'unix:path=/run/user/1000/bus',
-    XAUTHORITY: '/home/tester/.Xauthority',
+    XAUTHORITY: '/tmp/tester/.Xauthority',
     OPENFILM_DESKTOP_FLAVOR: 'dev',
-    CODEX_HOME: '/home/tester/.codex',
+    CODEX_HOME: '/tmp/tester/.codex',
     GITHUB_TOKEN: 'should-not-leak',
     ELECTRON_RUN_AS_NODE: '1',
   };
@@ -287,7 +287,7 @@ test('Linux desktop launcher inherits the graphical session without leaking unre
   assert.equal(env.CODEX_HOME, undefined);
   assert.equal(env.ELECTRON_RUN_AS_NODE, undefined);
 
-  const empty = launcherEnvironment({ HOME: '/home/tester', DISPLAY: '', WAYLAND_DISPLAY: '' }, '/usr/bin');
+  const empty = launcherEnvironment({ HOME: '/tmp/tester', DISPLAY: '', WAYLAND_DISPLAY: '' }, '/usr/bin');
   assert.equal(empty.DISPLAY, undefined);
   assert.equal(empty.WAYLAND_DISPLAY, undefined);
 });
