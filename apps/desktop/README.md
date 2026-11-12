@@ -1,25 +1,22 @@
-# OpenFilm for desktop
+# Agente Videomaker — aplicativo desktop
 
-Studio, with a chat beside it for Claude Code, Codex and the other agents, as an Electron app.
+Aplicativo Electron baseado no Studio do OpenFilm, com chat lateral para Codex, Claude Code e outros agentes. Este fork personaliza **a apresentação visual**, preservando os identificadores internos, o formato de projetos e o mecanismo de edição.
 
-## Run from source
+## Desenvolvimento
 
-```sh
-npm start            # builds the window's page, then runs the app as "OpenFilm Dev"
-npm test
-npm run typecheck
+Na raiz do monorepositório:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev:desktop
+pnpm typecheck
+pnpm test
 ```
 
-`node bench/media-menu.test.mjs` builds and checks empty and populated media-pane menus in an isolated Electron app, with file pickers cancelled.
+O nome de exibição no Electron é **Agente Videomaker Dev**. Para manter a compatibilidade das configurações, as pastas internas de dados e as dependências ainda preservam os identificadores técnicos `openfilm`.
 
-Run from source, the app is its own "OpenFilm Dev": its own name, data folder, Studio home and port, so it never
-shares anything with an installed OpenFilm. Its renamed copy of Electron lives in `.dev/` (git-ignored).
+As builds e os instaladores existentes ainda usam parte dos recursos originais. Não confunda o nome exibido na interface com o nome de um binário ou pacote publicado.
 
-Codex, Claude Code, the other agents, your own key, and Studio with your own media keys all work.
+## Créditos
 
-## Builds
-
-`npm run release` builds the app into `.release/` (git-ignored). Without `OPENFILM_SIGN_IDENTITY` and `APPLE_TEAM_ID`
-it is unsigned. Like a run from source, it never looks for updates: the feed comes from the `openfilm` package's
-`product.json`, empty in the repository. Official builds, signed, notarized and
-published, are produced by the project's release pipeline; see TRADEMARK.md before distributing a build of your own.
+Este é um fork independente de [OpenFilm](https://github.com/openfilm/openfilm). Consulte as licenças e avisos de terceiros existentes no repositório.
