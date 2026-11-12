@@ -4040,7 +4040,7 @@
    ]
   },
   {
-   "id": "text/text-blizzard-frost-shatter-v2",
+   "id": "text/text-blizzard-frost-shatter-v3",
    "cat": "text",
    "group": "blizzard",
    "name": {
@@ -4051,9 +4051,9 @@
     "es": "Ventisca — Fractura helada"
    },
    "kind": "page",
-   "durationMs": 7000,
-   "src": "blizzard-frost-shatter.html",
-   "about": "Blizzard V2: ice forms editable letters, holds for clip length minus appearance and exit times, then freezes and shatters. Inspector overrides are read before each frame; reimport this version to avoid project-cached legacy copies.",
+   "durationMs": 10500,
+   "src": "blizzard-frost-shatter-unbounded.html",
+   "about": "Unbounded timeline-native frost lettering: adjustable entrance and exit, automatically derived hold, ice fracture and snow. Reads clip overrides before rendering; the clip can be extended beyond its default duration.",
    "tags": [
     "blizzard",
     "frost",
@@ -4069,9 +4069,12 @@
     "timeline-duration",
     "editable-timing",
     "override-aware",
-    "v2"
+    "v2",
+    "unbounded",
+    "timeline-managed",
+    "entrance-exit"
    ],
-   "poster": "text/text-blizzard-frost-shatter-v2/poster.svg"
+   "poster": "text/text-blizzard-frost-shatter-v3/poster.svg"
   },
   {
    "id": "text/gentle-breeze",
