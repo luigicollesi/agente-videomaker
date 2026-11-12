@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "kind": "clip",
+  "clip": {
+    "src": "spatial-rift.html",
+    "time": [
+      0,
+      6.6
+    ],
+    "attrs": {
+      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Total duration (s)\",\"type\":\"var\",\"var\":\"--rift-total\"},{\"name\":\"Entry duration (s)\",\"type\":\"var\",\"var\":\"--rift-entry\"},{\"name\":\"Exit duration (s)\",\"type\":\"var\",\"var\":\"--rift-exit\"},{\"name\":\"Portal hue (0–359)\",\"type\":\"var\",\"var\":\"--rift-color\"},{\"name\":\"Glow\",\"type\":\"var\",\"var\":\"--rift-glow\"},{\"name\":\"Opening\",\"type\":\"var\",\"var\":\"--rift-opening\"},{\"name\":\"Particles\",\"type\":\"var\",\"var\":\"--rift-particles\"},{\"name\":\"Text size\",\"type\":\"var\",\"var\":\"--rift-text-size\"},{\"name\":\"Shadow\",\"type\":\"var\",\"var\":\"--rift-shadow\"},{\"name\":\"Outline\",\"type\":\"var\",\"var\":\"--rift-outline\"},{\"name\":\"Softness\",\"type\":\"var\",\"var\":\"--rift-softness\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--rift-seed\"}]"
+    }
+  },
+  "durationMs": 6600
+}
