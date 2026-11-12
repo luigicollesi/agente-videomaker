@@ -4,7 +4,7 @@
 const definitions = {
   codex: { name: 'Codex', install: 'https://chatgpt.com/download/' },
   claude: { name: 'Claude Code', install: 'https://claude.com/download' },
-  openfilm: { name: 'OpenFilm', install: null },
+  openfilm: { name: 'Agente Videomaker (OpenFilm)', install: null },
   copilot: { name: 'GitHub Copilot', install: 'https://github.com/features/copilot/cli' },
   cursor: { name: 'Cursor', install: 'https://cursor.com/cli' },
   opencode: { name: 'OpenCode', install: 'https://opencode.ai/download' },
