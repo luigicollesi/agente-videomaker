@@ -1,4 +1,5 @@
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { EditError, applyOps } from './ops.mjs';
 
@@ -219,4 +220,36 @@ test('Gentle Breeze: timeline length is authoritative and keeps --clip-length in
   assert.equal(vars['--wind-duration'], '2');
   assert.equal(vars['--wind-dissolve'], '3');
   assert.deepEqual(shrunk.tracks[0].clips[1].time, [0, 10.5], 'unrelated clips are unchanged');
+});
+
+
+test('Spatial Rift: timeline clip controls hold and preserved phase durations', () => {
+  const saved = JSON.parse(readFileSync(new URL('../../library/text/spatial-rift/saved.json', import.meta.url), 'utf8'));
+  const props = JSON.parse(saved.clip.attrs['data-props']);
+  assert.equal(saved.clip.src, 'spatial-rift-timeline-v2.html');
+  assert.equal(props.filter((p) => p.var === '--clip-length').length, 1);
+  assert.deepEqual(props.filter((p) => /--rift-(entry|exit|total)$/.test(p.var ?? '')).map((p) => p.var),
+    ['--rift-entry', '--rift-exit']);
+  const original = {
+    stage: { w: 800, h: 450 },
+    tracks: [{ clips: [{ id: 'rift', src: saved.clip.src, time: [0, 10.5], attrs: saved.clip.attrs,
+      overrides: [{ at: ':root', style: { '--rift-entry': '2', '--rift-exit': '3' } }] }] }],
+  };
+  for (const length of [8, 10.5, 20]) {
+    const next = applyOps(structuredClone(original),
+      [{ op: 'props', edits: [{ clip: 'rift', prop: 'end', value: length }] }]);
+    const clip = next.tracks[0].clips[0];
+    const vars = clip.overrides.find((o) => o.at === ':root').style;
+    assert.equal(vars['--clip-length'], `${length}s`);
+    assert.equal(vars['--rift-entry'], '2');
+    assert.equal(vars['--rift-exit'], '3');
+    assert.deepEqual(clip.time, [0, length]);
+  }
+  const full = applyOps(structuredClone(original),
+    [{ op: 'props', edits: [{ clip: 'rift', prop: 'end', value: 20 }] }]);
+  const divided = applyOps(full, [{ op: 'split', clip: 'rift',
+    left: { end: 9 }, right: { at: 9, start: 9 } }]);
+  const halves = divided.tracks[0].clips;
+  assert.equal(halves.length, 2);
+  assert.deepEqual(halves.map((c) => c.overrides.find((o) => o.at === ':root').style['--clip-length']), ['9s', '20s']);
 });
