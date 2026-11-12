@@ -48,7 +48,7 @@ function refresh(){
   P=next;window.film.duration=P.duration;
  }
 }
-window.film={duration:P.duration,frame(t){refresh();draw(t)}};window.blizzard={frame(t){window.film.frame(t)},getParams:()=>({...P,...getStage()})};new MutationObserver(()=>window.film.frame(current)).observe(document.documentElement,{attributes:true,attributeFilter:['style']});new MutationObserver(()=>window.film.frame(current)).observe(document.querySelector('.t'),{characterData:true,childList:true,subtree:true});new ResizeObserver(()=>window.film.frame(current)).observe(canvas);document.fonts?.ready.then(()=>window.film.frame(current));window.film.frame(0);if(!window.filmHost){const started=performance.now();function loop(now){window.film.frame((now-started)/1000%P.duration);requestAnimationFrame(loop)}requestAnimationFrame(loop)}
+window.film={duration:P.duration,frameReadsOverrides:true,frame(t){refresh();draw(t)}};window.blizzard={frame(t){window.film.frame(t)},getParams:()=>({...P,...getStage()})};new MutationObserver(()=>window.film.frame(current)).observe(document.documentElement,{attributes:true,attributeFilter:['style']});new MutationObserver(()=>window.film.frame(current)).observe(document.querySelector('.t'),{characterData:true,childList:true,subtree:true});new ResizeObserver(()=>window.film.frame(current)).observe(canvas);document.fonts?.ready.then(()=>window.film.frame(current));window.film.frame(0);if(!window.filmHost){const started=performance.now();function loop(now){window.film.frame((now-started)/1000%P.duration);requestAnimationFrame(loop)}requestAnimationFrame(loop)}
 })();
 
 </script></body></html>
