@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "productName": "OpenFilm",
-  "description": "OpenFilm for desktop: Studio, with a chat beside it for Claude Code and Codex.",
+  "description": "Agente Videomaker: editor de vídeo com agentes Codex e Claude Code, baseado em OpenFilm.",
   "main": "src/main.mjs",
   "scripts": {
     "start": "node scripts/start.mjs",
