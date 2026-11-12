@@ -3,8 +3,8 @@ import type { Language } from '@/i18n';
 /** Public destinations used by the app menu. */
 export const PRODUCT_LINKS = {
   docs: 'https://openfilm.dev/docs/',
-  github: 'https://github.com/openfilm/openfilm',
-  feedback: 'https://github.com/openfilm/openfilm/issues/new/choose',
+  github: 'https://github.com/luigicollesi/agente-videomaker',
+  feedback: 'https://github.com/luigicollesi/agente-videomaker/issues/new/choose',
 } as const;
 
 export function communityChannels(language: Language) {
