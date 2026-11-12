@@ -503,7 +503,7 @@ function applyProps(/** @type {FilmValue} */ value, /** @type {PropEdit[]} */ ed
       continue;
     }
     const isGentleBreeze = e.prop === 'overrides' &&
-      /(?:^|\\/)gentle-breeze\\.html(?:#.*)?$/.test(at.clip.src);
+      /(?:^|\/)gentle-breeze\.html(?:#.*)?$/.test(at.clip.src);
     const beforeTotal = isGentleBreeze ? gentleBreezeTotal(at.clip) : null;
     setField(at.clip, e.prop, snapTime(e.prop, e.value));
     if (isGentleBreeze) {
