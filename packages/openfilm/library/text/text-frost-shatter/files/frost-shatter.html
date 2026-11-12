@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OpenFilm — Frost Shatter</title>
+<style>
+:root{--frost-duration:4;--frost-intensity:1;--frost-fracture:1;--frost-particles:1;--frost-seed:42}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
+canvas{display:block;width:100%;height:100%}
+.t{position:absolute;opacity:0;pointer-events:none;white-space:pre}
+</style></head><body><span class="t">CONGELADO</span><canvas id="view"></canvas><script>
+(()=>{'use strict';
+const canvas=document.querySelector('#view'),ctx=canvas.getContext('2d',{alpha:true});
+const mask=document.createElement('canvas'),mc=mask.getContext('2d',{willReadFrequently:true});
+const ice=document.createElement('canvas'),ic=ice.getContext('2d',{willReadFrequently:true});
+const clamp=(a,l=0,h=1)=>Math.max(l,Math.min(h,a)),mix=(a,b,x)=>a+(b-a)*x,smooth=(a,b,x)=>{let t=clamp((x-a)/(b-a));return t*t*(3-2*t)},fract=x=>x-Math.floor(x);
+const hash=(a,b=0,s=0)=>fract(Math.sin(a*127.1+b*311.7+s*74.7)*43758.5453);
+const fractal=(x,y,s)=>{let v=0,amp=.57;for(let i=0;i<4;i++){let xx=Math.floor(x),yy=Math.floor(y),fx=fract(x),fy=fract(y);fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);let q=mix(mix(hash(xx,yy,s+i*19),hash(xx+1,yy,s+i*19),fx),mix(hash(xx,yy+1,s+i*19),hash(xx+1,yy+1,s+i*19),fx),fy);v+=q*amp;amp*=.49;x*=2.09;y*=2.09}return v};
+let P={text:'CONGELADO',duration:4,intensity:1,fracture:1,particles:1,seed:42},current=0,key='',geo=null;
+function dimensions(){let r=canvas.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1),w=Math.max(16,Math.round(r.width*d)),h=Math.max(16,Math.round(r.height*d));if(w!==canvas.width||h!==canvas.height){canvas.width=w;canvas.height=h;key=''}return [w,h]}
+function rebuild(){
+let [w,h]=dimensions(),next=[w,h,P.text,P.seed].join('|');if(next===key)return;key=next;
+mask.width=ice.width=w;mask.height=ice.height=h;
+let units=[...new Intl.Segmenter('pt-BR',{granularity:'grapheme'}).segment(P.text||'GELO')].map(x=>x.segment),fs=h*.39;
+mc.font='900 '+fs+"px Impact,'Arial Black',sans-serif";
+let widths=units.map(c=>mc.measureText(c).width),total=widths.reduce((a,b)=>a+b,0);
+fs*=Math.min(1,w*.84/Math.max(total,1));mc.font='900 '+fs+"px Impact,'Arial Black',sans-serif";
+widths=units.map(c=>mc.measureText(c).width);total=widths.reduce((a,b)=>a+b,0);
+let x=(w-total)/2,cy=h*.51;mc.clearRect(0,0,w,h);mc.fillStyle='white';mc.textBaseline='middle';
+for(let i=0;i<units.length;i++){if(units[i].trim())mc.fillText(units[i],x,cy);x+=widths[i]}
+let alpha=mc.getImageData(0,0,w,h).data,output=ic.createImageData(w,h),data=output.data;
+for(let y=0;y<h;y++)for(let x=0;x<w;x++){let k=(y*w+x)*4;if(alpha[k+3]<3)continue;
+let n=fractal(x/33,y/30,P.seed),v=fractal(x/6,y/7,P.seed+21);
+let veins=Math.pow(1-Math.abs(Math.sin(x*.065+y*.15+n*12)),19),glint=Math.pow(1-Math.abs(Math.sin(x*.38-y*.25+n*7)),46);
+let lum=clamp(.19+.5*n+.18*v+.22*veins+.2*glint);
+data[k]=Math.round(45+120*lum);data[k+1]=Math.round(112+135*lum);data[k+2]=Math.round(167+88*lum);data[k+3]=alpha[k+3]}
+ic.putImageData(output,0,0);
+let shards=[],minx=(w-total)/2,maxx=minx+total,top=cy-fs*.61,bottom=cy+fs*.57;
+let cols=Math.max(13,Math.round(total/30)),rows=Math.max(3,Math.round(fs/28)),grid=[];
+for(let j=0;j<=rows;j++){grid[j]=[];for(let i=0;i<=cols;i++){
+let xx=mix(minx,maxx,i/cols)+(i===0||i===cols?0:(hash(i,j,P.seed)-.5)*total/cols*.65);
+let yy=mix(top,bottom,j/rows)+(j===0||j===rows?0:(hash(j,i,P.seed+8)-.5)*fs/rows*.7);grid[j][i]=[xx,yy]}}
+let idx=0;
+for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+let a=grid[j][i],b=grid[j][i+1],c=grid[j+1][i+1],d=grid[j+1][i];
+for(let tri of [[a,b,c],[a,c,d]]){
+let cx=tri.reduce((v,p)=>v+p[0],0)/3,cyy=tri.reduce((v,p)=>v+p[1],0)/3;
+shards.push({poly:tri,cx,cy:cyy,dx:(cx-w*.5)/w+(.5-hash(idx,4,P.seed)),dy:(cyy-h*.52)/h+(.5-hash(idx,8,P.seed))*.8,spin:(hash(idx,7,P.seed)-.5)*1.8,delay:hash(idx,9,P.seed)*.24});idx++}}
+geo={w,h,fs,cy,minx,maxx,shards};
+}
+function poly(c,p){c.beginPath();c.moveTo(...p[0]);for(let i=1;i<p.length;i++)c.lineTo(...p[i]);c.closePath()}
+function draw(t){
+current=clamp(Number(t)||0,0,P.duration);rebuild();
+let {w,h,fs,cy,minx,maxx,shards}=geo,f=clamp(current/P.duration),frost=smooth(.03,.56,f),breakup=smooth(.54,.86,f),fade=1-smooth(.87,1,f);
+ctx.clearRect(0,0,w,h);
+ctx.save();ctx.shadowColor='#39c9ff';ctx.shadowBlur=fs*.20*frost;ctx.globalAlpha=.75*frost*(1-breakup);ctx.drawImage(ice,0,0);ctx.restore();
+ctx.save();ctx.globalAlpha=frost*(1-breakup);ctx.drawImage(ice,0,0);ctx.restore();
+if(breakup>0)for(let s of shards){
+let p=smooth(s.delay,1,smooth(.49,.98,f));if(p<=0)continue;
+let travel=fs*1.9*P.fracture*p*p,x=s.dx*travel,y=s.dy*travel+fs*.55*p*p,a=(1-smooth(.72,1,p))*fade;
+ctx.save();ctx.globalAlpha=a;ctx.translate(x,y);ctx.translate(s.cx,s.cy);ctx.rotate(s.spin*p*1.4);ctx.translate(-s.cx,-s.cy);
+poly(ctx,s.poly);ctx.clip();ctx.drawImage(ice,0,0);ctx.strokeStyle='rgba(206,247,255,.17)';ctx.lineWidth=Math.max(.8,w/950);poly(ctx,s.poly);ctx.stroke();ctx.restore()}
+let crack=smooth(.37,.74,f)*(1-smooth(.74,.94,f));
+ctx.save();ctx.globalAlpha=crack;ctx.lineCap='round';
+for(let s of shards){if(hash(s.cx,s.cy,P.seed)<.47)continue;ctx.strokeStyle='rgba(217,250,255,.17)';ctx.lineWidth=Math.max(.45,fs*.006);ctx.shadowBlur=fs*.06;ctx.shadowColor='#5aeaff';ctx.beginPath();ctx.moveTo(...s.poly[0]);ctx.lineTo(...s.poly[1]);ctx.stroke()}ctx.restore();
+ctx.save();for(let i=0;i<85;i++){
+let born=hash(i,2,P.seed)*.35+.05,life=smooth(born,born+.19,f)*(1-smooth(.58,.82,f));if(life<=0)continue;
+let x=mix(minx,maxx,hash(i,3,P.seed)),y=cy+(hash(i,4,P.seed)-.5)*fs*.88,angle=-Math.PI*.5+(hash(i,8,P.seed)-.5)*2.6;
+let length=fs*(.10+.35*hash(i,7,P.seed))*life*P.intensity,xx=x+Math.cos(angle)*length,yy=y+Math.sin(angle)*length;
+ctx.strokeStyle='rgba(126,225,255,'+(life*.24)+')';ctx.lineWidth=Math.max(.5,fs*.008);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();
+for(let k=1;k<=3;k++){let bx=mix(x,xx,k/4),by=mix(y,yy,k/4),bl=length*.23;ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx+Math.cos(angle+.8)*bl,by+Math.sin(angle+.8)*bl);ctx.moveTo(bx,by);ctx.lineTo(bx+Math.cos(angle-.8)*bl,by+Math.sin(angle-.8)*bl);ctx.stroke()}}
+ctx.restore();
+ctx.save();ctx.globalCompositeOperation='screen';
+for(let i=0;i<Math.round(260*P.particles);i++){
+let r=hash(i,5,P.seed),born=hash(i,1,P.seed)*P.duration*.78,age=current-born;if(age<0)continue;
+let px=mix(minx,maxx,hash(i,4,P.seed)),py=cy+(hash(i,8,P.seed)-.5)*fs*.75;
+let vx=(hash(i,6,P.seed)-.5)*fs*(.3+1.7*breakup),vy=-(.1+.75*hash(i,7,P.seed))*fs,displacement=age*age*(breakup*.7+.1);
+px+=vx*displacement+Math.sin(age*4+i)*4;py+=vy*displacement+fs*.15*age*age*breakup;
+let opacity=(1-smooth(.6,2.3,age))*(.25+.7*frost)*fade;if(opacity<=0)continue;
+let rr=(.5+2.5*r)*w/1050;
+ctx.fillStyle='rgba('+(r>.8?'234,251,255':'96,213,255')+','+opacity+')';ctx.shadowColor='#66dfff';ctx.shadowBlur=rr*6;ctx.fillRect(px,py,rr,rr)}
+ctx.restore();
+let flash=(1-smooth(.60,.67,f))*smooth(.56,.62,f);
+if(flash>0){ctx.save();ctx.globalCompositeOperation='screen';let g=ctx.createRadialGradient(w*.5,cy,0,w*.5,cy,fs*2.4);g.addColorStop(0,'rgba(155,240,255,'+(flash*.20)+')');g.addColorStop(1,'rgba(155,240,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);ctx.restore()}
+}
+function refresh(){
+const style=getComputedStyle(document.documentElement),number=(n,f,a,b)=>{let v=Number(style.getPropertyValue(n));return clamp(Number.isFinite(v)&&style.getPropertyValue(n).trim()?v:f,a,b)};
+let p={text:document.querySelector('.t').textContent||'GELO',duration:number('--frost-duration',4,.5,20),intensity:number('--frost-intensity',1,.1,3),fracture:number('--frost-fracture',1,0,3),particles:number('--frost-particles',1,0,3),seed:Math.round(number('--frost-seed',42,0,99999))};
+if(Object.keys(p).some(k=>P[k]!==p[k])){if(P.text!==p.text||P.seed!==p.seed)key='';P=p;window.film.duration=P.duration}}
+window.film={frame(t){refresh();draw(t)},duration:P.duration};
+window.frostShatter={frame:t=>window.film.frame(t),getParams:()=>({...P})};
+new MutationObserver(()=>window.film.frame(current)).observe(document.documentElement,{attributes:true,attributeFilter:['style']});
+new MutationObserver(()=>window.film.frame(current)).observe(document.querySelector('.t'),{characterData:true,childList:true,subtree:true});
+new ResizeObserver(()=>window.film.frame(current)).observe(canvas);
+document.fonts?.ready.then(()=>window.film.frame(current));
+window.film.frame(0);
+if(!window.filmHost){let start=performance.now();function loop(n){window.film.frame((n-start)/1000%P.duration);requestAnimationFrame(loop)}requestAnimationFrame(loop)}
+})();
+</script></body></html>
