@@ -255,6 +255,16 @@
      "ko": "자막",
      "es": "Subtítulos"
     }
+   },
+   {
+    "id": "burn",
+    "name": {
+     "en": "Fire & ash",
+     "zh-CN": "火焰与灰烬",
+     "ja": "炎と灰",
+     "ko": "불꽃과 재",
+     "es": "Fuego y ceniza"
+    }
    }
   ],
   "sticker": [
@@ -3860,6 +3870,96 @@
    },
    "kind": "sound",
    "durationMs": 8000
+  },
+  {
+   "id": "text/text-burn-forge",
+   "cat": "text",
+   "group": "burn",
+   "name": {
+    "en": "Burn in — Forge",
+    "zh-CN": "Burn in — Forge",
+    "ja": "Burn in — Forge",
+    "ko": "Burn in — Forge",
+    "es": "Burn in — Forge"
+   },
+   "kind": "page",
+   "durationMs": 3000,
+   "src": "text-burn-forge.html",
+   "poster": "text/text-burn-forge/poster.svg",
+   "w": 1600,
+   "h": 390,
+   "fit": 0.23,
+   "about": "Burning letters progressively reveal the editable text with hot edges, sparks and smoke.",
+   "tags": [
+    "burn",
+    "fire",
+    "cinematic",
+    "typography",
+    "editable",
+    "lyrics",
+    "embers",
+    "forge"
+   ]
+  },
+  {
+   "id": "text/text-burn-letters",
+   "cat": "text",
+   "group": "burn",
+   "name": {
+    "en": "Burn letters",
+    "zh-CN": "Burn letters",
+    "ja": "Burn letters",
+    "ko": "Burn letters",
+    "es": "Burn letters"
+   },
+   "kind": "page",
+   "durationMs": 3000,
+   "src": "text-burn-letters.html",
+   "poster": "text/text-burn-letters/poster.svg",
+   "w": 1600,
+   "h": 390,
+   "fit": 0.23,
+   "about": "Each grapheme burns on its own onset, ideal for escalating lyric typography.",
+   "tags": [
+    "burn",
+    "fire",
+    "cinematic",
+    "typography",
+    "editable",
+    "lyrics",
+    "embers",
+    "letters"
+   ]
+  },
+  {
+   "id": "text/text-burn-ash",
+   "cat": "text",
+   "group": "burn",
+   "name": {
+    "en": "Burn out — Ash",
+    "zh-CN": "Burn out — Ash",
+    "ja": "Burn out — Ash",
+    "ko": "Burn out — Ash",
+    "es": "Burn out — Ash"
+   },
+   "kind": "page",
+   "durationMs": 3000,
+   "src": "text-burn-ash.html",
+   "poster": "text/text-burn-ash/poster.svg",
+   "w": 1600,
+   "h": 390,
+   "fit": 0.23,
+   "about": "Disintegrate editable letters into ash and airborne embers.",
+   "tags": [
+    "burn",
+    "fire",
+    "cinematic",
+    "typography",
+    "editable",
+    "lyrics",
+    "embers",
+    "ash"
+   ]
   }
  ]
 }
