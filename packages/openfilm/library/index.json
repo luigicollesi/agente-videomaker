@@ -265,6 +265,16 @@
      "ko": "불꽃과 재",
      "es": "Fuego y ceniza"
     }
+   },
+   {
+    "id": "ice",
+    "name": {
+     "en": "Ice & fracture",
+     "zh-CN": "冰与碎裂",
+     "ja": "氷と破砕",
+     "ko": "얼음과 파쇄",
+     "es": "Hielo y fractura"
+    }
    }
   ],
   "sticker": [
@@ -3959,6 +3969,32 @@
     "lyrics",
     "embers",
     "ash"
+   ]
+  },
+  {
+   "id": "text/text-frost-shatter",
+   "cat": "text",
+   "group": "ice",
+   "name": {
+    "en": "Frost Shatter",
+    "zh-CN": "冰冻碎裂",
+    "ja": "フロストシャッター",
+    "ko": "프로스트 셰터",
+    "es": "Congelación y fractura"
+   },
+   "kind": "page",
+   "durationMs": 4000,
+   "src": "frost-shatter.html",
+   "about": "Editable text freezes into luminous crystalline ice, forms cracks, then bursts into rotating fragments and frost particles. Procedural alpha compositing; deterministic absolute-time playback.",
+   "tags": [
+    "frost",
+    "ice",
+    "freeze",
+    "shatter",
+    "fracture",
+    "particles",
+    "text",
+    "cinematic"
    ]
   }
  ]
