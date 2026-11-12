@@ -8,7 +8,7 @@
       3
     ],
     "attrs": {
-      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Intensity\",\"type\":\"var\",\"var\":\"--burn-intensity\"},{\"name\":\"Embers\",\"type\":\"var\",\"var\":\"--burn-embers\"},{\"name\":\"Duration\",\"type\":\"var\",\"var\":\"--burn-duration\"},{\"name\":\"Letter stagger\",\"type\":\"var\",\"var\":\"--burn-stagger\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--burn-seed\"}]"
+      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Intensity\",\"type\":\"var\",\"var\":\"--burn-intensity\"},{\"name\":\"Embers\",\"type\":\"var\",\"var\":\"--burn-embers\"},{\"name\":\"Legacy duration\",\"type\":\"var\",\"var\":\"--burn-duration\"},{\"name\":\"Burn In (s)\",\"type\":\"var\",\"var\":\"--burn-in-duration\"},{\"name\":\"Burn Out (s)\",\"type\":\"var\",\"var\":\"--burn-out-duration\"},{\"name\":\"Clip length (s)\",\"type\":\"var\",\"var\":\"--burn-clip-length\"},{\"name\":\"Final color\",\"type\":\"var\",\"var\":\"--burn-final-color\"},{\"name\":\"Letter stagger\",\"type\":\"var\",\"var\":\"--burn-stagger\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--burn-seed\"}]"
     }
   },
   "durationMs": 3000

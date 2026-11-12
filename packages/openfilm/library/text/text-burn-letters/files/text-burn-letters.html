@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Agente Videomaker — Burn Letters</title>
 <style>
-:root { --burn-mode:letters; --burn-intensity:1; --burn-embers:1; --burn-duration:3; --burn-stagger:.10; --burn-seed:17; }
+:root { --burn-mode:letters; --burn-intensity:1; --burn-embers:1; --burn-duration:3; --burn-in-duration:var(--burn-duration); --burn-out-duration:0; --burn-clip-length:3; --burn-final-color:#fff0dc; --burn-stagger:.10; --burn-seed:17; }
 html,body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:transparent; }
 canvas { display:block; position:absolute; inset:0; width:100%; height:100%; }
 .t { position:absolute; opacity:0; pointer-events:none; white-space:pre; top:0; left:0; }
@@ -17,31 +17,36 @@ const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t,smoot
 const hash=(a,b=0,c=0)=>fr(Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453123);
 function noise(x,y,seed){let xx=Math.floor(x),yy=Math.floor(y),fx=fr(x),fy=fr(y);fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);return lerp(lerp(hash(xx,yy,seed),hash(xx+1,yy,seed),fx),lerp(hash(xx,yy+1,seed),hash(xx+1,yy+1,seed),fx),fy)}
 const fbm=(x,y,s)=>.53*noise(x,y,s)+.29*noise(x*2.17,y*2.17,s+3)+.18*noise(x*4.79,y*4.79,s+7);
-let P={text:'INFERNO',mode:'forge',intensity:1,embers:1,duration:3,stagger:.10,seed:17};let now=0,playing=false,anchor=0,anchorTime=0,layout=null,lastKey='',lastSize='',words=[];
+let P={text:'INFERNO',mode:'letters',intensity:1,embers:1,duration:3,inDuration:3,outDuration:0,clipLength:3,finalColor:'#fff0dc',stagger:.10,seed:17};let now=0,phaseClock=0,phaseDuration=1,activeMode='forge',playing=false,anchor=0,anchorTime=0,layout=null,lastKey='',lastSize='',words=[];
 const svgSafeText=(txt)=>txt.trim().slice(0,70)||'INFERNO';
 function resize(){let r=view.getBoundingClientRect(),d=window.devicePixelRatio||1;let w=Math.max(10,Math.round(r.width*d)),h=Math.max(10,Math.round(r.height*d));if(view.width!==w||view.height!==h){view.width=w;view.height=h;lastSize='';layout=null}};
 function prepare(){resize();let w=view.width,h=view.height,txt=svgSafeText(P.text);let key=[txt,w,h].join('|');if(key===lastKey&&layout)return;
 const units=[...new Intl.Segmenter('pt-BR',{granularity:'grapheme'}).segment(txt)].map(x=>x.segment);const fontsize=Math.min(h*.42,w/(Math.max(1,units.length)*.53));const font=`900 ${Math.round(fontsize)}px Impact, 'Arial Black', sans-serif`;mc.font=font;let widths=units.map(c=>mc.measureText(c).width);let full=widths.reduce((a,b)=>a+b,0)+Math.max(0,units.length-1)*fontsize*.018;let scale=Math.min(1,w*.89/full);let fontSize=fontsize*scale;fontSize=Math.max(8,fontSize);let f=`900 ${Math.round(fontSize)}px Impact, 'Arial Black', sans-serif`;mc.font=f;widths=units.map(c=>mc.measureText(c).width);full=widths.reduce((a,b)=>a+b,0)+Math.max(0,units.length-1)*fontSize*.018;
 let x=(w-full)/2;words=[];mask.width=w;mask.height=h;mc.clearRect(0,0,w,h);mc.font=f;mc.fillStyle='#fff';mc.textBaseline='middle';let mid=h*.51;for(let i=0;i<units.length;i++){let ch=units[i],cw=widths[i];if(ch.trim()){mc.fillText(ch,x,mid);words.push({ch,i,x,y:mid,w:cw,fontSize})}x+=cw+fontSize*.018}
 layout={w,h,mid,fontSize,chars:units.length,pixels:mc.getImageData(0,0,w,h).data};lastKey=key;lastSize=`${w}|${h}`}
-function glyph(i){if(P.mode==='letters')return clamp((now - i*P.stagger)/(Math.max(.22,P.duration-(P.text.length-1)*P.stagger)));if(P.mode==='ash')return clamp((now-i*P.stagger)/Math.max(.3,P.duration-(P.text.length-1)*P.stagger));return clamp(now/P.duration)}
+function glyph(i){
+  const total = Math.max(1, layout?.chars ?? 1);
+  const offset = activeMode === 'letters' || activeMode === 'ash' ? i * P.stagger : 0;
+  const available = Math.max(.12, phaseDuration - (total - 1) * (activeMode === 'forge' ? 0 : P.stagger));
+  return clamp((phaseClock - offset) / available);
+}
 function burnField(x,y,index,seed){let W=layout.w,H=layout.h;let n=fbm(x/Math.max(30,layout.fontSize*.2),y/Math.max(30,layout.fontSize*.2),seed);let sweep=(x/W-.5)*.32+(y/H-.5)*.10;let wave=.08*Math.sin(y*.015+index*1.4);return clamp(.5*n+.5*(n+wave+sweep))}
 function textPaint(){let {w,h,fontSize,pixels}=layout;const sw=Math.max(1,Math.min(2.3, w/880)),dw=Math.max(1,Math.ceil(w/sw)),dh=Math.max(1,Math.ceil(h/sw));off.width=dw;off.height=dh;const img=oc.createImageData(dw,dh),d=img.data;
-let params=P,fade=params.mode==='ash';let fragments=[];
+let params=P,fade=activeMode==='ash';let fragments=[];
 for(let j=0;j<dh;j++){for(let i=0;i<dw;i++){let x=(i+.5)*w/dw,y=(j+.5)*h/dh;let srcX=Math.min(w-1,Math.floor(x)),srcY=Math.min(h-1,Math.floor(y));let alpha=pixels[(srcY*w+srcX)*4+3];if(alpha<8)continue;
 let letterIndex=0;for(let k=0;k<words.length;k++){if(x>=words[k].x-3)letterIndex=words[k].i}
-let p=glyph(letterIndex),field=burnField(x,y,letterIndex,params.seed);let threshold=fade?1-p:p;let delta=(field-threshold);let edge=.095*params.intensity;let visible=fade?delta>-edge:delta<edge;
+let p=glyph(letterIndex),field=burnField(x,y,letterIndex,params.seed);let threshold=fade?1-p:p;let delta=(field-threshold);let edge=.095*params.intensity;let visible=delta<edge;
 let a=0,R=0,G=0,B=0;if(visible){let hot=1-smooth(0,edge*1.9,Math.abs(delta));if(fade){R=lerp(205,255,hot);G=lerp(199,178,hot);B=lerp(190,52,hot)}else{R=lerp(255,255,hot);G=lerp(240,185,hot);B=lerp(207,49,hot)}a=255;
 if(Math.abs(delta)<edge*.55){R=255;G=225;B=lerp(100,248,hot)}
 }let ix=(j*dw+i)*4;d[ix]=R;d[ix+1]=G;d[ix+2]=B;d[ix+3]=a*alpha/255;
 }}
-oc.putImageData(img,0,0);ctx.save();ctx.globalCompositeOperation='screen';ctx.shadowBlur=fontSize*.27*P.intensity;ctx.shadowColor=P.mode==='ash'?'#f84e16':'#ff4c12';ctx.drawImage(off,0,0,w,h);ctx.restore();ctx.drawImage(off,0,0,w,h);
+oc.putImageData(img,0,0);ctx.save();ctx.globalCompositeOperation='screen';ctx.shadowBlur=fontSize*.27*P.intensity;ctx.shadowColor=activeMode==='ash'?'#f84e16':'#ff4c12';ctx.drawImage(off,0,0,w,h);ctx.restore();ctx.drawImage(off,0,0,w,h);
 // Smoke plumes are purely analytic: arbitrary frame order gives the same result.
 ctx.save(); ctx.globalCompositeOperation='screen';
 for (const word of words) {
  const phase=glyph(word.i); if(phase<=0||phase>=1)continue;
  for(let i=0;i<16;i++) {
-  const born=hash(i,word.i,P.seed+18)*P.duration, age=now-born;
+  const born=hash(i,word.i,P.seed+18)*phaseDuration, age=phaseClock-born;
   if(age<0||age>1.2) continue;
   const cx=word.x+word.w*hash(i,word.i,P.seed+12)+Math.sin(age*3+i)*word.fontSize*.045;
   const cy=layout.mid+(hash(i,word.i,P.seed+29)-.5)*word.fontSize*.55-age*word.fontSize*.48;
@@ -56,15 +61,45 @@ for (const word of words) {
 }
 ctx.restore();
 // Static per-glyph heat bands, smoke wisps and deterministic embers.
-ctx.save();ctx.globalCompositeOperation='lighter';for(const word of words){let p=glyph(word.i);if(p<=0||p>=1&&P.mode!=='ash')continue;let intensity=P.intensity;let progress=P.mode==='ash'?1-p:p;for(let j=0;j<11;j++){let xx=word.x+word.w*hash(word.i,j,P.seed),yy=layout.mid+(hash(j,word.i,P.seed+4)-.5)*fontSize*.68;
-let field=burnField(xx,yy,word.i,P.seed),near=1-clamp(Math.abs(field-progress)*7);if(near<=0)continue;let flameH=fontSize*(.10+.24*hash(j,word.i))*near*intensity;let drift=Math.sin(now*8+j*2+P.seed)*fontSize*.035;
+ctx.save();ctx.globalCompositeOperation='lighter';for(const word of words){let p=glyph(word.i);if(p<=0||p>=1&&activeMode!=='ash')continue;let intensity=P.intensity;let progress=activeMode==='ash'?1-p:p;for(let j=0;j<11;j++){let xx=word.x+word.w*hash(word.i,j,P.seed),yy=layout.mid+(hash(j,word.i,P.seed+4)-.5)*fontSize*.68;
+let field=burnField(xx,yy,word.i,P.seed),near=1-clamp(Math.abs(field-progress)*7);if(near<=0)continue;let flameH=fontSize*(.10+.24*hash(j,word.i))*near*intensity;let drift=Math.sin(phaseClock*8+j*2+P.seed)*fontSize*.035;
 let g=ctx.createLinearGradient(xx,yy,xx+drift,yy-flameH);g.addColorStop(0,`rgba(255,240,170,${near*.65})`);g.addColorStop(.35,`rgba(255,95,15,${near*.45})`);g.addColorStop(1,'rgba(210,15,0,0)');ctx.strokeStyle=g;ctx.lineWidth=fontSize*(.028+.024*hash(j,8,word.i))*near;ctx.beginPath();ctx.moveTo(xx,yy);ctx.quadraticCurveTo(xx+drift*.9,yy-flameH*.5,xx+drift,yy-flameH);ctx.stroke();}}
-for(let i=0;i<Math.round(190*P.embers);i++){let gi=i%Math.max(1,words.length),word=words[gi];if(!word)continue;let born=hash(i,3,P.seed)*P.duration*1.15,age=now-born;if(age<0||age>1.6)continue;let x=word.x+word.w*hash(i,7,P.seed),y=layout.mid+(hash(i,9,P.seed)-.5)*word.fontSize*.57;let p=glyph(word.i),f=burnField(x,y,word.i,P.seed);let active=1-clamp(Math.abs(f-(P.mode==='ash'?1-p:p))*10);if(active<.10)continue;let vx=(hash(i,2,P.seed)-.4)*word.fontSize*.65,vy=-word.fontSize*(.34+hash(i,4,P.seed)*.85);x+=vx*age+Math.sin(age*12+i)*2;y+=vy*age+age*age*word.fontSize*.15;
+for(let i=0;i<Math.round(190*P.embers);i++){let gi=i%Math.max(1,words.length),word=words[gi];if(!word)continue;let born=hash(i,3,P.seed)*phaseDuration*1.15,age=phaseClock-born;if(age<0||age>1.6)continue;let x=word.x+word.w*hash(i,7,P.seed),y=layout.mid+(hash(i,9,P.seed)-.5)*word.fontSize*.57;let p=glyph(word.i),f=burnField(x,y,word.i,P.seed);let active=1-clamp(Math.abs(f-(activeMode==='ash'?1-p:p))*10);if(active<.10)continue;let vx=(hash(i,2,P.seed)-.4)*word.fontSize*.65,vy=-word.fontSize*(.34+hash(i,4,P.seed)*.85);x+=vx*age+Math.sin(age*12+i)*2;y+=vy*age+age*age*word.fontSize*.15;
 let life=(1-age/1.6)*active;ctx.globalAlpha=life;ctx.strokeStyle=i%4===0?'#fff2c5':i%3===0?'#ffcc48':'#ff5b1c';ctx.lineWidth=Math.max(.5,word.fontSize*.009*(.6+hash(i,6)));ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-vx*.023,y-vy*.023);ctx.stroke()}
 ctx.restore();ctx.globalAlpha=1;
 }
-function draw(t){now=clamp(Number(t)||0,0,P.duration);prepare();ctx.clearRect(0,0,view.width,view.height);textPaint();}
-function frame(t){draw(t)}window.film={frame,duration:P.duration};window.textBurn={getParams:()=>({...P}),setParams:p=>{P={...P,...p};lastKey='';window.film.duration=P.duration;draw(now)},frame};
+function renderStableText(){
+  ctx.save();
+  ctx.drawImage(mask, 0, 0);
+  ctx.globalCompositeOperation = 'source-in';
+  ctx.fillStyle = P.finalColor;
+  ctx.fillRect(0, 0, view.width, view.height);
+  ctx.restore();
+}
+function burnTimeline(t, clipLength, inDuration, outDuration){
+  const total = Math.max(.1, clipLength);
+  const entry = Math.max(0, Math.min(inDuration, total));
+  const exit = Math.max(0, Math.min(outDuration, total - entry));
+  const clock = clamp(Number(t) || 0, 0, total);
+  if (entry > 0 && clock < entry) return { phase:'in', clock, duration:entry };
+  if (exit > 0 && clock >= total - exit) return { phase:'out', clock:clock-(total-exit), duration:exit };
+  return { phase:'hold', clock, duration:total };
+}
+function draw(t){
+  now = clamp(Number(t) || 0, 0, P.clipLength);
+  prepare();
+  ctx.clearRect(0, 0, view.width, view.height);
+  const stage = burnTimeline(now,P.clipLength,P.inDuration,P.outDuration);
+  if (stage.phase === 'hold') { renderStableText(); return; }
+  if (stage.phase === 'out' && stage.clock >= stage.duration) return;
+  activeMode = stage.phase === 'out' ? 'ash' : (P.mode === 'letters' ? 'letters' : 'forge');
+  phaseClock = stage.clock;
+  phaseDuration = stage.duration;
+  textPaint();
+}
+function frame(t){draw(t)}
+window.film={frame,duration:P.clipLength};
+window.textBurn={getParams:()=>({...P}),setParams:p=>{P={...P,...p};lastKey='';window.film.duration=P.clipLength;draw(now)},frame,burnTimeline};
 const readCSS = (name, fallback) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 function refresh() {
   const numeric = (name, fallback, min, max) => {
@@ -77,6 +112,10 @@ function refresh() {
     intensity: numeric('--burn-intensity', 1, .2, 2.5),
     embers: numeric('--burn-embers', 1, 0, 2),
     duration: numeric('--burn-duration', 3, .5, 12),
+    inDuration: numeric('--burn-in-duration', 3, 0, 120),
+    outDuration: numeric('--burn-out-duration', 0, 0, 120),
+    clipLength: numeric('--burn-clip-length', 3, .1, 600),
+    finalColor: readCSS('--burn-final-color', '#fff0dc'),
     stagger: numeric('--burn-stagger', .1, 0, .4),
     seed: Math.round(numeric('--burn-seed', 17, 0, 10000))
   };
@@ -84,7 +123,7 @@ function refresh() {
     P = next;
     lastKey = '';
     layout = null;
-    window.film.duration = P.duration;
+    window.film.duration = P.clipLength;
   }
 }
 const nativeFrame = window.film.frame;
@@ -99,7 +138,7 @@ window.film.frame(0);
 if (!window.filmHost) {
   const started = performance.now();
   function loop() {
-    window.film.frame((performance.now() - started) / 1000 % P.duration);
+    window.film.frame((performance.now() - started) / 1000 % P.clipLength);
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
