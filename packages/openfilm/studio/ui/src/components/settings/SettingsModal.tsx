@@ -37,7 +37,7 @@ const NAV: Array<{ group: 'settings' | 'help'; sections: SettingsSection[] }> = 
 
 /** where OpenFilm lives, linked at the foot of the nav */
 const LINKS = [
-  { label: 'settings.links.github', href: 'https://github.com/openfilm/openfilm' },
+  { label: 'settings.links.github', href: 'https://github.com/luigicollesi/agente-videomaker' },
   { label: 'settings.links.examples', href: 'https://github.com/openfilm/examples' },
   { label: 'settings.links.site', href: 'https://openfilm.dev' },
 ];
@@ -389,7 +389,7 @@ function AboutGroup() {
   return (
     <SettingsGroup title={t('settings.about.group')}>
       <SettingsItem
-        title={info ? `OpenFilm ${info.version}` : 'OpenFilm'}
+        title={info ? `Agente Videomaker ${info.version}` : 'Agente Videomaker'}
         description={status}
         control={inApp || !info?.checking ? null : (
           <SettingsButton disabled={state === 'checking'} onClick={check}>{t('settings.about.check')}</SettingsButton>
@@ -487,7 +487,7 @@ function AppAboutGroup() {
   return (
     <SettingsGroup title={t('settings.about.group')}>
       <SettingsItem
-        title={`OpenFilm ${s?.version ?? ''}`.trim()}
+        title={`Agente Videomaker ${s?.version ?? ''}`.trim()}
         badge={s?.channel === 'beta' ? <span className="rounded-full bg-[var(--bg-field)] px-2 py-0.5 text-[11.5px] text-[var(--text-muted)]">beta</span> : null}
         description={description}
         control={control}
