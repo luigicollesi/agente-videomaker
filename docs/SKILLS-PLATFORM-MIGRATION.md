@@ -6,7 +6,7 @@ O Agente Videomaker possui bibliotecas distintas de skills:
 - `<biblioteca>/Skills/`: skills pessoais da plataforma, disponíveis em todos os projetos do Studio.
 - `packages/openfilm/manual/`: skills internas do motor, mantidas por compatibilidade.
 
-No Linux, o destino padrão é `~/Videos/OpenFilm/Skills`; o caminho pode ser substituído por `OPENFILM_SKILLS` ou pela configuração da biblioteca. O aplicativo já disponibiliza importação de pastas pelo botão **Skills**.
+No Linux, o destino padrão é `~/Videos/OpenFilm/Skills`; o caminho pode ser substituído por `OPENFILM_SKILLS` ou, dependendo da inicialização, por `OPENFILM_LIBRARY` (usado para calcular a pasta irmã `Skills`). O aplicativo já disponibiliza importação de pastas pelo botão **Skills**.
 
 ## Importação em lote das skills de Scenario
 
