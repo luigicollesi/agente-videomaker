@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "kind": "clip",
+  "clip": {
+    "src": "text-burn-letters.html",
+    "time": [
+      0,
+      3
+    ],
+    "attrs": {
+      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Intensity\",\"type\":\"var\",\"var\":\"--burn-intensity\"},{\"name\":\"Embers\",\"type\":\"var\",\"var\":\"--burn-embers\"},{\"name\":\"Duration\",\"type\":\"var\",\"var\":\"--burn-duration\"},{\"name\":\"Letter stagger\",\"type\":\"var\",\"var\":\"--burn-stagger\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--burn-seed\"}]"
+    }
+  },
+  "durationMs": 3000
+}
