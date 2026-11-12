@@ -4136,11 +4136,11 @@
    },
    "kind": "page",
    "durationMs": 10600,
-   "src": "rain-type-liquid.html",
+   "src": "rain-type-liquid-timeline-v2.html",
    "poster": "text/rain-type-liquid/poster.svg",
    "w": 960,
    "h": 540,
-   "about": "Editable liquid typography: every raindrop joins the text, holds as animated water, then evaporates top-to-bottom into drifting vapor. Independent entrance, hold and exit times; deterministic WebGL2 rendering and transparent output.",
+   "about": "Editable rain droplets form liquid text, hold as animated water for the remaining timeline duration, then evaporate from top to bottom. Entrance and exit times are independent; total duration is controlled by the OpenFilm timeline.",
    "tags": [
     "rain",
     "water",
