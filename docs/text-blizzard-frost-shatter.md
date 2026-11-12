@@ -40,6 +40,27 @@ The effect is transparent, deterministic from parameters and absolute `window.fi
 
 The built-in library bundle contains `preview.mp4` for the animated display thumbnail, `preview.html` for a live engine preview, and `poster.svg` as a static fallback. The MP4 samples the default seven-second sequence and need not reflect customized timing.
 
+## Root cause of ignored inspector parameters (2026-11-12)
+
+OpenFilm's timeline host applies clip overrides **after** drawing a frame by default. Blizzard's custom animation calculates formation, hold, and shatter **inside** `window.film.frame(t)`, reading the override variables from `:root`. Without opting in, changes in the inspector are not guaranteed to influence the frame being drawn.
+
+The page now exports:
+
+```js
+window.film = {
+  duration: P.duration,
+  frameReadsOverrides: true,
+  frame(t) {
+    refresh();
+    draw(t);
+  },
+};
+```
+
+This is the documented host contract in `packages/openfilm/SPEC.md`: the timeline must apply clip overrides before invoking `frame(t)` when `frameReadsOverrides` is true. It is **not sufficient** to expose variables via `saved.json` or calculate the correct timing formula without this flag.
+
+To verify the fix in a timeline clip: set total 10 seconds, appearance 1 second, exit 2 seconds. The word should be complete at second 1, remain intact until second 8, then shatter between seconds 8 and 10. Changing appearance to 4 seconds must delay the completed word until second 4 and reduce the hold to 4 seconds. The `preview.mp4` is a fixed thumbnail and will not regenerate when the inspector is edited; the actual HTML clip does.
+
 ## Integration and validation
 
 The preset exposes `--clip-length` as an inspector property to activate OpenFilm's standard `fitClipLengths` synchronization in `studio/server/ops.mjs`.
