@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Agente Videomaker — Burn Letters</title>
 <style>
-:root { --burn-mode:letters; --burn-intensity:1; --burn-embers:1; --burn-duration:3; --burn-in-duration:3; --burn-out-duration:0; --burn-clip-length:8; --burn-final-color:#fff0dc; --burn-stagger:.10; --burn-seed:17; }
+:root { --burn-mode:letters; --burn-intensity:1; --burn-embers:1; --burn-duration:3; --burn-in-duration:var(--burn-duration); --burn-out-duration:0; --burn-clip-length:3; --burn-final-color:#fff0dc; --burn-stagger:.10; --burn-seed:17; }
 html,body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:transparent; }
 canvas { display:block; position:absolute; inset:0; width:100%; height:100%; }
 .t { position:absolute; opacity:0; pointer-events:none; white-space:pre; top:0; left:0; }
@@ -17,7 +17,7 @@ const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t,smoot
 const hash=(a,b=0,c=0)=>fr(Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453123);
 function noise(x,y,seed){let xx=Math.floor(x),yy=Math.floor(y),fx=fr(x),fy=fr(y);fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);return lerp(lerp(hash(xx,yy,seed),hash(xx+1,yy,seed),fx),lerp(hash(xx,yy+1,seed),hash(xx+1,yy+1,seed),fx),fy)}
 const fbm=(x,y,s)=>.53*noise(x,y,s)+.29*noise(x*2.17,y*2.17,s+3)+.18*noise(x*4.79,y*4.79,s+7);
-let P={text:'INFERNO',mode:'letters',intensity:1,embers:1,duration:3,inDuration:3,outDuration:0,clipLength:8,finalColor:'#fff0dc',stagger:.10,seed:17};let now=0,phaseClock=0,phaseDuration=1,activeMode='forge',playing=false,anchor=0,anchorTime=0,layout=null,lastKey='',lastSize='',words=[];
+let P={text:'INFERNO',mode:'letters',intensity:1,embers:1,duration:3,inDuration:3,outDuration:0,clipLength:3,finalColor:'#fff0dc',stagger:.10,seed:17};let now=0,phaseClock=0,phaseDuration=1,activeMode='forge',playing=false,anchor=0,anchorTime=0,layout=null,lastKey='',lastSize='',words=[];
 const svgSafeText=(txt)=>txt.trim().slice(0,70)||'INFERNO';
 function resize(){let r=view.getBoundingClientRect(),d=window.devicePixelRatio||1;let w=Math.max(10,Math.round(r.width*d)),h=Math.max(10,Math.round(r.height*d));if(view.width!==w||view.height!==h){view.width=w;view.height=h;lastSize='';layout=null}};
 function prepare(){resize();let w=view.width,h=view.height,txt=svgSafeText(P.text);let key=[txt,w,h].join('|');if(key===lastKey&&layout)return;
@@ -114,7 +114,7 @@ function refresh() {
     duration: numeric('--burn-duration', 3, .5, 12),
     inDuration: numeric('--burn-in-duration', 3, 0, 120),
     outDuration: numeric('--burn-out-duration', 0, 0, 120),
-    clipLength: numeric('--burn-clip-length', 8, .1, 600),
+    clipLength: numeric('--burn-clip-length', 3, .1, 600),
     finalColor: readCSS('--burn-final-color', '#fff0dc'),
     stagger: numeric('--burn-stagger', .1, 0, .4),
     seed: Math.round(numeric('--burn-seed', 17, 0, 10000))
