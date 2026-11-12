@@ -1,5 +1,5 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gentle Breeze — Organic Wind Lettering</title><style>
-:root{--wind-duration:5.5;--wind-hold:1.8;--wind-dissolve:3.2;--wind-intensity:1;--wind-particles:1;--wind-glow:1;--wind-seed:23;--wind-color:#e2f4f0;--wind-speed:1;--wind-direction:1}
+:root{--clip-length:10.5s;--wind-duration:5.5;--wind-hold:1.8;--wind-dissolve:3.2;--wind-intensity:1;--wind-particles:1;--wind-glow:1;--wind-seed:23;--wind-color:#e2f4f0;--wind-speed:1;--wind-direction:1}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}canvas{position:absolute;inset:0;width:100%;height:100%;display:block}.t{position:absolute;opacity:0;pointer-events:none;white-space:pre}
 </style></head><body><span class="t">BRISA</span><canvas id="c"></canvas><script>
 (()=>{'use strict';
@@ -45,7 +45,7 @@ let samples=[];for(let gi=0;gi<glyphs.length;gi++){let g=glyphs[gi];if(!g.rgba)c
 layout={w,h,path,lens,length:lens.at(-1),glyphs,fontSize,samples};
 }
 function pointAt(d){let {path,lens,length}=layout;d=clamp(d,0,length);let lo=0,hi=lens.length-1;while(lo<hi){let mid=(lo+hi)>>1;if(lens[mid]<d)lo=mid+1;else hi=mid}let k=Math.max(1,lo),a=path[k-1],b=path[k],u=(d-lens[k-1])/Math.max(.0001,lens[k]-lens[k-1]);return [mix(a[0],b[0],u),mix(a[1],b[1],u)]}
-function draw(t){make();const {w,h,glyphs,length,lens,fontSize}=layout;const total=P.duration+P.hold+P.dissolve;now=clamp(+t||0,0,total);let p=clamp(now/P.duration),head=length*smooth(0,1,clamp(p*P.speed));c.clearRect(0,0,w,h);
+function draw(t){make();const {w,h,glyphs,length,lens,fontSize}=layout;const total=P.duration+P.hold+P.dissolve;const clipSeconds=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--clip-length'));const available=Number.isFinite(clipSeconds)&&clipSeconds>0?clipSeconds:total;now=clamp((Number(t)||0)*total/available,0,total);let p=clamp(now/P.duration),head=length*smooth(0,1,clamp(p*P.speed));c.clearRect(0,0,w,h);
 let exitAge=now-P.duration-P.hold,exiting=exitAge>0,ep=clamp(exitAge/P.dissolve),ew=smooth(0,1,ep);
 const left=Math.min(...glyphs.filter(g=>g.canvas).map(g=>g.left)),right=Math.max(...glyphs.filter(g=>g.canvas).map(g=>g.left+g.canvas.width));
 // Each character releases its own wind at a staggered time. No travelling wipe.

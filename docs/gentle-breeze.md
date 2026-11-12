@@ -12,7 +12,7 @@ A curved wind thread outlines Unicode graphemes, leaving the word readable for a
 - **Dissolve duration**: `--wind-dissolve`, default 3.2 seconds.
 - **Intensity**, **Particles**, **Glow**, **Color**, **Speed**, **Direction** and **Seed**: corresponding `--wind-*` variables.
 
-Timeline clip length defaults to 10.5 seconds; when changing phase durations, align the clip length with the sum of all three. Frame request order does not affect the output.
+Timeline clip length defaults to 10.5 seconds. The hidden `--clip-length` property is synchronized by Studio when inserting, trimming, or resizing the clip. If formation + hold + dissolve differs from the actual clip length, the three phases are proportionally fitted into the clip to ensure the exit animation completes. To preserve the precise configured durations in seconds, also resize the clip to their sum. Frame request order does not affect the output.
 
 ## Design and licensing
 
@@ -25,3 +25,7 @@ Contour tracing uses the browser's Georgia fallback; its appearance may differ o
 ## Local validation
 
 Chromium rendered multiple distinct absolute-time frames without page errors. Repeated out-of-order frames matched; editing the text to `VENTO ÁÉ` and setting Hold duration to zero were also tested. Repository-wide `pnpm` tests and Desktop packaging were not executed in the isolated prototype environment.
+
+## Hold-duration regression
+
+Verified in headless Chromium: with the Studio clip length held at 10.5s and Hold set to 9s, the frame at 10.3s contains only residual fragments and the frame at 10.5s is fully transparent. Re-rendering 10.3s after requesting other frames yielded exactly identical canvas data. No browser page errors were reported.
