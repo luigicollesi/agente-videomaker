@@ -1,0 +1,28 @@
+name: Skill import validation
+on:
+  push:
+    branches:
+      - feat/import-project-skills-into-platform
+  pull_request:
+    paths:
+      - 'scripts/import-agent-skills.mjs'
+      - 'scripts/import-agent-skills.test.mjs'
+      - 'docs/SKILLS-PLATFORM-MIGRATION.md'
+      - '.github/workflows/skills-migration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --test scripts/import-agent-skills.test.mjs
+      - name: Preview import without changing library
+        run: node scripts/import-agent-skills.mjs
