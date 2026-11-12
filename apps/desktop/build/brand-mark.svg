@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Agente Videomaker">
+  <title>Agente Videomaker</title>
+  <rect width="1024" height="1024" rx="220" fill="#09090C"/>
+  <rect x="120" y="245" width="784" height="534" rx="150" fill="none" stroke="#F5F5F7" stroke-width="70"/>
+  <path d="M315 245V779M709 245V779" stroke="#F5F5F7" stroke-opacity=".28" stroke-width="62"/>
+  <path d="M445 372C445 337 484 315 514 335L752 483C781 501 781 543 752 561L514 709C484 729 445 707 445 672V372Z" fill="#E11D48"/>
+</svg>
