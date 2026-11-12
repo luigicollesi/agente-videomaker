@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  childEnvironment, environmentCache, expandWindowsVars, lastPathSource, loginShellVariables, macProxy, mergePath,
+  childEnvironment, environmentCache, expandWindowsVars, lastPathSource, launcherEnvironment, loginShellVariables, macProxy, mergePath,
   nodeVersionDirs, noProxyList, parseRegQuery, parseScutilProxy, proxyVariables, registryVariables, regQuery,
   shellSubset, shellVariables, windowsFreshPath, windowsProxy, withSystemProxy,
 } from './environment.mjs';
@@ -260,4 +260,34 @@ test("the person's own proxy wins over the system's; with none, the system's is 
   assert.equal(withSystemProxy(mine, proxy), mine);
   assert.deepEqual(withSystemProxy({ PATH: '/usr/bin', NO_PROXY: 'corp' }, proxy), { ...proxy, PATH: '/usr/bin', NO_PROXY: 'corp' });
   assert.deepEqual(withSystemProxy({ PATH: '/usr/bin' }, {}), { PATH: '/usr/bin' });
+});
+
+test('Linux desktop launcher inherits the graphical session without leaking unrelated shell variables', { skip: process.platform !== 'linux' }, () => {
+  const source = {
+    HOME: '/home/tester',
+    USER: 'tester',
+    DISPLAY: ':0',
+    WAYLAND_DISPLAY: 'wayland-0',
+    XDG_SESSION_TYPE: 'wayland',
+    XDG_RUNTIME_DIR: '/run/user/1000',
+    DBUS_SESSION_BUS_ADDRESS: 'unix:path=/run/user/1000/bus',
+    XAUTHORITY: '/home/tester/.Xauthority',
+    OPENFILM_DESKTOP_FLAVOR: 'dev',
+    CODEX_HOME: '/home/tester/.codex',
+    GITHUB_TOKEN: 'should-not-leak',
+    ELECTRON_RUN_AS_NODE: '1',
+  };
+  const env = launcherEnvironment(source, '/usr/bin:/bin');
+  for (const key of ['DISPLAY', 'WAYLAND_DISPLAY', 'XDG_SESSION_TYPE', 'XDG_RUNTIME_DIR', 'DBUS_SESSION_BUS_ADDRESS', 'XAUTHORITY']) {
+    assert.equal(env[key], source[key], key);
+  }
+  assert.equal(env.PATH, '/usr/bin:/bin');
+  assert.equal(env.OPENFILM_DESKTOP_FLAVOR, 'dev');
+  assert.equal(env.GITHUB_TOKEN, undefined);
+  assert.equal(env.CODEX_HOME, undefined);
+  assert.equal(env.ELECTRON_RUN_AS_NODE, undefined);
+
+  const empty = launcherEnvironment({ HOME: '/home/tester', DISPLAY: '', WAYLAND_DISPLAY: '' }, '/usr/bin');
+  assert.equal(empty.DISPLAY, undefined);
+  assert.equal(empty.WAYLAND_DISPLAY, undefined);
 });
