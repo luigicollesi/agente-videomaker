@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "kind": "clip",
+  "clip": {
+    "src": "rain-type-liquid.html",
+    "time": [
+      0,
+      10.6
+    ],
+    "attrs": {
+      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Entry duration (s)\",\"type\":\"var\",\"var\":\"--rain-entry-duration\"},{\"name\":\"Hold duration (s)\",\"type\":\"var\",\"var\":\"--rain-hold-duration\"},{\"name\":\"Exit duration (s)\",\"type\":\"var\",\"var\":\"--rain-exit-duration\"},{\"name\":\"Drops\",\"type\":\"var\",\"var\":\"--rain-drops\"},{\"name\":\"Glow\",\"type\":\"var\",\"var\":\"--rain-glow\"},{\"name\":\"Wind\",\"type\":\"var\",\"var\":\"--rain-wind\"},{\"name\":\"Vapor\",\"type\":\"var\",\"var\":\"--rain-vapor\"},{\"name\":\"Refraction\",\"type\":\"var\",\"var\":\"--rain-refraction\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--rain-seed\"}]"
+    }
+  },
+  "durationMs": 10600
+}
