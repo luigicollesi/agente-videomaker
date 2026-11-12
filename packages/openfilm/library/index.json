@@ -4087,7 +4087,7 @@
    "kind": "page",
    "durationMs": 10500,
    "src": "gentle-breeze-timeline.html",
-   "about": "A delicate wind thread traces each letter, leaves the word softly glowing, then releases organic filaments from the letters themselves into a gentle breeze. Deterministic transparent Canvas lettering; editable formation, hold and dissolve phases.",
+   "about": "The timeline clip duration defines the effect's total length. Edit only entrance and exit times; the remaining duration is a stable hold. Organic, transparent wind writing and letter-born dissolution.",
    "tags": [
     "breeze",
     "wind",
@@ -4113,7 +4113,6 @@
    "params": {
     "text": "BRISA",
     "duration": 5.5,
-    "hold": 1.8,
     "dissolve": 3.2,
     "intensity": 1,
     "particles": 1,
