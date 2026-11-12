@@ -8,7 +8,7 @@
       7
     ],
     "attrs": {
-      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Duration\",\"type\":\"var\",\"var\":\"--blizzard-duration\"},{\"name\":\"Freeze intensity\",\"type\":\"var\",\"var\":\"--blizzard-intensity\"},{\"name\":\"Fracture\",\"type\":\"var\",\"var\":\"--blizzard-fracture\"},{\"name\":\"Particles\",\"type\":\"var\",\"var\":\"--blizzard-particles\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--blizzard-seed\"}]"
+      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Formation time (s)\",\"type\":\"var\",\"var\":\"--blizzard-in\"},{\"name\":\"Hold time (s)\",\"type\":\"var\",\"var\":\"--blizzard-hold\"},{\"name\":\"Shatter time (s)\",\"type\":\"var\",\"var\":\"--blizzard-out\"},{\"name\":\"Freeze intensity\",\"type\":\"var\",\"var\":\"--blizzard-intensity\"},{\"name\":\"Fracture\",\"type\":\"var\",\"var\":\"--blizzard-fracture\"},{\"name\":\"Particles\",\"type\":\"var\",\"var\":\"--blizzard-particles\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--blizzard-seed\"}]"
     }
   },
   "durationMs": 7000
