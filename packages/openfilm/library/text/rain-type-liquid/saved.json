@@ -2,13 +2,13 @@
   "version": 2,
   "kind": "clip",
   "clip": {
-    "src": "rain-type-liquid.html",
+    "src": "rain-type-liquid-timeline-v2.html",
     "time": [
       0,
       10.6
     ],
     "attrs": {
-      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Entry duration (s)\",\"type\":\"var\",\"var\":\"--rain-entry-duration\"},{\"name\":\"Hold duration (s)\",\"type\":\"var\",\"var\":\"--rain-hold-duration\"},{\"name\":\"Exit duration (s)\",\"type\":\"var\",\"var\":\"--rain-exit-duration\"},{\"name\":\"Drops\",\"type\":\"var\",\"var\":\"--rain-drops\"},{\"name\":\"Glow\",\"type\":\"var\",\"var\":\"--rain-glow\"},{\"name\":\"Wind\",\"type\":\"var\",\"var\":\"--rain-wind\"},{\"name\":\"Vapor\",\"type\":\"var\",\"var\":\"--rain-vapor\"},{\"name\":\"Refraction\",\"type\":\"var\",\"var\":\"--rain-refraction\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--rain-seed\"}]"
+      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Entrance time\",\"type\":\"var\",\"var\":\"--rain-entry-duration\"},{\"name\":\"Exit time\",\"type\":\"var\",\"var\":\"--rain-exit-duration\"},{\"name\":\"Drops\",\"type\":\"var\",\"var\":\"--rain-drops\"},{\"name\":\"Glow\",\"type\":\"var\",\"var\":\"--rain-glow\"},{\"name\":\"Wind\",\"type\":\"var\",\"var\":\"--rain-wind\"},{\"name\":\"Vapor\",\"type\":\"var\",\"var\":\"--rain-vapor\"},{\"name\":\"Refraction\",\"type\":\"var\",\"var\":\"--rain-refraction\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--rain-seed\"},{\"name\":\"Clip length (managed by timeline)\",\"type\":\"var\",\"var\":\"--clip-length\"}]"
     }
   },
   "durationMs": 10600
