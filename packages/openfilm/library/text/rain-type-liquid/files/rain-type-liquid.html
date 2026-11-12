@@ -38,7 +38,7 @@ float nU=wet(uv+vec2(0.,px.y*2.))*texture(mask,uv+vec2(0.,px.y)).r;
 float nD=wet(uv-vec2(0.,px.y*2.))*texture(mask,uv-vec2(0.,px.y)).r;
 vec3 normal=normalize(vec3((nL-nR)*4.,(nD-nU)*4.,.65));
 float ripple=.012*sin(uv.x*42.+motionTime*2.2+sin(uv.y*18.))*sin(uv.y*30.-motionTime*1.35);
-normal=normalize(normal+vec3(ripple*.8,ripple*.35,0.));
+normal=normalize(normal+vec3(ripple*.8*refraction,ripple*.35*refraction,0.));
 vec3 lightDir=normalize(vec3(-.40,.72,1.));float ndl=max(0.,dot(normal,lightDir));
 vec3 view=vec3(0.,0.,1.);vec3 halfV=normalize(lightDir+view);float spec=pow(max(dot(normal,halfV),0.),35.)*.65+pow(max(dot(normal,halfV),0.),180.)*.48;
 float fres=pow(1.-max(dot(normal,view),0.),5.);float band=.5+.5*sin((uv.y+normal.y*.018+time*.004)*42.+normal.x*8.);
@@ -102,7 +102,7 @@ gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);points(pro
 window.film={frame:draw,duration:P.duration};window.rainType={frame:draw,setParams:obj=>{Object.assign(P,obj);P.duration=Math.max(.2,P.entryDuration)+Math.max(0,P.holdDuration)+Math.max(.2,P.exitDuration);lastKey='';window.film.duration=P.duration;draw(cur)},getParams:()=>({...P}),stats:()=>({particles:targetCount,width:W,height:H})};
 function readCSS(){let s=getComputedStyle(document.documentElement),n=(name,def)=>{const x=parseFloat(s.getPropertyValue(name));return Number.isFinite(x)?x:def};return{text:document.querySelector('.t').textContent||'CHUVA',entryDuration:n('--rain-entry-duration',5.1),holdDuration:n('--rain-hold-duration',.6),exitDuration:n('--rain-exit-duration',4.9),vapor:n('--rain-vapor',1),seed:n('--rain-seed',27),drops:n('--rain-drops',1),glow:n('--rain-glow',.55),size:n('--rain-size',1),font:s.getPropertyValue('--rain-font').trim()||'Impact',wind:n('--rain-wind',.18),refraction:n('--rain-refraction',.75)}}
 window.film.frame=t=>{const next=readCSS();next.entryDuration=Math.max(.2,next.entryDuration);next.holdDuration=Math.max(0,next.holdDuration);next.exitDuration=Math.max(.2,next.exitDuration);next.duration=next.entryDuration+next.holdDuration+next.exitDuration;if(Object.keys(next).some(k=>next[k]!==P[k])){P={...P,...next};lastKey='';window.film.duration=P.duration;}return draw(t)};
-const capture=new URLSearchParams(location.search).has('capture');if(capture){document.body.classList.add('capture');window.filmHost=true;}
+const query=new URLSearchParams(location.search);if(!query.has('lab'))document.body.classList.add('capture');if(query.has('capture'))window.filmHost=true;
 function loop(ms){if(window.filmHost)return;if(playing)cur=((ms-start)/1000)%P.duration;window.film.frame(cur);document.querySelector('#scrub').value=cur;document.querySelector('#clock').textContent=cur.toFixed(2)+' s';requestAnimationFrame(loop)}
 for(const id of ['drops','glow','wind','seed','entryDuration','holdDuration','exitDuration','vapor'])document.getElementById(id).addEventListener('input',e=>{document.documentElement.style.setProperty('--rain-'+id.replace(/[A-Z]/g,m=>'-'+m.toLowerCase()),e.target.value);window.film.frame(cur);document.querySelector('#scrub').max=P.duration});
 document.getElementById('text').addEventListener('input',e=>{document.querySelector('.t').textContent=e.target.value;window.film.frame(cur)});
