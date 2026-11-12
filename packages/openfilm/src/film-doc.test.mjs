@@ -405,3 +405,19 @@ test('an attribute holding JSON (Studio\'s data-props) is written in single quot
   assert.deepEqual(back.problems, []);
   assert.equal(back.value.tracks[0].clips[0].attrs['data-props'], list);
 });
+
+test('procedural pages with no native duration receive the complete extended timeline time', () => {
+  const clip = {
+    src: 'saved/openfilm/text-gentle-breeze/gentle-breeze-unbounded.html',
+    time: [0, 20],
+  };
+  const span = clipSpan(clip, undefined);
+  assert.deepEqual(span, { from: 0, to: 20, speed: 1, length: 20 });
+  assert.equal(sourceAt(span, 17, clip, undefined), 17);
+  assert.equal(sourceAt(span, 19.5, clip, undefined), 19.5);
+  // Proves the former bug: providing an initial page native duration freezes the clock.
+  assert.equal(sourceAt(span, 19.5, clip, 10.5), 10.499);
+  assert.deepEqual(clipSpan({ ...clip, time: [0, 8] }, undefined), {
+    from: 0, to: 8, speed: 1, length: 8,
+  });
+});

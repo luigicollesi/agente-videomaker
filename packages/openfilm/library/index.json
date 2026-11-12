@@ -4086,7 +4086,7 @@
    },
    "kind": "page",
    "durationMs": 10500,
-   "src": "gentle-breeze-timeline.html",
+   "src": "gentle-breeze-unbounded.html",
    "about": "The timeline clip duration defines the effect's total length. Edit only entrance and exit times; the remaining duration is a stable hold. Organic, transparent wind writing and letter-born dissolution.",
    "tags": [
     "breeze",

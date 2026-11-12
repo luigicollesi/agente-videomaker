@@ -19,16 +19,22 @@ If entrance plus exit exceed the clip's duration, the shorter timeline interval 
 
 The effect reads **`--clip-length`** (seconds in CSS syntax, such as `20s`) supplied by OpenFilm. This property is listed in `data-props` so Studio's standard `fitClipLengths` mechanism keeps it synchronized with `clip.time`, but the inspector hides this technical variable: resize the clip directly on the timeline.
 
-The asset declares **`frameReadsOverrides: true`**: the host must apply root CSS variables and text before drawing the requested timestamp. The asset's `film.duration` getter also returns its timeline duration.
+The asset declares **`frameReadsOverrides: true`**: the host must apply root CSS variables and text before drawing the requested timestamp. The asset intentionally **does not declare `film.duration`**. The host otherwise records that initial value as a native page duration and `sourceAt()` clamps every later frame to `native − 1 ms`, preventing exit animation after stretching the timeline.
 
 Other user-editable controls: Text, Intensity, Particles, Glow, Color, Speed, Direction, and Seed.
 
 ## Integration notes
 
 - The library bundle initially inserts a 10.5-second clip (`saved.json`, `time:[0,10.5]`), but this is a default, **not a maximum**.
-- The corrected bundle uses a versioned source filename, `gentle-breeze-timeline.html`. Old clips referencing `gentle-breeze.html` remain unchanged and can be preserved. After updating OpenFilm, **insert Gentle Breeze again** to import the new engine into an existing project; remove the old clip only after copying its desired text and settings to the new one. OpenFilm's copy-once behavior is not changed.
+- The corrected bundle uses a versioned source filename, `gentle-breeze-unbounded.html`. Old clips referencing `gentle-breeze.html` or `gentle-breeze-timeline.html` remain unchanged and can be preserved. After updating OpenFilm, **insert Gentle Breeze again** to import the new engine into an existing project; remove the old clip only after copying its desired text and settings to the new one. OpenFilm's copy-once behavior is not changed.
 - The obsolete Gentle Breeze-only server patch that resized clips when changing `--wind-total` was removed. The standard timeline mechanisms now own all clip-length changes.
 
 ## Verification targets
 
 Test the isolated HTML using the supplied `--clip-length` property and simulate the host applying overrides before `frame(t)`. Verify a 20-second clip with 2-second entrance and 3-second exit at t=1, t=10, t=17, t=19, and t=20; test out-of-order frame reproducibility. Add server regression tests that assert changing `clip.time` from 10.5 to 20 updates `--clip-length`, without changing any unrelated effect. Run repository-wide tests and check Desktop preview and rendered output before production release.
+
+## Why extending beyond the initial 10.5 seconds previously lost the exit
+
+The player captures a page's `window.film.duration` into `c.native` when the iframe loads. `sourceAt(span, localSec, clip, native)` clamps a page frame to `native - 0.001`, even if `clip.time` is later extended. The old Gentle Breeze therefore received the same frozen frame at 10.499 s throughout the remainder of a 20-second clip, never reaching the exit phase near 17–20 s. Omitting the native page duration is valid for a timeline-bound page whose clip has an explicit `time: [start,end]`; in that case `sourceAt` passes the requested frame through, and the asset's `--clip-length` still comes from Studio.
+
+Regression coverage was added in `packages/openfilm/src/film-doc.test.mjs` for both the frozen and the unbounded cases.
