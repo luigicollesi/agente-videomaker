@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { FLAVORS, flavorName } from './flavor.mjs';
+import { FLAVORS, DISPLAY_NAME, PRODUCT_NAME, flavorName } from './flavor.mjs';
 
 test('which app this is: packaged, the release unless built as the preview; from source, dev when asked', () => {
   assert.equal(flavorName({}, true, null), 'release');
@@ -29,4 +29,11 @@ test('every app makes its projects in the person\'s one library', () => {
     /* the folder the person chose for it is kept in the machine's Studio home */
     assert.equal(flavor.sharedHome ?? join(homedir(), '.openfilm'), join(homedir(), '.openfilm'));
   }
+});
+
+test('visual branding keeps the current project storage and app identity', () => {
+  assert.match(DISPLAY_NAME, /^Agente Videomaker/);
+  assert.equal(PRODUCT_NAME, FLAVORS.release.productName);
+  assert.equal(FLAVORS.release.productName, 'OpenFilm');
+  assert.equal(FLAVORS.release.bundleId, 'dev.openfilm.desktop');
 });
