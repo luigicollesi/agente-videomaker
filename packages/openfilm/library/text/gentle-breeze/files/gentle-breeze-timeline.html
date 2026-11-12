@@ -1,11 +1,11 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gentle Breeze — Organic Wind Lettering</title><style>
-:root{--wind-duration:5.5;--wind-total:10.5;--wind-dissolve:3.2;--wind-intensity:1;--wind-particles:1;--wind-glow:1;--wind-seed:23;--wind-color:#e2f4f0;--wind-speed:1;--wind-direction:1}
+:root{--clip-length:10.5s;--wind-duration:5.5;--wind-dissolve:3.2;--wind-intensity:1;--wind-particles:1;--wind-glow:1;--wind-seed:23;--wind-color:#e2f4f0;--wind-speed:1;--wind-direction:1}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}canvas{position:absolute;inset:0;width:100%;height:100%;display:block}.t{position:absolute;opacity:0;pointer-events:none;white-space:pre}
 </style></head><body><span class="t">BRISA</span><canvas id="c"></canvas><script>
 (()=>{'use strict';
 const canvas=document.getElementById('c'),c=canvas.getContext('2d',{alpha:true}),glyphCanvas=document.createElement('canvas'),gc=glyphCanvas.getContext('2d',{willReadFrequently:true});
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)),smooth=(a,b,x)=>{let v=clamp((x-a)/(b-a));return v*v*(3-2*v)},mix=(a,b,t)=>a+(b-a)*t,frac=x=>x-Math.floor(x),hash=(a,b=0,s=0)=>frac(Math.sin(a*127.1+b*311.7+s*73.7)*43758.5453);
-let P={text:'BRISA',duration:5.5,total:10.5,dissolve:3.2,intensity:1,particles:1,glow:1,color:'#e2f4f0',direction:1,speed:1,seed:23},lastKey='',layout=null,now=0;
+let P={text:'BRISA',duration:5.5,dissolve:3.2,intensity:1,particles:1,glow:1,color:'#e2f4f0',direction:1,speed:1,seed:23},lastKey='',layout=null,now=0;
 function dimensions(){const b=canvas.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1),w=Math.max(32,Math.round(b.width*d)),h=Math.max(32,Math.round(b.height*d));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;lastKey=''}return {w,h}}
 function contour(mask,w,h){const edges=new Map();function add(ax,ay,bx,by){let key=ax+','+ay,arr=edges.get(key)||[];arr.push([bx,by]);edges.set(key,arr)}
 for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(!mask[y*w+x])continue;
@@ -45,14 +45,18 @@ let samples=[];for(let gi=0;gi<glyphs.length;gi++){let g=glyphs[gi];if(!g.rgba)c
 layout={w,h,path,lens,length:lens.at(-1),glyphs,fontSize,samples};
 }
 function pointAt(d){let {path,lens,length}=layout;d=clamp(d,0,length);let lo=0,hi=lens.length-1;while(lo<hi){let mid=(lo+hi)>>1;if(lens[mid]<d)lo=mid+1;else hi=mid}let k=Math.max(1,lo),a=path[k-1],b=path[k],u=(d-lens[k-1])/Math.max(.0001,lens[k]-lens[k-1]);return [mix(a[0],b[0],u),mix(a[1],b[1],u)]}
+function clipDuration(){
+ const value=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--clip-length'));
+ return Number.isFinite(value)&&value>0?Math.max(.5,value):10.5;
+}
 function phases(){
- const total=P.total;
+ const total=clipDuration();
  // Hold is calculated, never stored. Preserve the exit duration if the configured times overlap.
  const exit=Math.min(P.dissolve,total-.25);
  const entrance=Math.min(P.duration,Math.max(0,total-exit));
  return {total,entrance,exit,hold:Math.max(0,total-entrance-exit)};
 }
-function draw(t){make();const {w,h,glyphs,length,lens,fontSize}=layout;const {total,entrance,exit,hold}=phases();now=clamp(Number(t)||0,0,total);let p=clamp(now/Math.max(.001,entrance)),head=length*smooth(0,1,clamp(p*P.speed));c.clearRect(0,0,w,h);
+function draw(t){make();const {w,h,glyphs,length,lens,fontSize}=layout;const {total,entrance,exit,hold}=phases();now=clamp(Number(t)||0,0,total);let p=clamp(now/Math.max(.001,entrance)),head=length*smooth(0,1,p);c.clearRect(0,0,w,h);
 let exitAge=now-entrance-hold,exiting=exitAge>0,ep=clamp(exitAge/Math.max(.001,exit)),ew=smooth(0,1,ep);
 const left=Math.min(...glyphs.filter(g=>g.canvas).map(g=>g.left)),right=Math.max(...glyphs.filter(g=>g.canvas).map(g=>g.left+g.canvas.width));
 // Each character releases its own wind at a staggered time. No travelling wipe.
@@ -154,9 +158,9 @@ if(exiting){
 
 }
 function frame(t){refresh();draw(t)}
-function refresh(){let cs=getComputedStyle(document.documentElement),get=(n,v)=>cs.getPropertyValue(n).trim()||String(v),num=(n,v)=>{const raw=Number(get(n,v));return Number.isFinite(raw)?raw:v},txt=document.querySelector('.t').textContent||'BRISA';let next={...P,text:txt,duration:clamp(num('--wind-duration',P.duration),.5,20),total:clamp(num('--wind-total',P.total),.5,120),dissolve:clamp(num('--wind-dissolve',P.dissolve),.5,12),intensity:clamp(num('--wind-intensity',P.intensity),.1,3),particles:clamp(num('--wind-particles',P.particles),0,3),glow:clamp(num('--wind-glow',P.glow),0,3),seed:num('--wind-seed',P.seed),color:get('--wind-color',P.color),direction:num('--wind-direction',P.direction),speed:clamp(num('--wind-speed',P.speed),.2,2)};if(next.text!==P.text||next.direction!==P.direction)lastKey='';P=next;if(window.film)window.film.duration=P.total}
-window.film={frame,duration:P.total};window.gentleBreeze=window.windThread={setParams(o){P={...P,...o};document.querySelector('.t').textContent=P.text;for(let [key,val] of Object.entries(o)){if(key!=='text'&&key!=='hold')document.documentElement.style.setProperty('--wind-'+key,val)}lastKey='';window.film.duration=P.total;frame(now)},getParams:()=>({...P}),frame};
+function refresh(){let cs=getComputedStyle(document.documentElement),get=(n,v)=>cs.getPropertyValue(n).trim()||String(v),num=(n,v)=>{const raw=Number(get(n,v));return Number.isFinite(raw)?raw:v},txt=document.querySelector('.t').textContent||'BRISA';let next={...P,text:txt,duration:clamp(num('--wind-duration',P.duration),.5,20),dissolve:clamp(num('--wind-dissolve',P.dissolve),.5,12),intensity:clamp(num('--wind-intensity',P.intensity),.1,3),particles:clamp(num('--wind-particles',P.particles),0,3),glow:clamp(num('--wind-glow',P.glow),0,3),seed:num('--wind-seed',P.seed),color:get('--wind-color',P.color),direction:num('--wind-direction',P.direction),speed:clamp(num('--wind-speed',P.speed),.2,2)};if(next.text!==P.text||next.direction!==P.direction)lastKey='';P=next}
+window.film={frame,frameReadsOverrides:true,get duration(){return clipDuration()}};window.gentleBreeze=window.windThread={setParams(o){P={...P,...o};document.querySelector('.t').textContent=P.text;for(let [key,val] of Object.entries(o)){if(key!=='text'&&key!=='hold')document.documentElement.style.setProperty('--wind-'+key,val)}lastKey='';frame(now)},getParams:()=>({...P}),frame};
 new ResizeObserver(()=>frame(now)).observe(canvas);new MutationObserver(()=>frame(now)).observe(document.querySelector('.t'),{childList:true,characterData:true,subtree:true});document.fonts?.ready.then(()=>frame(now));frame(0);
-if(!window.filmHost){let begin=performance.now();function loop(){frame((performance.now()-begin)/1000/(P.total)%1*(P.total));requestAnimationFrame(loop)}requestAnimationFrame(loop)}
+if(!window.filmHost){let begin=performance.now();function loop(){frame((performance.now()-begin)/1000%clipDuration());requestAnimationFrame(loop)}requestAnimationFrame(loop)}
 })();
 </script></body></html>
