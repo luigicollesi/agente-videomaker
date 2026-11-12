@@ -188,3 +188,27 @@ test('caption tracks: put in at a place, known by their file, kept though they h
   const h = applyOps(g, [{ op: 'uncaptions', src: 'captions/zh.vtt' }]);
   assert.deepEqual(ids(h), [['a', 'b'], ['v']]);
 });
+
+test('Gentle Breeze: changing Total duration resizes only its own timeline clip', () => {
+  const props = JSON.stringify([{ name: 'Total duration', type: 'var', var: '--wind-total' }]);
+  const base = {
+    stage: { w: 1920, h: 1080 },
+    tracks: [{ clips: [
+      { id: 'wind', src: 'saved/openfilm/text-gentle-breeze/gentle-breeze.html',
+        time: [0, 10.5], attrs: { 'data-props': props } },
+      { id: 'other', src: 'another.html', time: [0, 10.5] },
+    ] }],
+  };
+  const edit = (id, value) => ({ op: 'props', edits: [{
+    clip: id, prop: 'overrides', value: [{ at: ':root', style: { '--wind-total': String(value) } }],
+  }] });
+  const extended = applyOps(base, [edit('wind', 20)]);
+  assert.deepEqual(extended.tracks[0].clips[0].time, [0, 20]);
+  assert.deepEqual(extended.tracks[0].clips[1].time, [0, 10.5]);
+  const shortened = applyOps(extended, [edit('wind', 8)]);
+  assert.deepEqual(shortened.tracks[0].clips[0].time, [0, 8]);
+  const reset = applyOps(shortened, [{ op: 'props', edits: [{ clip: 'wind', prop: 'overrides', value: [] }] }]);
+  assert.deepEqual(reset.tracks[0].clips[0].time, [0, 10.5]);
+  const unrelated = applyOps(reset, [edit('other', 30)]);
+  assert.deepEqual(unrelated.tracks[0].clips[1].time, [0, 10.5]);
+});

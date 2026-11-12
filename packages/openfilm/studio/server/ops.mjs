@@ -469,6 +469,22 @@ function setField(/** @type {Clip} */ clip, /** @type {string} */ prop, /** @typ
  * Moves are planned against the clips and tracks themselves (not their places), then made all at once: moving one
  * clip shifts the places of the next, and a track may both lose a clip and take one in the same batch.
  */
+/**
+ * Gentle Breeze's editable total duration changes the clip's actual timeline end.
+ * A page's CSS variables alone cannot extend its timeline clip. This is deliberately
+ * scoped to the named built-in asset and only runs when its total setting changes.
+ * @param {Clip} clip
+ */
+function gentleBreezeTotal(clip) {
+  const raw = /** @type {{ overrides?: unknown }} */ (clip).overrides;
+  const root = Array.isArray(raw) ? raw.find((entry) => entry?.at === ':root' && entry?.n === undefined) : null;
+  const style = root?.style;
+  const value = style && typeof style === 'object' ? style['--wind-total'] : undefined;
+  if (value == null || value === '') return 10.5;
+  const number = Number.parseFloat(String(value));
+  return Number.isFinite(number) ? Math.max(0.5, Math.min(120, number)) : 10.5;
+}
+
 function applyProps(/** @type {FilmValue} */ value, /** @type {PropEdit[]} */ edits) {
   if (!Array.isArray(edits) || !edits.length) throw new EditError('props needs edits', 'invalid');
   const fields = edits.filter((e) => e.prop !== 'track' && e.prop !== 'trackOrder' && !TRACK_FLAGS.has(e.prop));
@@ -486,7 +502,18 @@ function applyProps(/** @type {FilmValue} */ value, /** @type {PropEdit[]} */ ed
       value.keyframes = kf;
       continue;
     }
+    const isGentleBreeze = e.prop === 'overrides' &&
+      /(?:^|\/)gentle-breeze\.html(?:#.*)?$/.test(at.clip.src);
+    const beforeTotal = isGentleBreeze ? gentleBreezeTotal(at.clip) : null;
     setField(at.clip, e.prop, snapTime(e.prop, e.value));
+    if (isGentleBreeze) {
+      const afterTotal = gentleBreezeTotal(at.clip);
+      if (beforeTotal !== afterTotal) {
+        const current = at.clip.time;
+        const start = Array.isArray(current) ? Number(current[0] ?? 0) : 0;
+        if (Number.isFinite(start)) setField(at.clip, 'end', round(start + afterTotal));
+      }
+    }
     if (e.prop === 'at') resort.add(value.tracks[at.t]);
   }
   for (const e of edits.filter((x) => TRACK_FLAGS.has(x.prop))) {

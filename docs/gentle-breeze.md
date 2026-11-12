@@ -1,31 +1,29 @@
-# Gentle Breeze — wind-driven lettering
+# Gentle Breeze — organic wind lettering
 
-Native OpenFilm text clip in **Text → Word art**.
+Native OpenFilm text effect: **Text → Word art → Gentle Breeze**.
 
-A curved wind thread outlines Unicode graphemes, leaving the word readable for a configurable hold, before releasing fibres that originate inside the glyph pixels. The canvas is transparent and `window.film.frame(t)` evaluates absolute time for deterministic rendering.
+A fine, luminous thread follows the letter contours, leaves the text gently visible, and then disperses it as filaments originating from the glyphs. Procedural Canvas 2D, transparent background and deterministic absolute-time rendering via `window.film.frame(t)`.
 
-## Parameters
+## Three timing controls
 
-- **Text**: editable content of `.t` (default `BRISA`).
-- **Formation duration**: `--wind-duration`, default 5.5 seconds.
-- **Hold duration**: `--wind-hold`, default 1.8 seconds, including support for zero.
-- **Dissolve duration**: `--wind-dissolve`, default 3.2 seconds.
-- **Intensity**, **Particles**, **Glow**, **Color**, **Speed**, **Direction** and **Seed**: corresponding `--wind-*` variables.
+- **Entrance time** (`--wind-duration`, default **5.5 s**): how long the wind takes to draw the word.
+- **Total duration** (`--wind-total`, default **10.5 s**): the full effect length, including entrance, hold and exit. Editing this field in the Studio inspector also changes the clip's length on the timeline.
+- **Exit time** (`--wind-dissolve`, default **3.2 s**): how long the letters take to release their own filaments and disappear.
 
-Timeline clip length defaults to 10.5 seconds. The hidden `--clip-length` property is synchronized by Studio when inserting, trimming, or resizing the clip. If formation + hold + dissolve differs from the actual clip length, the three phases are proportionally fitted into the clip to ensure the exit animation completes. To preserve the precise configured durations in seconds, also resize the clip to their sum. Frame request order does not affect the output.
+**Hold = max(0, Total duration − Entrance time − Exit time)**. Defaults: 10.5 − 5.5 − 3.2 = **1.8 seconds**.
 
-## Design and licensing
+If Entrance + Exit exceeds Total, the engine preserves the exit interval and shortens the entrance to avoid clipping. Prefer configuring Total at least as long as Entrance + Exit. The clip timeline is resized when **Total duration** is edited; manually resizing an existing clip does not change its configured total.
 
-Original procedural Canvas 2D implementation, with no external assets or third-party libraries.
+The former independent Hold field was removed. The previous hidden `--clip-length` proportional speedup was also removed, so setting entrance or exit independently never silently scales both phases.
 
-## Limitations
+Other parameters: **Text**, **Intensity**, **Particles**, **Glow**, **Color**, **Speed**, **Direction** and **Seed**.
 
-Contour tracing uses the browser's Georgia fallback; its appearance may differ on other platforms. Complex scripts may not join correctly with grapheme-by-grapheme layout. 4K GPU/CPU use and actual Desktop timeline performance require validation on target machines.
+## Implementation
 
-## Local validation
+The OpenFilm library uses `saved.json` and HTML assets in `files/`. The Studio server synchronizes the clip's end when `--wind-total` changes in this specific built-in effect. This is intentionally limited to Gentle Breeze and does not affect other text effects.
 
-Chromium rendered multiple distinct absolute-time frames without page errors. Repeated out-of-order frames matched; editing the text to `VENTO ÁÉ` and setting Hold duration to zero were also tested. Repository-wide `pnpm` tests and Desktop packaging were not executed in the isolated prototype environment.
+No external media or third-party dependencies.
 
-## Hold-duration regression
+## Verification
 
-Verified in headless Chromium: with the Studio clip length held at 10.5s and Hold set to 9s, the frame at 10.3s contains only residual fragments and the frame at 10.5s is fully transparent. Re-rendering 10.3s after requesting other frames yielded exactly identical canvas data. No browser page errors were reported.
+Chromium isolated animation tests cover default timing, a 20-second total with extended hold, customized faster entrance and exit, total shorter than their requested sum, Unicode text, transparent final frame, out-of-order frame repeatability, and absence of browser errors. Full Desktop integration and repository-wide pnpm tests require checking in the complete project environment.
