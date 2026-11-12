@@ -26,7 +26,7 @@ Other user-editable controls: Text, Intensity, Particles, Glow, Color, Speed, Di
 ## Integration notes
 
 - The library bundle initially inserts a 10.5-second clip (`saved.json`, `time:[0,10.5]`), but this is a default, **not a maximum**.
-- Studio does not automatically replace an already-copied effect HTML in an existing project. If that project imported an older Gentle Breeze, its local `saved/openfilm/text-gentle-breeze/gentle-breeze.html` may still have the old behavior even after updating OpenFilm. Test in a new project or deliberately update the old copy while preserving customizations.
+- The corrected bundle uses a versioned source filename, `gentle-breeze-timeline.html`. Old clips referencing `gentle-breeze.html` remain unchanged and can be preserved. After updating OpenFilm, **insert Gentle Breeze again** to import the new engine into an existing project; remove the old clip only after copying its desired text and settings to the new one. OpenFilm's copy-once behavior is not changed.
 - The obsolete Gentle Breeze-only server patch that resized clips when changing `--wind-total` was removed. The standard timeline mechanisms now own all clip-length changes.
 
 ## Verification targets
