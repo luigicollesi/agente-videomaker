@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+<defs><radialGradient id="night"><stop stop-color="#1d425e"/><stop offset="1" stop-color="#070e1b"/></radialGradient><linearGradient id="ice" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#edfaff"/><stop offset=".35" stop-color="#9be9fd"/><stop offset=".7" stop-color="#3aa9d6"/><stop offset="1" stop-color="#185782"/></linearGradient><filter id="bloom"><feGaussianBlur stdDeviation="8"/></filter></defs>
+<rect width="640" height="360" fill="url(#night)"/>
+<g font-family="Impact,Arial Black,sans-serif" font-size="98" font-weight="900" text-anchor="middle"><text x="320" y="196" fill="#48c5f2" opacity=".75" filter="url(#bloom)">BLIZZARD</text><text x="320" y="196" fill="url(#ice)">BLIZZARD</text></g>
+<g fill="none" stroke="#c4f3ff" stroke-linecap="round"><path d="M114 121l67 59 30-52 56 75 44-71 67 54 65-44 67 58" stroke-width="1.6" opacity=".77"/><path d="M181 180l-6 34m36-86-27-20m83 95 17 35m27-106 26-27m41 81-12 34m77-78 32-23" opacity=".7"/></g>
+<g fill="#a9ecff"><path d="m461 153 27-20-6 27z"/><path d="m156 220-33 25 39-8z"/><path d="m400 208 21 26-34-6z"/></g>
+<text x="320" y="293" text-anchor="middle" font-family="sans-serif" letter-spacing="5" font-size="15" fill="#bed9e6">FROST SHATTER</text></svg>
