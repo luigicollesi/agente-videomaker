@@ -3882,6 +3882,41 @@
    "durationMs": 8000
   },
   {
+   "id": "text/spatial-rift",
+   "cat": "text",
+   "group": "title",
+   "name": {
+    "en": "Spatial Rift — enter / hold / return",
+    "es": "Grieta espacial",
+    "zh-CN": "空间裂缝",
+    "ja": "空間の裂け目",
+    "ko": "공간 균열"
+   },
+   "kind": "page",
+   "durationMs": 6600,
+   "src": "spatial-rift.html",
+   "poster": "text/spatial-rift/poster.svg",
+   "w": 1600,
+   "h": 390,
+   "fit": 0.23,
+   "about": "A thin crooked rift tears open, an editable title emerges, the fissure closes for an automatic hold, then reopens to retrieve the title. Set total clip time, entry and exit durations independently; hue controls the entire glow and title material. Uses deterministic transparent Canvas 2D.",
+   "tags": [
+    "spatial-rift",
+    "portal",
+    "dimensional",
+    "tear",
+    "cinematic",
+    "typography",
+    "editable",
+    "vfx",
+    "entry",
+    "hold",
+    "exit",
+    "color",
+    "deterministic"
+   ]
+  },
+  {
    "id": "text/text-burn-forge",
    "cat": "text",
    "group": "burn",
