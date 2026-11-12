@@ -15,7 +15,7 @@
    are translucent, so they read the same on every layer. Text: primary, muted (secondary), faint (hints, placeholders,
    idle icons). Lines: a hairline and a stronger one.
 
-   The main action is ink: near black in light, near white in dark. One accent, the brand teal, for what is selected,
+   The main action is ink: near black in light, near white in dark. One accent, the brand crimson, for what is selected,
    current or focused (switches, progress, tabs, the frame on the picture); ok, warn and err for states. The timeline
    keeps to white (ink in light) for its playhead and a picked clip's frame.
 
@@ -42,18 +42,18 @@
 [data-theme='light'] {
   color-scheme: light;
 
-  --bg-app: #e4e4e8;
+  --bg-app: #e6e5e8;
   --bg-titlebar: var(--bg-app);
-  --bg-panel: #fbfbfc;
+  --bg-panel: #faf9fa;
   --bg-raised: #ffffff;
   /* the viewer's pane, round the picture: the panels' own white (rgb 251, 251, 252) */
-  --bg-viewer: #fbfbfc;
+  --bg-viewer: #faf9fa;
   /* the one-pixel lines between the panes and under the top bar (the board under them showing through) */
-  --dock-line: #d2d2d8;
+  --dock-line: #d4cdd2;
   --bg-field: rgba(16, 16, 24, 0.055);
   --bg-hover: rgba(16, 16, 24, 0.05);
   --bg-pressed: rgba(16, 16, 24, 0.09);
-  --bg-selected: rgba(0, 163, 174, 0.13);
+  --bg-selected: rgba(190, 24, 60, 0.13);
 
   --text: #161619;
   --text-muted: #5d5d63;
@@ -66,16 +66,16 @@
   --primary-hover: #2e2e33;
   --on-primary: #ffffff;
 
-  --accent: #0098a3;
-  --accent-soft: rgba(0, 163, 174, 0.12);
+  --accent: #b91338;
+  --accent-soft: rgba(190, 24, 60, 0.12);
   --on-accent: #ffffff;
   /* a switch turned on: the accent a step quieter, so a page of them does not glare */
-  --switch-on: #26b0ba;
+  --switch-on: #be2144;
   /* what is picked among choices (tabs, a rail, a list): the accent's words on the accent's own tint, never a grey
      that reads as merely pointed at */
-  --bg-picked: rgba(0, 163, 174, 0.14);
+  --bg-picked: rgba(190, 24, 60, 0.14);
   /* words selected in a field */
-  --text-selection: rgba(0, 163, 174, 0.24);
+  --text-selection: rgba(190, 24, 60, 0.24);
 
   --ok: #1f8a4c;
   --warn: #b25e00;
@@ -112,9 +112,9 @@
   --folder-front: #dedede;
   --folder-front-hi: #ececec;
 
-  --brand-wind-from: #2f9e63;
-  --brand-wind-mid: #3cbc93;
-  --brand-wind-to: #55bfd0;
+  --brand-wind-from: #821329;
+  --brand-wind-mid: #be2144;
+  --brand-wind-to: #e54b67;
 }
 
 /* ── Dark ── */
@@ -123,16 +123,16 @@
 
   /* the window's ground (rgb 20): what shows between the panes; every pane's inside, its top bars, the viewer round
      the picture and the canvas's board among them, the panels' (rgb 24) */
-  --bg-app: #141414;
-  --bg-titlebar: #202020;
-  --bg-panel: #181818;
-  --bg-raised: #202020;
-  --bg-viewer: #181818;
+  --bg-app: #09090c;
+  --bg-titlebar: #15151b;
+  --bg-panel: #121217;
+  --bg-raised: #1b1b22;
+  --bg-viewer: #121217;
   --dock-line: #000000;
   --bg-field: rgba(255, 255, 255, 0.08);
   --bg-hover: rgba(255, 255, 255, 0.06);
   --bg-pressed: rgba(255, 255, 255, 0.12);
-  --bg-selected: rgba(0, 193, 205, 0.16);
+  --bg-selected: rgba(225, 29, 72, 0.18);
 
   --text: #e6e6e6;
   --text-muted: #a3a3a3;
@@ -145,13 +145,13 @@
   --primary-hover: #ffffff;
   --on-primary: #0a0a0c;
 
-  /* what is picked: words in this cyan, plainly apart from the others' white */
-  --accent: #00c1cd;
-  --accent-soft: rgba(0, 193, 205, 0.14);
-  --on-accent: #00262a;
-  --switch-on: #009aa4;
-  --bg-picked: rgba(0, 193, 205, 0.16);
-  --text-selection: rgba(0, 193, 205, 0.3);
+  /* selected/focused controls use a legible crimson, separate from the neutral interface */
+  --accent: #f04465;
+  --accent-soft: rgba(225, 29, 72, 0.17);
+  --on-accent: #09090c;
+  --switch-on: #c92248;
+  --bg-picked: rgba(225, 29, 72, 0.2);
+  --text-selection: rgba(225, 29, 72, 0.32);
 
   --ok: #4cc27a;
   --warn: #f0b03c;
@@ -183,9 +183,9 @@
   --folder-front: #4d4d4d;
   --folder-front-hi: #5a5a5a;
 
-  --brand-wind-from: #5ecb92;
-  --brand-wind-mid: #66d8b8;
-  --brand-wind-to: #7fd3e4;
+  --brand-wind-from: #8c1936;
+  --brand-wind-mid: #dc2d53;
+  --brand-wind-to: #f06b84;
 }
 
 * {
