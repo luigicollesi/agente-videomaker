@@ -8,7 +8,7 @@
       10.5
     ],
     "attrs": {
-      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Formation duration\",\"type\":\"var\",\"var\":\"--wind-duration\"},{\"name\":\"Hold duration\",\"type\":\"var\",\"var\":\"--wind-hold\"},{\"name\":\"Dissolve duration\",\"type\":\"var\",\"var\":\"--wind-dissolve\"},{\"name\":\"Intensity\",\"type\":\"var\",\"var\":\"--wind-intensity\"},{\"name\":\"Particles\",\"type\":\"var\",\"var\":\"--wind-particles\"},{\"name\":\"Glow\",\"type\":\"var\",\"var\":\"--wind-glow\"},{\"name\":\"Color\",\"type\":\"var\",\"var\":\"--wind-color\"},{\"name\":\"Speed\",\"type\":\"var\",\"var\":\"--wind-speed\"},{\"name\":\"Direction\",\"type\":\"var\",\"var\":\"--wind-direction\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--wind-seed\"}]"
+      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Formation duration\",\"type\":\"var\",\"var\":\"--wind-duration\"},{\"name\":\"Hold duration\",\"type\":\"var\",\"var\":\"--wind-hold\"},{\"name\":\"Dissolve duration\",\"type\":\"var\",\"var\":\"--wind-dissolve\"},{\"name\":\"Intensity\",\"type\":\"var\",\"var\":\"--wind-intensity\"},{\"name\":\"Particles\",\"type\":\"var\",\"var\":\"--wind-particles\"},{\"name\":\"Glow\",\"type\":\"var\",\"var\":\"--wind-glow\"},{\"name\":\"Color\",\"type\":\"var\",\"var\":\"--wind-color\"},{\"name\":\"Speed\",\"type\":\"var\",\"var\":\"--wind-speed\"},{\"name\":\"Direction\",\"type\":\"var\",\"var\":\"--wind-direction\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--wind-seed\"},{\"name\":\"Clip length\",\"type\":\"var\",\"var\":\"--clip-length\"}]"
     }
   },
   "durationMs": 10500
