@@ -1,0 +1,113 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rain Type V3 — Liquid Surface</title><style>
+:root{--rain-entry-duration:5.1;--rain-hold-duration:.6;--rain-exit-duration:4.9;--rain-vapor:1;--rain-seed:27;--rain-drops:1;--rain-glow:.55;--rain-size:1;--rain-font:Impact;--rain-wind:.18;--rain-refraction:.75}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#08111c;color:#e1eaf0;font:14px system-ui}.head{padding:17px 22px;letter-spacing:.14em;font-size:12px;font-weight:700;color:#c7d7df}.head span{opacity:.45}.stage{aspect-ratio:16/9;width:100%;position:relative;overflow:hidden;background:radial-gradient(ellipse at center,#1a2935,#080e16 77%)}canvas#stage{position:absolute;inset:0;width:100%;height:100%;display:block}.t{display:none}.controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:18px;background:#101b26}.controls label{font-size:12px;display:flex;flex-direction:column;gap:6px;color:#a9becb}.controls input{background:#1b2c3b;color:#f1faff;border:1px solid #344d60;border-radius:5px;padding:8px;width:100%}.controls input[type=range]{padding:0}.timeline{display:flex;gap:15px;align-items:center;padding:0 18px 18px;background:#101b26}.timeline input{flex:1}.timeline button{background:#28465a;border:1px solid #57778b;color:#e5f5ff;border-radius:5px;padding:8px 18px;cursor:pointer}body.capture{background:transparent}body.capture .head,body.capture .controls,body.capture .timeline{display:none}body.capture .stage{width:100vw;height:100vh;aspect-ratio:auto;background:transparent}@media(max-width:700px){.controls{grid-template-columns:repeat(2,1fr)}}
+</style></head><body><div class="head">RAIN TYPE — ENTRY / HOLD / EVAPORATE <span>/ LIQUID SURFACE · WEBGL2</span></div><div class="stage"><canvas id="stage"></canvas><span class="t">INFERNO</span></div><div class="controls"><label>Texto<input id="text" value="INFERNO"></label><label>Gotas<input id="drops" type="range" min=".35" max="1.8" value="1" step=".05"></label><label>Reflexos<input id="glow" type="range" min="0" max="1.5" value=".55" step=".05"></label><label>Vento<input id="wind" type="range" min="0" max="1" value=".18" step=".05"></label><label>Seed<input id="seed" type="number" value="27"></label><label>Entrada (s)<input id="entryDuration" type="number" min="0.2" max="120" step=".1" value="5.1"></label><label>Hold (s)<input id="holdDuration" type="number" min="0" max="120" step=".1" value=".6"></label><label>Saída (s)<input id="exitDuration" type="number" min="0.2" max="120" step=".1" value="4.9"></label><label>Vapor<input id="vapor" type="range" min="0" max="2" step=".1" value="1"></label></div><div class="timeline"><button id="play">Pausar</button><input id="scrub" type="range" min="0" max="10.6" step=".01" value="0"><span id="clock">0.00 s</span></div>
+<script>
+(()=>{'use strict';
+const stage=document.querySelector('.stage'),canvas=document.querySelector('#stage'),gl=canvas.getContext('webgl2',{alpha:true,antialias:true,premultipliedAlpha:false,preserveDrawingBuffer:true});
+if(!gl){document.querySelector('.head').textContent='WebGL2 indisponível';return;}
+const glyph=document.createElement('canvas'),gx=glyph.getContext('2d',{willReadFrequently:true});
+let P={text:'INFERNO',duration:10.6,entryDuration:5.1,holdDuration:.6,exitDuration:4.9,exitStart:5.7,evapDuration:2.7,vapor:1,seed:27,drops:1,glow:.55,size:1,font:'Impact',wind:.18,refraction:.75};let cur=0,playing=true,start=0,lastKey='',particles=[],targetCount=0,W=960,H=540,quad,fieldTex,fieldFb,maskTex,particlesBuffer,programField,programWater,programDrops;
+const clamp=(a,x=0,y=1)=>Math.min(y,Math.max(x,a));const smooth=(a,b,x)=>{let s=clamp((x-a)/(b-a));return s*s*(3-2*s)};const mix=(a,b,t)=>a*(1-t)+b*t;
+function hash(x,y=0,z=0){let n=(Math.imul(x+113,374761393)+Math.imul(y+31,668265263)+Math.imul(z+59,1442695041))|0;n=Math.imul(n^(n>>>13),1274126177);return((n^(n>>>16))>>>0)/4294967296}
+function shader(type,source){let s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s}
+function program(vs,fs){let p=gl.createProgram();gl.attachShader(p,shader(gl.VERTEX_SHADER,vs));gl.attachShader(p,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));return p}
+const vertexParticles=`#version 300 es
+precision highp float;layout(location=0) in vec4 a;uniform vec2 u_resolution;out vec2 vExtra;void main(){vec2 p=a.xy/u_resolution*2.-1.;gl_Position=vec4(p.x,-p.y,0.,1.);gl_PointSize=a.z;vExtra=vec2(a.w,0.);}`;
+const splatFrag=`#version 300 es
+precision highp float;in vec2 vExtra;out vec4 outColor;void main(){vec2 q=(gl_PointCoord-.5)*2.;float r=length(q);float soft=1.-smoothstep(.18,1.,r);outColor=vec4(vec3(soft*.16),soft*.16);}`;
+const quadV=`#version 300 es
+precision highp float;layout(location=0) in vec2 a;out vec2 uv;void main(){uv=(a+1.)*.5;gl_Position=vec4(a,0.,1.);}`;
+const waterF=`#version 300 es
+precision highp float;uniform sampler2D density;uniform sampler2D mask;uniform vec2 resolution;uniform float time;uniform float motionTime;uniform float glow;uniform float refraction;uniform float exitStart;uniform float evapDuration;uniform float vaporStrength;in vec2 uv;out vec4 frag;
+float wet(vec2 p){vec2 pixel=vec2(1.)/resolution;float v=texture(density,p).r*.27;v+=texture(density,p+vec2(pixel.x*2.,0.)).r*.15;v+=texture(density,p-vec2(pixel.x*2.,0.)).r*.15;v+=texture(density,p+vec2(0.,pixel.y*2.)).r*.15;v+=texture(density,p-vec2(0.,pixel.y*2.)).r*.15;v+=texture(density,p+pixel*2.).r*.065;v+=texture(density,p-pixel*2.).r*.065;return v;}
+float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y);}
+float fbm(vec2 p){return .52*ns(p)+.29*ns(p*2.1)+.19*ns(p*4.3);}
+void main(){vec2 px=1./resolution;float m=texture(mask,uv).r;float d=wet(uv);float fill=smoothstep(.035,.13,d);float edge=smoothstep(.02,.25,m);float alpha=fill*edge;
+// Topmost strokes disappear first; the edge is softened and deformed by low-frequency noise.
+float e=max(0.,time-exitStart);float progress=e/max(.1,evapDuration);
+float grain=(fbm(uv*vec2(19.,13.)+vec2(time*.08,0.))-.5)*.09;
+float row=clamp((.685-uv.y)/.34+grain,0.,1.);
+float evaporated=smoothstep(row-.035,row+.06,progress);
+alpha*=1.-evaporated;
+
+float nL=wet(uv-vec2(px.x*2.,0.))*texture(mask,uv-vec2(px.x,0.)).r;
+float nR=wet(uv+vec2(px.x*2.,0.))*texture(mask,uv+vec2(px.x,0.)).r;
+float nU=wet(uv+vec2(0.,px.y*2.))*texture(mask,uv+vec2(0.,px.y)).r;
+float nD=wet(uv-vec2(0.,px.y*2.))*texture(mask,uv-vec2(0.,px.y)).r;
+vec3 normal=normalize(vec3((nL-nR)*4.,(nD-nU)*4.,.65));
+float ripple=.012*sin(uv.x*42.+motionTime*2.2+sin(uv.y*18.))*sin(uv.y*30.-motionTime*1.35);
+normal=normalize(normal+vec3(ripple*.8,ripple*.35,0.));
+vec3 lightDir=normalize(vec3(-.40,.72,1.));float ndl=max(0.,dot(normal,lightDir));
+vec3 view=vec3(0.,0.,1.);vec3 halfV=normalize(lightDir+view);float spec=pow(max(dot(normal,halfV),0.),35.)*.65+pow(max(dot(normal,halfV),0.),180.)*.48;
+float fres=pow(1.-max(dot(normal,view),0.),5.);float band=.5+.5*sin((uv.y+normal.y*.018+time*.004)*42.+normal.x*8.);
+vec3 glass=mix(vec3(.055,.17,.235),vec3(.47,.73,.81),clamp(ndl*.75+band*.15,0.,1.));glass+=vec3(.47,.60,.64)*spec*(.85+glow*.3);glass+=vec3(.27,.42,.51)*fres;
+float thin=smoothstep(.04,.35,d);glass*=mix(.72,1.,thin);
+// Vapor is sampled only from original wet glyph surface, shifted upward and stretched.
+// Each wisp is emitted when its own glyph row reaches the dissolution front.
+float smoke=0.;
+if(e>0.){
+ for(int k=0;k<10;k++){
+  float age=.12+float(k)*.255;
+  float rise=age*(.073+.008*sin(uv.x*12.+float(k)*1.7));
+  float drift=age*.019*sin(uv.y*21.+time*.8+float(k)*1.37);
+  vec2 source=uv-vec2(drift,rise);
+  float spread=.005+age*.018;
+  source.x+=(fbm(uv*vec2(13.,9.)+vec2(time*.16,-time*.24))-.5)*age*.055;
+  float fromMask=(texture(mask,source).r+texture(mask,source+vec2(spread,0.)).r+texture(mask,source-vec2(spread,0.)).r+texture(mask,source+vec2(0.,spread*.7)).r+texture(mask,source-vec2(0.,spread*.7)).r)*.20;
+  float sourceRow=clamp((.685-source.y)/.34,0.,1.);
+  float emissionTime=exitStart+evapDuration*sourceRow;
+  float ignition=exp(-pow((time-age-emissionTime)/.39,2.));
+  float distort=fbm(uv*vec2(21.,17.)+vec2(float(k)*3.7,-time*.32));
+  float porous=smoothstep(.18,.65,distort);
+  float haze=fromMask*ignition*porous;
+  smoke+=haze*exp(-age*.46)*.42;
+ }
+}
+smoke*=vaporStrength*(1.-smoothstep(exitStart+evapDuration+.55,exitStart+evapDuration+2.0,time));
+vec3 smokeColor=mix(vec3(.36,.49,.56),vec3(.75,.85,.87),clamp(fbm(uv*vec2(10.,13.)-vec2(time*.10,time*.18)),0.,1.));
+smoke=clamp(smoke,0.,.65);
+float finalAlpha=clamp(alpha*.95+smoke*(1.-alpha),0.,1.);
+vec3 finalColor=mix(smokeColor,glass,alpha*.95/max(.001,finalAlpha));
+frag=vec4(finalColor,finalAlpha);
+}`;
+const dropFrag=`#version 300 es
+precision highp float;in vec2 vExtra;uniform float glow;out vec4 frag;
+void main(){vec2 p=gl_PointCoord*2.-1.;p.y*=.74;float r=length(p);float rim=smoothstep(.96,.73,r);if(r>1.)discard;
+vec3 n=normalize(vec3(p*.76,sqrt(max(.03,1.-r*r))));float spec=pow(max(dot(n,normalize(vec3(-.43,-.55,1.))),0.),65.);
+float edge=pow(r,3.)*.48;float top=pow(max(0.,1.-length((p-vec2(-.25,-.33))*2.4)),3.);
+vec3 col=vec3(.12,.27,.36)+vec3(.43,.53,.57)*(spec*1.4+top*.40)+vec3(.25,.36,.40)*edge;
+frag=vec4(col, rim*vExtra.x*(.72+glow*.16));}`;
+programField=program(vertexParticles,splatFrag);programWater=program(quadV,waterF);programDrops=program(vertexParticles,dropFrag);
+quad=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,quad);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+particlesBuffer=gl.createBuffer();
+function texture(w,h,data=null,fmt=gl.RGBA){let t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,fmt,gl.UNSIGNED_BYTE,data);return t}
+function resize(){const r=stage.getBoundingClientRect(),scale=Math.min(window.devicePixelRatio||1,2),w=Math.max(24,Math.floor(r.width*scale)),h=Math.max(24,Math.floor(r.height*scale));if(w===W&&h===H&&fieldFb)return;W=w;H=h;canvas.width=W;canvas.height=H;if(fieldTex)gl.deleteTexture(fieldTex);if(maskTex)gl.deleteTexture(maskTex);if(fieldFb)gl.deleteFramebuffer(fieldFb);fieldTex=texture(W,H);maskTex=texture(W,H);fieldFb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fieldFb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,fieldTex,0);if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)throw Error('Framebuffer incompleto');lastKey=''}
+function layout(){resize();const key=[W,H,P.text,P.seed,P.drops,P.size,P.font].join('|');if(key===lastKey)return;glyph.width=W;glyph.height=H;gx.clearRect(0,0,W,H);const text=(P.text.trim()||'CHUVA').slice(0,90);let fs=H*.28*P.size;gx.textAlign='center';gx.textBaseline='middle';gx.fillStyle='#fff';for(let i=0;i<8;i++){gx.font=`900 ${Math.max(4,Math.floor(fs))}px ${P.font},'Arial Black',sans-serif`;if(gx.measureText(text).width<=W*.85)break;fs*=W*.85/gx.measureText(text).width;}gx.fillText(text,W*.5,H*.53);const img=gx.getImageData(0,0,W,H);gl.bindTexture(gl.TEXTURE_2D,maskTex);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,W,H,0,gl.RGBA,gl.UNSIGNED_BYTE,img.data);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+const selected=[];const spacing=Math.max(4,Math.round(Math.min(W,H)/125/Math.sqrt(P.drops)));for(let y=Math.floor(H*.31);y<H*.72;y+=spacing){for(let x=Math.floor(W*.05);x<W*.95;x+=spacing){if(img.data[(y*W+x)*4+3]>160&&hash(x,y,P.seed)>.07)selected.push({x,y});}}
+particles=selected.map((d,i)=>{const p=hash(i,15,P.seed),wave=hash(i,18,P.seed);return {x:d.x,y:d.y,spawn:d.x+(wave-.5)*W*.14,top:-H*(.08+hash(i,19,P.seed)*.22),delay:.08+p*2.25,flight:1.35+hash(i,20,P.seed)*1.2,r:Math.max(5,W*.014*(.8+hash(i,21,P.seed)*.6)),radius:Math.max(2,W*.005*(.7+hash(i,22,P.seed)*.5)),v:hash(i,23,P.seed)}});targetCount=particles.length;lastKey=key;}
+function bindParticles(data){gl.bindBuffer(gl.ARRAY_BUFFER,particlesBuffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,4,gl.FLOAT,false,0,0);}
+function points(prog,data,alpha=false){gl.useProgram(prog);gl.uniform2f(gl.getUniformLocation(prog,'u_resolution'),W,H);const u=gl.getUniformLocation(prog,'glow');if(u)gl.uniform1f(u,P.glow);bindParticles(data);gl.drawArrays(gl.POINTS,0,data.length/4)}
+function draw(t){layout();cur=clamp(Number(t)||0,0,P.duration);
+const e=Math.max(.2,P.entryDuration),h=Math.max(0,P.holdDuration),o=Math.max(.2,P.exitDuration);
+const sceneTime=cur<e ? (cur/e)*5.1 : cur<e+h ? 5.1+(cur-e)*.6/Math.max(h,.0001) : 5.7+Math.min(1,(cur-e-h)/o)*4.9;
+const arrivals=[],falling=[];for(const p of particles){const raw=(sceneTime-p.delay)/p.flight;if(raw<0)continue;const prog=smooth(0,1,raw);if(raw<1){const curved=Math.sin(prog*Math.PI)*W*.008*Math.sin(p.v*12.);const x=mix(p.spawn,p.x,prog)+curved*P.wind;const y=mix(p.top,p.y,prog);const a=smooth(0,.13,raw)*(1-smooth(.87,1.,raw));falling.push(x,y,p.radius*2.1,Math.min(1,a*.83));}else{const age=cur-p.delay-p.flight;const expansion=smooth(0,.6,age);arrivals.push(p.x,p.y,p.r*(.66+expansion*.60),1);}}
+// All landed drops deposit their volume into a single GPU density field.
+gl.bindFramebuffer(gl.FRAMEBUFFER,fieldFb);gl.viewport(0,0,W,H);gl.disable(gl.DEPTH_TEST);gl.disable(gl.BLEND);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);points(programField,new Float32Array(arrivals));gl.disable(gl.BLEND);
+// Water exists only where actual droplets have deposited density within the glyph mask.
+gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,W,H);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);gl.useProgram(programWater);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,fieldTex);gl.uniform1i(gl.getUniformLocation(programWater,'density'),0);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,maskTex);gl.uniform1i(gl.getUniformLocation(programWater,'mask'),1);gl.uniform2f(gl.getUniformLocation(programWater,'resolution'),W,H);gl.uniform1f(gl.getUniformLocation(programWater,'time'),sceneTime);gl.uniform1f(gl.getUniformLocation(programWater,'motionTime'),cur);gl.uniform1f(gl.getUniformLocation(programWater,'glow'),P.glow);gl.uniform1f(gl.getUniformLocation(programWater,'refraction'),P.refraction);gl.uniform1f(gl.getUniformLocation(programWater,'exitStart'),P.exitStart);gl.uniform1f(gl.getUniformLocation(programWater,'evapDuration'),P.evapDuration);gl.uniform1f(gl.getUniformLocation(programWater,'vaporStrength'),P.vapor);gl.bindBuffer(gl.ARRAY_BUFFER,quad);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+// In-flight drops have fixed text destinations; no background rain or random extra drops.
+gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);points(programDrops,new Float32Array(falling));gl.disable(gl.BLEND);return cur;}
+window.film={frame:draw,duration:P.duration};window.rainType={frame:draw,setParams:obj=>{Object.assign(P,obj);P.duration=Math.max(.2,P.entryDuration)+Math.max(0,P.holdDuration)+Math.max(.2,P.exitDuration);lastKey='';window.film.duration=P.duration;draw(cur)},getParams:()=>({...P}),stats:()=>({particles:targetCount,width:W,height:H})};
+function readCSS(){let s=getComputedStyle(document.documentElement),n=(name,def)=>{const x=parseFloat(s.getPropertyValue(name));return Number.isFinite(x)?x:def};return{text:document.querySelector('.t').textContent||'CHUVA',entryDuration:n('--rain-entry-duration',5.1),holdDuration:n('--rain-hold-duration',.6),exitDuration:n('--rain-exit-duration',4.9),vapor:n('--rain-vapor',1),seed:n('--rain-seed',27),drops:n('--rain-drops',1),glow:n('--rain-glow',.55),size:n('--rain-size',1),font:s.getPropertyValue('--rain-font').trim()||'Impact',wind:n('--rain-wind',.18),refraction:n('--rain-refraction',.75)}}
+window.film.frame=t=>{const next=readCSS();next.entryDuration=Math.max(.2,next.entryDuration);next.holdDuration=Math.max(0,next.holdDuration);next.exitDuration=Math.max(.2,next.exitDuration);next.duration=next.entryDuration+next.holdDuration+next.exitDuration;if(Object.keys(next).some(k=>next[k]!==P[k])){P={...P,...next};lastKey='';window.film.duration=P.duration;}return draw(t)};
+const capture=new URLSearchParams(location.search).has('capture');if(capture){document.body.classList.add('capture');window.filmHost=true;}
+function loop(ms){if(window.filmHost)return;if(playing)cur=((ms-start)/1000)%P.duration;window.film.frame(cur);document.querySelector('#scrub').value=cur;document.querySelector('#clock').textContent=cur.toFixed(2)+' s';requestAnimationFrame(loop)}
+for(const id of ['drops','glow','wind','seed','entryDuration','holdDuration','exitDuration','vapor'])document.getElementById(id).addEventListener('input',e=>{document.documentElement.style.setProperty('--rain-'+id.replace(/[A-Z]/g,m=>'-'+m.toLowerCase()),e.target.value);window.film.frame(cur);document.querySelector('#scrub').max=P.duration});
+document.getElementById('text').addEventListener('input',e=>{document.querySelector('.t').textContent=e.target.value;window.film.frame(cur)});
+document.getElementById('scrub').oninput=e=>{playing=false;cur=+e.target.value;document.querySelector('#play').textContent='Reproduzir';window.film.frame(cur)};
+document.getElementById('play').onclick=()=>{playing=!playing;start=performance.now()-cur*1000;document.querySelector('#play').textContent=playing?'Pausar':'Reproduzir'};
+new MutationObserver(()=>window.film.frame(cur)).observe(document.documentElement,{attributes:true,attributeFilter:['style']});new ResizeObserver(()=>window.film.frame(cur)).observe(stage);new MutationObserver(()=>window.film.frame(cur)).observe(document.querySelector('.t'),{subtree:true,characterData:true,childList:true});window.film.frame(0);requestAnimationFrame(ms=>{start=ms;loop(ms)});
+})();
+</script></body></html>
