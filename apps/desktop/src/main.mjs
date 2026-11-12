@@ -44,7 +44,7 @@ const here = (path) => fileURLToPath(new URL(path, import.meta.url));
 const mac = process.platform === 'darwin';
 const windows = process.platform === 'win32';
 /** Windows' window buttons over the top bar: the board's color, and the text's */
-const overlayColours = (t) => ({ color: t === 'dark' ? '#111114' : '#e9e9eb', symbolColor: t === 'dark' ? '#ebebed' : '#161619', height: 32 });
+const overlayColours = (t) => ({ color: t === 'dark' ? '#15151b' : '#e6e5e8', symbolColor: t === 'dark' ? '#ebebed' : '#161619', height: 32 });
 
 /* HTML-in-Canvas in Studio's viewer, as in the renderer (the `openfilm` package's src/host.mjs) */
 app.commandLine.appendSwitch('enable-blink-features', 'CanvasDrawElement');
@@ -121,7 +121,7 @@ let localAgents = null;
 let roster = null;
 
 /** the board Studio's panes sit on (its --bg-app), so the window never flashes another color */
-const BACKGROUND = { light: '#e4e4e8', dark: '#141414' };
+const BACKGROUND = { light: '#e6e5e8', dark: '#09090c' };
 
 function focusWindow() {
   if (!win) return;
