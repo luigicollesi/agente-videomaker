@@ -265,6 +265,16 @@
      "ko": "불꽃과 재",
      "es": "Fuego y ceniza"
     }
+   },
+   {
+    "id": "blizzard",
+    "name": {
+     "en": "Blizzard · Ice & snow",
+     "zh-CN": "暴风雪与寒冰",
+     "ja": "吹雪・氷と雪",
+     "ko": "눈보라와 얼음",
+     "es": "Ventisca · Hielo y nieve"
+    }
    }
   ],
   "sticker": [
@@ -3992,6 +4002,35 @@
     "hold",
     "exit",
     "combined"
+   ]
+  },
+  {
+   "id": "text/text-blizzard-frost-shatter",
+   "cat": "text",
+   "group": "blizzard",
+   "name": {
+    "en": "Blizzard — Frost Shatter",
+    "zh-CN": "暴风雪 — 冰冻碎裂",
+    "ja": "ブリザード — 氷結破砕",
+    "ko": "블리자드 — 얼음 파쇄",
+    "es": "Ventisca — Fractura helada"
+   },
+   "kind": "page",
+   "durationMs": 7000,
+   "src": "blizzard-frost-shatter.html",
+   "about": "Crystalline ice grows out of nothing to form an editable word, holds fully readable, then freezes deeper, cracks and shatters into drifting ice fragments and snow. Transparent procedural Canvas 2D animation, deterministic by absolute time.",
+   "tags": [
+    "blizzard",
+    "frost",
+    "ice",
+    "snow",
+    "crystal-growth",
+    "hold",
+    "shatter",
+    "fracture",
+    "particles",
+    "text",
+    "cinematic"
    ]
   }
  ]
