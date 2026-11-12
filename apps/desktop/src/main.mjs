@@ -13,7 +13,7 @@ import { BaseWindow, Menu, Notification, WebContentsView, app, clipboard, dialog
 import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FLAVOR, IDENTITY, PRODUCT_NAME } from './flavor.mjs';
+import { FLAVOR, IDENTITY, PRODUCT_NAME, DISPLAY_NAME } from './flavor.mjs';
 import { folderDialogOptions, programDialogOptions } from './folder-dialog.mjs';
 import { childEnvironment, lastPathSource, loginShellEnvironment } from './environment.mjs';
 import { gatherAppReport } from './app-report.mjs';
@@ -61,7 +61,7 @@ if (mac) {
 }
 
 /* each flavour its own name, data folder and single-instance lock (flavor.mjs) */
-app.setName(PRODUCT_NAME);
+app.setName(DISPLAY_NAME);
 /* Windows shows a notification only for the app ID the Start menu shortcut carries: the installer's appId (release.mjs) */
 if (windows) app.setAppUserModelId(IDENTITY.bundleId);
 app.setPath('userData', IDENTITY.userData ?? join(app.getPath('appData'), PRODUCT_NAME));
@@ -525,7 +525,7 @@ async function start() {
   /* updates (updates.mjs): Restart waits while an agent's turn runs or Studio exports, either would be lost */
   updates = startUpdates({
     dataDir: DATA,
-    productName: PRODUCT_NAME,
+    productName: DISPLAY_NAME,
     getWindow: () => win,
     onState: (next) => broadcast('desktop:update', next),
     prepareRestart: async () => {
@@ -597,7 +597,7 @@ async function start() {
     minWidth: WINDOW_MIN.width,
     minHeight: WINDOW_MIN.height,
     show: false,
-    title: PRODUCT_NAME,
+    title: DISPLAY_NAME,
     backgroundColor: BACKGROUND[theme],
     ...(mac ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 14, y: 10 } } : {}),
     /* Windows: no title bar either; its own buttons drawn over Studio's top bar, at its right, in its colors */
