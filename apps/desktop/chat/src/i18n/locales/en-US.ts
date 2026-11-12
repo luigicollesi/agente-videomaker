@@ -293,7 +293,7 @@ export const enUS = {
     folderDialog: 'Add Skills from a Folder',
     make: 'Make one with the agent',
     makeHint: 'It writes down how something was made, into Yours.',
-    makePrompt: 'Turn what we did in this conversation into an OpenFilm skill: a folder with a SKILL.md (its name, a description of when to use it, then the steps), saved in {folder}. First tell me what it will cover and what to name it; save it once I agree.',
+    makePrompt: 'Turn what we did in this conversation into an Agente Videomaker skill: a folder with a SKILL.md (its name, a description of when to use it, then the steps), saved in {folder}. First tell me what it will cover and what to name it; save it once I agree.',
     fromFolderTitle: 'From a folder',
     dropHere: 'Drop a skill folder here',
     orPick: 'or click to choose one',
