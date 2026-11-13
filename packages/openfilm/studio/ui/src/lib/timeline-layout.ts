@@ -10,6 +10,7 @@ import { clipSpan } from '../../../../src/film-doc.mjs';
 import { fileStem, filmSrcIsLibrary, filmTrackBadges, filmTrackKind, filmTrackPrefix, type FilmBox } from './film.ts';
 
 import { DISPLAY_FPS, exactRate } from './timecode.ts';
+import { isText3DClip } from './text3d-clip.ts';
 import { trimFence } from './timeline-drag.ts';
 
 /**
@@ -891,13 +892,15 @@ export function layoutTracks(evaluated: TimelineFilm): TimelineTrack[] {
   for (const s of film.scenes) {
     if (!s.track || s.durMs <= 0 || (s.loc != null && videoLocs.has(s.loc))) continue;
     claim(s.track.index, s.clipId);
-    const words = isLibraryText(s.src) ? overrideWords(s.clipId ? docClips.get(s.clipId) : undefined) ?? fileStem(s.src ?? '') : null;
+    const ownClip = s.clipId ? docClips.get(s.clipId) : undefined;
+    const words = isLibraryText(s.src) ? overrideWords(ownClip) ?? fileStem(s.src ?? '') : null;
+    const text3d = isText3DClip({ src: s.src, attrs: ownClip?.attrs as Record<string, string> | undefined });
     take(s.track).blocks.push({
       id: s.key,
       ...(words != null ? { words } : {}),
       /* a clip is called by its file, as in any editor (its id is film.html's, shown in the inspector); a page's
          file name drops the extension: `.html` says what it is written in, not what the clip is */
-      title: fileStem(s.src ?? '') || s.clipId || fileStem(s.label),
+      title: text3d ? '3D Text' : fileStem(s.src ?? '') || s.clipId || fileStem(s.label),
       startMs: s.startMs,
       endMs: s.startMs + s.durMs,
       kind: 'mg',
