@@ -3,6 +3,9 @@
 import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
+import { replacementEdits } from './text3d-replace.mjs';
+import { readProjectFilm, editProjectFilm } from '../studio/server/film.mjs';
+import { takeSaved } from '../studio/server/saved.mjs';
 import { activeText3D, listText3D, registerText3D } from '../studio/server/text3d/registry.mjs';
 
 /** @param {unknown} value */
@@ -52,11 +55,31 @@ async function validateText3D(dir) {
 /** @param {string[]} args */
 export async function text3DCommand(args) {
  const [action, ...rest]=args;
- const usage='openfilm text3d list [source-id] | inspect <source-id> | validate <folder> | register <folder>';
+ const usage='openfilm text3d list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
  try {
   if(action==='list'||action==='inspect'){
    const entries=action==='inspect'?[await activeText3D(rest[0]??'')].filter(Boolean):await listText3D(rest[0]??null);
    return {ok:true,lines:[JSON.stringify(entries,null,2)]};
+  }
+  if(action==='apply'&&rest.length===3){
+   const [folder,clipId,componentId]=rest;
+   const project=resolve(folder);
+   const entry=(await listText3D()).find(e=>e.componentId===componentId);
+   if(!entry)throw new Error('Registered Text3D version not found');
+   const {rev,value}=await readProjectFilm(project);
+   const clip=value?.tracks.flatMap(t=>t.clips).find(c=>c.id===clipId);
+   if(!clip)throw new Error('Selected clip was not found');
+   if(clip.attrs?.['data-openfilm-content-type']==='text3d')throw new Error('Clip is already a Text3D component');
+   // Plan and validate against the original Saved bundle BEFORE copying anything into the project.
+   const library=join(savedRoot(),entry.bundlePath.slice('saved/'.length));
+   const manifest=JSON.parse(await readFile(join(library,'saved.json'),'utf8'));
+   if(manifest.kind!=='clip'||!manifest.clip)throw new Error('Registered Saved bundle is invalid');
+   replacementEdits(clip,{...manifest.clip,src:'text3d-placeholder.html'},entry.parameterMap);
+   const taken=await takeSaved(project,entry.bundlePath);
+   if(!('clip' in taken))throw new Error('Cannot import the saved Text3D component');
+   const edits=replacementEdits(clip,taken.clip,entry.parameterMap);
+   await editProjectFilm(project,rev,[{op:'props',edits}]);
+   return {ok:true,lines:['Applied '+entry.componentId+' to clip '+clipId]};
   }
   if(action==='validate'&&rest[0]){
    const manifest=await validateText3D(rest[0]);
