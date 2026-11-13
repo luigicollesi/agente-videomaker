@@ -5,8 +5,8 @@
 /** @param {Record<string,any>} clip */
 /** @returns {Prop[]} */
 const props=clip=>{try{const parsed=JSON.parse(clip.attrs?.['data-props']||'[]');return Array.isArray(parsed)?parsed:[]}catch{return []}};
-/** @param {Record<string,any>} source @param {Record<string,any>} destination @param {Record<string,string>} mapping */
-export function replacementEdits(source,destination,mapping){
+/** @param {Record<string,any>} source @param {Record<string,any>} destination @param {Record<string,string>} mapping @param {number} [effectiveLength] */
+export function replacementEdits(source,destination,mapping,effectiveLength){
  if(!source.id||!destination.src)throw Error('Missing clip identity or target page');
  const original=props(source),target=props(destination);
  if(!Array.isArray(original)||!Array.isArray(target))throw Error('Invalid component properties');
@@ -53,11 +53,15 @@ export function replacementEdits(source,destination,mapping){
  const start=Array.isArray(raw)&&Number.isFinite(raw[0])?raw[0]:0;
  const end=Array.isArray(raw)&&Number.isFinite(raw[1])?raw[1]:null;
  if(end===null||end<=start)throw Error('Clip duration must be explicit for safe Text3D replacement');
+ const length=effectiveLength===undefined?end-start:effectiveLength;
+ if(!Number.isFinite(length)||length<=0)throw Error('Invalid effective Text3D duration');
  const attrs={...source.attrs,...destination.attrs,
-   'data-openfilm-content-type':'text3d'};
+   'data-openfilm-content-type':'text3d',
+   ...(destination.attrs?.['data-text3d-source-id']?{'data-text3d-source-id':destination.attrs['data-text3d-source-id']}:{}),
+   ...(destination.attrs?.['data-text3d-version']?{'data-text3d-version':destination.attrs['data-text3d-version']}:{})};
  return [
   {clip:source.id,prop:'src',value:destination.src},
-  {clip:source.id,prop:'time',value:[0,end-start]},
+  {clip:source.id,prop:'time',value:[0,length]},
   {clip:source.id,prop:'attrs',value:attrs},
   {clip:source.id,prop:'overrides',value:applied}
  ];
