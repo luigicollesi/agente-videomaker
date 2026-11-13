@@ -34,7 +34,7 @@ const COMMAND_HELP = {
   Starts OpenFilm Studio if it is not running and prints its address. A Studio page already open, in any browser,
   switches to the project, and nothing more opens; otherwise open the address in your built-in browser, and if no
   page connects within 15 s, Studio opens the person's browser (OPENFILM_NO_BROWSER=1: never).`,
-  text3d: `openfilm text3d list [source-id]\nopenfilm text3d inspect <source-id>\nopenfilm text3d validate <folder>\nopenfilm text3d register <folder>\n\n  Validates a generated Text3D component with manifest.json, index.html and component.js. Register copies an immutable bundle into the Saved library and promotes the new version.`,
+  text3d: `openfilm text3d list [source-id]\nopenfilm text3d inspect <source-id>\nopenfilm text3d validate <folder>\nopenfilm text3d register <folder>\nopenfilm text3d apply <project-folder> <clip-id> <component-id>\n\n  Validates a generated Text3D component with manifest.json, index.html and component.js. Register copies an immutable bundle into the Saved library and promotes the new version.`,
   skills: `openfilm skills
 
   The skills the project around the current folder can be made with: ways of making a kind of film, each a folder with
