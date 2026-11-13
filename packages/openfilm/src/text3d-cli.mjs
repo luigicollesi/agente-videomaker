@@ -135,7 +135,9 @@ export async function text3DCommand(args) {
     }};
     await writeFile(join(staging,'saved.json'),JSON.stringify({version:2,kind:'clip',clip,durationMs:seconds*1000},null,2));
     // Preserve the exact 2D library poster in the immutable 3D Saved bundle.
-    const original=join(builtInRoot(),...sourceId.split('/'));
+    const original=sourceId.startsWith('saved/')
+      ? join(savedRoot(),...sourceId.slice('saved/'.length).split('/'))
+      : join(builtInRoot(),...sourceId.split('/'));
     for(const ext of ['jpg','svg']){
       const cover=join(original,'poster.'+ext);
       if((await stat(cover).catch(()=>null))?.isFile()){
