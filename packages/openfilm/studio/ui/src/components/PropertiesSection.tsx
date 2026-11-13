@@ -171,7 +171,7 @@ export function PropertiesSection({ host, commit }: {
           if (!prop.advanced) host.preview({ at: ROOT }, next == null ? null : { style: { [prop.var]: next } });
         };
         if (prop.var === '--text3d-events' && is3D && decodeCanonicalMotions(now) !== null &&
-            (decodeCanonicalMotions(now)!.some(m => 'target' in m) || now.includes('"target"'))) {
+            (parseMotions(now).length === 0 || now.includes('"target"')) && !host.page.includes('text3d-motion.html')) {
           const lengthProp = propValue(overrides, { name: 'Clip length', type: 'var', var: '--clip-length' });
           const length = parseFloat(typeof lengthProp === 'string' ? lengthProp : controls?.vars.find(v => v.name === '--clip-length')?.value ?? '10.5');
           return <Text3DCanonicalMotionEditor value={now} length={Number.isFinite(length) ? length : 10.5} onCommit={next => set(prop, next)} />;
