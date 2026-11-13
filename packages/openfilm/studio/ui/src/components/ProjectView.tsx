@@ -3515,9 +3515,20 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     if (!original || original.src !== ask.src) { toast.showError('The original clip has changed.'); setText3dAsk(null); return; }
     try {
       const taken = await api.takeSaved(projectId, 'openfilm/text3d/text3d-motion');
-      if (!('path' in taken) || !taken.clip) throw new Error('3D Text asset is unavailable.');
-      const target = taken.clip as Clip;
-      const changes = buildText3DConversion(original as never, {src:taken.path,attrs:target.attrs ?? {},overrides:target.overrides as unknown[]},config,ask.text);
+      if (!('path' in taken)) throw new Error('3D Text asset is unavailable.');
+      const text3DProps: ComponentProp[] = [
+        {name:'Text',type:'text',at:'.t'},
+        ...([
+          ['Entrance time','--text3d-in'],['Exit time','--text3d-out'],
+          ['Depth','--text3d-depth'],['Front color','--text3d-color'],
+          ['Side color','--text3d-side'],['Shadow blur','--text3d-shadow'],
+          ['Lighting','--text3d-light'],['Motion events (JSON)','--text3d-events'],
+          ['Clip length','--clip-length']
+        ] as const).map(([name,variable]) => ({name,type:'var' as const,var:variable}))
+      ];
+      const changes = buildText3DConversion(original as never, {
+        src:taken.path, attrs:{'data-props':propsAttr(text3DProps)}
+      },config,ask.text);
       const error = await edit([{op:'props',edits:changes as never}], 'Convert to 3D Text');
       if (error) throw new Error(error);
       setText3dAsk(null);
