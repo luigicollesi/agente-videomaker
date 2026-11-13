@@ -8,7 +8,7 @@ import { activeText3D, displayText3D, listText3D, registerText3D } from './regis
 test('Text3D registry preserves version identity and archives old versions by display name only',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'openfilm-text3d-registry-'));
  try {
-  const base={source2DId:'text/burn',bundlePath:'saved/text3d/burn',displayName:'Burn 3D',sourceRevision:'sha256:abc',status:'ready'};
+  const base={source2DId:'text/burn',bundlePath:'saved/text3d/burn',displayName:'Burn 3D',sourceRevision:'sha256:abc',status:'ready',parameterMap:{Text:'Text'}};
   const first=await registerText3D({...base,componentId:'text3d/burn/v1',version:'v1'},dir);
   assert.equal(first.active,true);
   assert.equal((await activeText3D('text/burn',dir)).componentId,'text3d/burn/v1');

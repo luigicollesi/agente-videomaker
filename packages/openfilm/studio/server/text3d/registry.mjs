@@ -14,7 +14,10 @@ const supported = entry => entry && typeof entry === 'object' &&
   /^saved\/[a-z0-9][a-z0-9/_-]{0,200}$/i.test(entry.bundlePath) &&
   typeof entry.displayName === 'string' && entry.displayName.length <= 100 &&
   typeof entry.sourceRevision === 'string' && entry.sourceRevision.length <= 128 &&
-  entry.status === 'ready';
+  entry.status === 'ready' && entry.parameterMap && typeof entry.parameterMap === 'object' &&
+  !Array.isArray(entry.parameterMap) && Object.entries(entry.parameterMap).every(([from,to])=>
+    typeof from === 'string' && from.length > 0 && from.length <= 120 &&
+    typeof to === 'string' && to.length > 0 && to.length <= 120);
 
 const storagePath = root => join(root ?? savedRoot(), REGISTRY);
 async function read(root) {
@@ -51,7 +54,7 @@ export async function registerText3D(input,root) {
  if(input.version!==`v${expected}`)throw new Error('Text3D versions must increase monotonically');
  if(entries.some(e=>e.componentId===input.componentId))throw new Error('Text3D component ID already exists');
  const next=entries.map(e=>e.source2DId===input.source2DId?{...e,active:false}:e);
- next.push({source2DId:input.source2DId,componentId:input.componentId,version:input.version,bundlePath:input.bundlePath,displayName:input.displayName,sourceRevision:input.sourceRevision,status:'ready',active:true});
+ next.push({source2DId:input.source2DId,componentId:input.componentId,version:input.version,bundlePath:input.bundlePath,displayName:input.displayName,sourceRevision:input.sourceRevision,parameterMap:input.parameterMap,status:'ready',active:true});
  await write(root,next);
  return next.at(-1);
 }
