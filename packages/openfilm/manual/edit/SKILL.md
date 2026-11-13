@@ -81,11 +81,9 @@ The words of a sound or a video are a WebVTT beside it with the same name (`vo/1
 
 ## 3D text
 
-Text3D components are editable pages using the shared Text3D runtime. When asked to create, convert or edit 3D typography, locate the referenced clip and inspect only its HTML, text, fonts, declared props, overrides, direct dependencies and `frame(t)` animation.
+For 3D typography, inspect the selected clip's HTML, props, overrides, fonts, dependencies and `frame(t)`. First run `openfilm text3d inspect <source-id>`; reuse a compatible registered component if available. Otherwise create real glyph geometry using the shared Text3D runtime, with separate `group` and `characters[]` motion, preserving text, supported properties, internal effects and timeline timing.
 
-Prefer editing existing properties and character/group motion over regenerating components. For 2D-to-3D conversion, check for a compatible library counterpart first; otherwise rebuild real 3D glyph geometry and preserve internal effects, timing and editable parameters. Expose `group` for whole-text motion and `characters[]` for per-character motion; keep both separate from internal effects.
-
-Use `openfilm text3d inspect <source-id>` before conversion, then `openfilm text3d validate <folder>` and `openfilm text3d register <folder>` after generating. The platform owns version promotion and the Saved library. Deliver a Text3D v1 component with `manifest.json` (source 2D ID and revision, parameters and mapping), `index.html` and `component.js`. Use the shared renderer and deterministic `frame(t)`. Validate rendering and compatibility before registration and replacement. Never overwrite the 2D source, create a competing motion clock, or substitute iframe projection or pixel extrusion for geometry.
+Generate `manifest.json`, `index.html` and `component.js`; run `openfilm text3d validate <folder>`, verify rendering, then `register <folder>` and `apply <project-folder> <clip-id> <component-id>`. Keep `frame(t)` deterministic. Never overwrite the 2D source, silently drop unmapped properties, introduce another animation clock, or substitute iframe/pixel extrusion for real 3D geometry.
 
 ## Seeing it
 
