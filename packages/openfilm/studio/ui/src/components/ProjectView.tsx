@@ -3531,7 +3531,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
       ];
       const sourceRange = Array.isArray(original.time) && original.time.length === 2 ? original.time : [0, ask.durationSeconds];
       const changes = buildText3DConversion({ ...original, time: sourceRange } as never, {
-        src:convertedPath, attrs:{'data-props':propsAttr(text3DProps)}
+        src:convertedPath, attrs:{'data-props':propsAttr(text3DProps) ?? '[]'}
       },config,ask.text.trim() || ask.title);
       const error = await edit([{op:'props',edits:changes as never}], 'Convert to 3D Text');
       if (error) throw new Error(error);

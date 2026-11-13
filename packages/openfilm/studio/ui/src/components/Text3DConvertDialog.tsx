@@ -4,7 +4,7 @@ export function Text3DConvertDialog({title,geometryEligible,reason,onClose,onApp
  const [mode,setMode]=React.useState<'projection'|'geometry'>('projection');
  const [depth,setDepth]=React.useState(18);
  const [shadow,setShadow]=React.useState(35);
- const [bevel,setBevel]=React.useState(3);
+ const bevel=0; // Smooth bevel is unsupported by the current raster-outline mesh.
  const [lighting,setLighting]=React.useState(65);
  React.useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')onClose()};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[onClose]);
  const number=(label:string,value:number,max:number,change:(v:number)=>void)=> <label className="flex flex-col gap-1 text-xs text-[var(--text-muted)]" key={label}><span className="flex justify-between"><span>{label}</span><span>{value}</span></span><input type="range" min={0} max={max} step={1} value={value} onChange={e=>change(Number(e.target.value))}/></label>;
