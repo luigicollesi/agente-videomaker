@@ -1,10 +1,10 @@
 // @ts-check
 /** Conservative Text3D replacement: refuse any source override that cannot be faithfully mapped. */
-/** @typedef {{name:string,type:string,at?:string,n?:number,var?:string}} Prop */
+/** @typedef {{name:string,type:'var',var:string}|{name:string,type:'text',at:string,n?:number}} Prop */
 /** @typedef {{at?:string,n?:number,text?:string,style?:Record<string,string>,fade?:number[]}} Override */
 /** @param {Record<string,any>} clip */
 /** @returns {Prop[]} */
-const props=clip=>{try{const parsed=JSON.parse(clip.attrs?.['data-props']||'[]');return Array.isArray(parsed)?parsed:[]}catch{return []}};
+const props=(/** @type {Record<string,any>} */ clip)=>{try{const parsed=JSON.parse(clip.attrs?.['data-props']||'[]');if(!Array.isArray(parsed))throw Error('Invalid component property list');return /** @type {Prop[]} */ (parsed.map(p=>{if(!p||typeof p.name!=='string'||!p.name)throw Error('Invalid component property');if(p.type==='var'&&typeof p.var==='string'&&p.var.startsWith('--'))return {name:p.name,type:'var',var:p.var};if(p.type==='text'&&typeof p.at==='string'&&p.at)return {name:p.name,type:'text',at:p.at,...(Number.isInteger(p.n)&&p.n>0?{n:p.n}:{})};throw Error('Invalid component property: '+p.name)}))}catch(e){throw Error('Invalid data-props: '+(e instanceof Error?e.message:String(e)))}};
 /** @param {Record<string,any>} source @param {Record<string,any>} destination @param {Record<string,string>} mapping @param {number} [effectiveLength] */
 export function replacementEdits(source,destination,mapping,effectiveLength){
  if(!source.id||!destination.src)throw Error('Missing clip identity or target page');
@@ -36,6 +36,7 @@ export function replacementEdits(source,destination,mapping,effectiveLength){
       const entry=applied.find(a=>a.at===':root')??{at:':root',style:{}};
       if(!applied.includes(entry))applied.push(entry);
       entry.style??={};
+      if(!o.style)throw Error('Missing CSS variable override');
       entry.style[name]=o.style[prop.var];
     }else{
       const old=applied.find(a=>a.at===dest.at&&(dest.n==null||a.n===dest.n));
