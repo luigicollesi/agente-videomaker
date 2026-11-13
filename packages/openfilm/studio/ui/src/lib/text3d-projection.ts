@@ -15,16 +15,16 @@ export function buildProjectionHtml(src:string, sourceStart:number):string {
  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
  body{perspective:1200px;perspective-origin:center;display:grid;place-items:center}
  #space{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform;filter:brightness(var(--text3d-light)) drop-shadow(0px 0px calc(var(--text3d-shadow) * 1px) rgba(0,0,0,.45))}
- iframe{position:absolute;inset:0;border:0;width:100%;height:100%;background:transparent;pointer-events:none;transform-style:preserve-3d}
+ iframe{position:absolute;inset:0;border:0;width:100%;height:100%;background:transparent;pointer-events:none;transform-style:preserve-3d;transform:translateZ(calc(var(--text3d-depth) * 1px))}
  </style></head><body><div id="space"><iframe id="original" allowtransparency="true" loading="eager"></iframe></div><script>
  (()=>{'use strict';
  const frame=document.getElementById('original'),space=document.getElementById('space');
- const source=\${quoted},offset=\${sourceStart};
+ const source=${quoted},offset=${sourceStart};
  const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
  const smooth=v=>{const u=clamp(v);return u*u*(3-2*u)};
  const number=(css,k,f)=>{const n=parseFloat(css.getPropertyValue(k));return Number.isFinite(n)?n:f};
  let ready=false,at=0;
- frame.addEventListener('load',()=>{ready=true;void render(at)});
+ const frameReady=new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Original HTML page load timed out')),15000);frame.addEventListener('load',()=>{ready=true;clearTimeout(timeout);resolve(undefined)},{once:true});frame.addEventListener('error',()=>{clearTimeout(timeout);reject(new Error('Original HTML page failed to load'))},{once:true})});
  frame.src=source;
  const events=raw=>{try{let s=raw.trim();if(s.startsWith("'")&&s.endsWith("'"))s=s.slice(1,-1);const v=JSON.parse(s);return Array.isArray(v)?v.slice(0,64):[]}catch{return []}};
  async function render(t){
@@ -42,7 +42,7 @@ export function buildProjectionHtml(src:string, sourceStart:number):string {
   }
   space.style.transform='translate3d('+x+'px,'+y+'px,'+z+'px) rotateX('+rot.x+'deg) rotateY('+rot.y+'deg) rotateZ('+rot.z+'deg) scale('+Math.max(0,scale)+')';
   space.style.visibility=at>=end?'hidden':'visible';
-  if(!ready)return;
+  if(!ready)await frameReady;
   try{
    const child=frame.contentWindow;
    if(child&&child.film&&typeof child.film.frame==='function')await child.film.frame(at+offset);

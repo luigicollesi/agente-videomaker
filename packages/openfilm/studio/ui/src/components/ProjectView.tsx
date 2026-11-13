@@ -33,6 +33,7 @@ import { TemplatePicker } from '@/components/TemplatePicker';
 import { Text3DConvertDialog, type Text3DConvertSettings } from '@/components/Text3DConvertDialog';
 import { buildText3DConversion } from '@/lib/text3d-conversion';
 import { buildProjectionHtml, safeProjectPage } from '@/lib/text3d-projection';
+import { buildGeometryHtml } from '@/lib/text3d-geometry';
 import { isText3DClip, text3DEligibility } from '@/lib/text3d-clip';
 import { isLibraryText, layoutTracks, type TimelineBlock, type TimelineTrack } from '@/lib/timeline-layout';
 import { organizeTracks } from '@/lib/organize-tracks';
@@ -3509,18 +3510,17 @@ export function ProjectView({ projectId, onProject, onLeave }: {
   const [text3dAsk, setText3dAsk] = React.useState<{title:string;src:string;clipId:string;text:string;simple:boolean}|null>(null);
   const convertText3D = React.useCallback(async (config: Text3DConvertSettings) => {
     const ask = text3dAsk;
-    // Only simple text whose actual words the timeline can identify is supported.
-    // Procedural HTML must retain its original renderer until a frame adapter exists.
-    if (!ask || config.mode !== 'projection' || !safeProjectPage(ask.src)) return;
+    if (!ask || (config.mode === 'projection' ? !safeProjectPage(ask.src) : !isTextClip(ask.src) || !ask.text.trim())) return;
     const original = filmClipOf(ask.clipId);
     if (!original || original.src !== ask.src) { toast.showError('The original clip has changed.'); setText3dAsk(null); return; }
     try {
       const convertedPath = 'text3d/converted-' + crypto.randomUUID() + '.html';
-      const written = await api.writePage(projectId, convertedPath, buildProjectionHtml(ask.src, original.time?.[0] ?? 0), null);
+      const page = config.mode === 'geometry' ? buildGeometryHtml(ask.text) : buildProjectionHtml(ask.src, original.time?.[0] ?? 0);
+      const written = await api.writePage(projectId, convertedPath, page, null);
       let applied = false;
       try {
       const text3DProps: ComponentProp[] = [
-        {name:'Text',type:'text',at:'.t'},
+        ...(config.mode === 'geometry' ? [{name:'Text',type:'text' as const,at:'.t'}] : []),
         ...([
           ['Entrance time','--text3d-in'],['Exit time','--text3d-out'],
           ['Depth','--text3d-depth'],['Front color','--text3d-color'],
@@ -5084,7 +5084,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
         }} />
       {text3dAsk ? <Text3DConvertDialog
         title={text3dAsk.title}
-        geometryEligible={text3DEligibility(text3dAsk.src, true).geometry}
+        geometryEligible={isTextClip(text3dAsk.src) && !!text3dAsk.text.trim()}
         reason={text3DEligibility(text3dAsk.src, true).reason}
         onClose={() => setText3dAsk(null)}
         {...(safeProjectPage(text3dAsk.src) ? { onApply: convertText3D } : {})}
