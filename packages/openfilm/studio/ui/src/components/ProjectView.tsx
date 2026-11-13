@@ -30,7 +30,8 @@ import { keepTemplateFilm, TemplateFilmSection, TemplateSection, type TemplateHo
 import { cutMovesOn, headStyle, joinedStyle, presetsOn, restStyle, takesMotion, withCutMove, type Preset, type PresetSlot } from '@/lib/clip-presets';
 import { ClipMotionSection, type ClipMotionHost } from '@/components/ClipMotionSection';
 import { TemplatePicker } from '@/components/TemplatePicker';
-import { Text3DConvertDialog } from '@/components/Text3DConvertDialog';
+import { Text3DConvertDialog, type Text3DConvertSettings } from '@/components/Text3DConvertDialog';
+import { buildText3DConversion } from '@/lib/text3d-conversion';
 import { isText3DClip, text3DEligibility } from '@/lib/text3d-clip';
 import { isLibraryText, layoutTracks, type TimelineBlock, type TimelineTrack } from '@/lib/timeline-layout';
 import { organizeTracks } from '@/lib/organize-tracks';
@@ -3504,7 +3505,24 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     { id: 'copy-attrs', label: t('clipAttrs.copy'), icon: <ClipboardCopy size={14} />, shortcut: keyHint('copy-attrs'), disabled: blocks.length !== 1, onSelect: () => copyAttrs(blocks) },
     { id: 'paste-attrs', label: t('clipAttrs.pasteMenu'), icon: <ClipboardPaste size={14} />, shortcut: keyHint('paste-attrs'), disabled: !copiedAttrs, hint: t('clipAttrs.nothing'), onSelect: () => askPasteAttrs(blocks) },
   ];
-  const [text3dAsk, setText3dAsk] = React.useState<{title:string;src:string}|null>(null);
+  const [text3dAsk, setText3dAsk] = React.useState<{title:string;src:string;clipId:string;text:string;simple:boolean}|null>(null);
+  const convertText3D = React.useCallback(async (config: Text3DConvertSettings) => {
+    const ask = text3dAsk;
+    // Only simple text whose actual words the timeline can identify is supported.
+    // Procedural HTML must retain its original renderer until a frame adapter exists.
+    if (!ask?.simple || config.mode !== 'projection') return;
+    const original = filmClipOf(ask.clipId);
+    if (!original || original.src !== ask.src) { toast.showError('The original clip has changed.'); setText3dAsk(null); return; }
+    try {
+      const taken = await api.takeSaved(projectId, 'openfilm/text3d/text3d-motion');
+      if (!('path' in taken) || !taken.clip) throw new Error('3D Text asset is unavailable.');
+      const target = taken.clip as Clip;
+      const changes = buildText3DConversion(original as never, {src:taken.path,attrs:target.attrs ?? {},overrides:target.overrides as unknown[]},config,ask.text);
+      const error = await edit([{op:'props',edits:changes as never}], 'Convert to 3D Text');
+      if (error) throw new Error(error);
+      setText3dAsk(null);
+    } catch (error) { toast.showError(error instanceof Error ? error.message : String(error)); }
+  }, [text3dAsk,filmClipOf,projectId,edit,toast]);
   const timelineMenuExtra = React.useCallback((blocks: readonly TimelineBlock[], clicked?: TimelineBlock) => {
     if (!blocks.length) return [];
     const lead = referEntry(() => blocks.map(refOfBlock));
@@ -3518,7 +3536,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
         lead.push({
           id: 'convert-text3d',
           label: 'Make 3D...',
-          onSelect: () => setText3dAsk({ title: clicked.title, src: clicked.src! }),
+          onSelect: () => setText3dAsk({ title: clicked.title, src: clicked.src!, clipId: clicked.clipId!, text: clicked.words ?? '', simple: isLibraryText(clicked.src) && !!clicked.words }),
         });
       }
     }
@@ -5051,6 +5069,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
         geometryEligible={text3DEligibility(text3dAsk.src, true).geometry}
         reason={text3DEligibility(text3dAsk.src, true).reason}
         onClose={() => setText3dAsk(null)}
+        {...(text3dAsk.simple ? { onApply: convertText3D } : {})}
       /> : null}
       <SettingsModal open={settingsOpen !== null} section={settingsOpen ?? undefined} onClose={() => setSettingsOpen(null)} />
       {templateAsk ? (

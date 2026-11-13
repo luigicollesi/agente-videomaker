@@ -13,7 +13,7 @@ export function Text3DConvertDialog({title,geometryEligible,reason,onClose,onApp
      <div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Convert to 3D Text</h2><button type="button" aria-label="Close" onClick={onClose}>✕</button></div>
      <p className="text-xs text-[var(--text-muted)]">Source: {title}</p>
      <fieldset className="flex flex-col gap-3"><legend className="mb-2 text-xs font-semibold">Conversion mode</legend>
-       <label className="flex gap-2 text-xs"><input type="radio" checked={mode==='projection'} onChange={()=>setMode('projection')}/> <span><strong>Project original HTML in 3D</strong><span className="block text-[var(--text-muted)]">Keep the original procedural appearance and project it on a 3D surface.</span></span></label>
+       <label className="flex gap-2 text-xs"><input type="radio" checked={mode==='projection'} onChange={()=>setMode('projection')}/> <span><strong>Project original HTML in 3D</strong><span className="block text-[var(--text-muted)]">For simple text only: rebuild its words using the Text3D title renderer. Complex HTML effects are not preserved.</span></span></label>
        <label className="flex gap-2 text-xs"><input type="radio" disabled={!geometryEligible} checked={mode==='geometry'} onChange={()=>setMode('geometry')}/><span><strong>Rebuild actual 3D letters</strong><span className="block text-[var(--text-muted)]">{geometryEligible?'Rebuild compatible vector glyphs as geometry.':reason}</span></span></label>
      </fieldset>
      <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-3">
@@ -23,7 +23,7 @@ export function Text3DConvertDialog({title,geometryEligible,reason,onClose,onApp
        {number('Bevel (px)',bevel,15,setBevel)}
        {number('Lighting (%)',lighting,100,setLighting)}
      </div>
-     {!onApply?<p role="status" className="rounded bg-[var(--bg-field)] p-2 text-xs text-[var(--text-muted)]">The conversion adapter is not yet available. Your original clip will remain unchanged.</p>:null}
+     {!onApply?<p role="status" className="rounded bg-[var(--bg-field)] p-2 text-xs text-[var(--text-muted)]">This HTML effect cannot yet be converted faithfully. The original remains unchanged.</p>:null}
      <div className="flex justify-end gap-2"><button type="button" className="rounded bg-[var(--bg-field)] px-3 py-2 text-xs" onClick={onClose}>Cancel</button><button type="button" className="rounded bg-[var(--accent)] px-3 py-2 text-xs text-white disabled:opacity-40" disabled={!onApply||(mode==='geometry'&&!geometryEligible)} onClick={()=>onApply?.({mode,depth,shadow,bevel,lighting})}>Apply</button></div>
    </div>
  </div>;
