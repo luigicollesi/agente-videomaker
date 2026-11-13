@@ -49,7 +49,9 @@ export function validMotionEvent(event){
  return event&&typeof event.id==='string'&&event.id.length>0&&
  ['group','characters'].includes(event.target)&&
  ['translate','rotate','scale'].includes(event.type)&&
- Number.isFinite(event.start)&&Number.isFinite(event.duration)&&event.duration>=0&&
+ Number.isFinite(event.start)&&event.start>=0&&Number.isFinite(event.duration)&&event.duration>=0&&
+ (event.easing===undefined||['linear','ease-in','ease-out','ease-in-out'].includes(event.easing))&&
+ (event.reverse===undefined||typeof event.reverse==='boolean')&&
  Array.isArray(event.from)&&Array.isArray(event.to)&&event.from.length===3&&event.to.length===3&&
  [...event.from,...event.to].every(Number.isFinite)&&
  (event.stagger===undefined||(Number.isFinite(event.stagger)&&event.stagger>=0));
@@ -74,7 +76,7 @@ export function createText3DMotion(config){
  const baseline={group:snapshot(group),characters:characters.map(snapshot)};
  let events=/** @type {MotionEvent[]} */ ([]);
  const setMotion=(/** @type {MotionEvent[]} */ incoming)=>{
-  if(!Array.isArray(incoming)||incoming.length>256||!incoming.every(validMotionEvent))
+  if(!Array.isArray(incoming)||incoming.length>64||!incoming.every(validMotionEvent))
    throw new Error('Invalid Text3D motion events');
   const ids=new Set(incoming.map(e=>e.id));
   if(ids.size!==incoming.length)throw new Error('Motion event IDs must be unique');
