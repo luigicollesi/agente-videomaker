@@ -972,6 +972,7 @@ export const ko: Words = {
     cat_voice: '보이스',
     cat_music: '음악',
     cat_text: '텍스트',
+    cat_text3d: '3D 텍스트',
     cat_captions: "자막",
     cat_sticker: '스티커',
     cat_effect: '효과',

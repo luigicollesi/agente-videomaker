@@ -975,6 +975,7 @@ export const ja: Words = {
     cat_voice: 'ボイス',
     cat_music: '音楽',
     cat_text: 'テキスト',
+    cat_text3d: '3Dテキスト',
     cat_captions: "字幕",
     cat_sticker: 'ステッカー',
     cat_effect: 'エフェクト',

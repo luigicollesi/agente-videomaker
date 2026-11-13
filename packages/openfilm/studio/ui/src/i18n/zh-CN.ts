@@ -976,6 +976,7 @@ export const zhCN: Words = {
     cat_voice: '配音',
     cat_music: '音乐',
     cat_text: '文本',
+    cat_text3d: '3D 文本',
     cat_captions: "字幕",
     cat_sticker: '贴纸',
     cat_effect: '特效',

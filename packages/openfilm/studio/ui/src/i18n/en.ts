@@ -976,6 +976,7 @@ export const en = {
     cat_voice: 'Voices',
     cat_music: 'Music',
     cat_text: 'Text',
+    cat_text3d: 'Text 3D',
     cat_captions: "Captions",
     cat_sticker: 'Stickers',
     cat_effect: 'Effects',

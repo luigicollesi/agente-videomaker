@@ -975,6 +975,7 @@ export const es: Words = {
     cat_voice: 'Voces',
     cat_music: 'Música',
     cat_text: 'Texto',
+    cat_text3d: 'Texto 3D',
     cat_captions: "Subtítulos",
     cat_sticker: 'Stickers',
     cat_effect: 'Efectos',

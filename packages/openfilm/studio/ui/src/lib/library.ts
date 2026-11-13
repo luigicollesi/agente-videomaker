@@ -14,7 +14,7 @@ import { gradeFilter, gradeOf, withGrade, type Grade } from './grade.ts';
 /** What a path names OpenFilm's library by, as `saved/` names Saved. */
 export const BUILT_IN = 'openfilm';
 
-export type LibraryCategory = 'transition' | 'effect' | 'filter' | 'text' | 'sticker' | 'sound' | 'music' | 'template';
+export type LibraryCategory = 'transition' | 'effect' | 'filter' | 'text' | 'text3d' | 'sticker' | 'sound' | 'music' | 'template';
 export type LibraryNames = Partial<Record<Language, string>> & { en: string };
 
 export interface LibraryItem {

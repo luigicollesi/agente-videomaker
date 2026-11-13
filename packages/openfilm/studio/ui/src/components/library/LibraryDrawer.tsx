@@ -36,7 +36,7 @@ import { useLibraryArrangement } from './arrangement';
 type Category = 'media' | 'skill' | 'voice' | 'captions' | LibraryCategory;
 /* OpenFilm's order (the person's own in Settings › Advanced, lib/library-categories): the media, the skills, then the
    templates, the most a film is made with at once */
-export const CATEGORIES: Category[] = ['media', 'skill', 'template', 'captions', 'voice', 'sound', 'music', 'text', 'sticker', 'filter', 'effect', 'transition'];
+export const CATEGORIES: Category[] = ['media', 'skill', 'template', 'captions', 'voice', 'sound', 'music', 'text', 'text3d', 'sticker', 'filter', 'effect', 'transition'];
 
 /** The side bar's starred line: a category's things the person starred ('' is all of it, else one of its groups). */
 const FAVORITES = STARRED;
