@@ -30,6 +30,8 @@ import { keepTemplateFilm, TemplateFilmSection, TemplateSection, type TemplateHo
 import { cutMovesOn, headStyle, joinedStyle, presetsOn, restStyle, takesMotion, withCutMove, type Preset, type PresetSlot } from '@/lib/clip-presets';
 import { ClipMotionSection, type ClipMotionHost } from '@/components/ClipMotionSection';
 import { TemplatePicker } from '@/components/TemplatePicker';
+import { Text3DConvertDialog } from '@/components/Text3DConvertDialog';
+import { isText3DClip, text3DEligibility } from '@/lib/text3d-clip';
 import { isLibraryText, layoutTracks, type TimelineBlock, type TimelineTrack } from '@/lib/timeline-layout';
 import { organizeTracks } from '@/lib/organize-tracks';
 import { useAgentWorking } from '@/lib/agent-working';
@@ -3502,14 +3504,26 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     { id: 'copy-attrs', label: t('clipAttrs.copy'), icon: <ClipboardCopy size={14} />, shortcut: keyHint('copy-attrs'), disabled: blocks.length !== 1, onSelect: () => copyAttrs(blocks) },
     { id: 'paste-attrs', label: t('clipAttrs.pasteMenu'), icon: <ClipboardPaste size={14} />, shortcut: keyHint('paste-attrs'), disabled: !copiedAttrs, hint: t('clipAttrs.nothing'), onSelect: () => askPasteAttrs(blocks) },
   ];
+  const [text3dAsk, setText3dAsk] = React.useState<{title:string;src:string}|null>(null);
   const timelineMenuExtra = React.useCallback((blocks: readonly TimelineBlock[], clicked?: TimelineBlock) => {
     if (!blocks.length) return [];
     const lead = referEntry(() => blocks.map(refOfBlock));
     if (clicked && compoundFolder(clicked.src)) {
       lead.push({ id: 'enter-compound', label: t('timeline.menuEnterCompound'), icon: <FolderOpen size={14} />, onSelect: () => enterCompound(clicked) });
     }
+    if (clicked?.clipId && clicked.src && blocks.length === 1) {
+      const original = filmClipOf(clicked.clipId);
+      const text = original && (isLibraryText(clicked.src) || propsOf(original).some(prop => prop.type === 'text'));
+      if (original && text && !isText3DClip(original)) {
+        lead.push({
+          id: 'convert-text3d',
+          label: 'Make 3D...',
+          onSelect: () => setText3dAsk({ title: clicked.title, src: clicked.src! }),
+        });
+      }
+    }
     return menuGroups(lead, menuGroups(menuGroups(saveEntry(blocks), tools.menuExtra(blocks)), attrsEntries(blocks)));
-  }, [t, keyHint, tools.menuExtra, copiedAttrs, copyAttrs, askPasteAttrs, saveBlocks, enterCompound]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [t, keyHint, tools.menuExtra, copiedAttrs, copyAttrs, askPasteAttrs, saveBlocks, enterCompound, filmClipOf]); // eslint-disable-line react-hooks/exhaustive-deps
   const trackMenuExtra = React.useCallback((track: TimelineTrack) => {
     const docIndex = track.docIndex;
     const refer = docIndex == null || !studioHost?.refer ? [] : referEntry(() => { const ref = trackRef(tracksRef.current, docIndex); return ref ? [ref] : []; }, false);
@@ -5032,6 +5046,12 @@ export function ProjectView({ projectId, onProject, onLeave }: {
             toast.show(t('canvas.exampleCopied').replace('{folder}', `assets/examples/${example.id}/`));
           }, (e: unknown) => toast.showError(e instanceof Error ? e.message : String(e)));
         }} />
+      {text3dAsk ? <Text3DConvertDialog
+        title={text3dAsk.title}
+        geometryEligible={text3DEligibility(text3dAsk.src, true).geometry}
+        reason={text3DEligibility(text3dAsk.src, true).reason}
+        onClose={() => setText3dAsk(null)}
+      /> : null}
       <SettingsModal open={settingsOpen !== null} section={settingsOpen ?? undefined} onClose={() => setSettingsOpen(null)} />
       {templateAsk ? (
         <TemplatePicker
