@@ -39,3 +39,13 @@ test('a script run after as-node.mjs is the main module, with its arguments, and
     assert.deepEqual(out, { main: true, argv: [script, '--flag', 'x'], runAsNode: null });
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('Windows installs Videomaker and legacy OpenFilm commands with the same bundled CLI', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'videomaker-win-test-'));
+  try {
+    const bin = installOpenfilmCommand(dir, { node: 'C:\\videomaker\\node.exe', platform: 'win32' });
+    const { readFileSync, existsSync } = await import('node:fs');
+    assert.equal(existsSync(join(bin, 'videomaker.cmd')), true);
+    assert.equal(readFileSync(join(bin, 'videomaker.cmd'), 'utf8'), readFileSync(join(bin, 'openfilm.cmd'), 'utf8'));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
