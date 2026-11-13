@@ -24,7 +24,6 @@ export function replacementEdits(source,destination,mapping,effectiveLength){
    usedVars.add('--clip-length');
    continue;
   }
-  if(prop.type!=='var'&&prop.type!=='text')throw Error('Unsupported configured Text3D property: '+prop.name);
   const mapped=mapping[prop.name];
   const dest=target.find(p=>p.name===mapped&&p.type===prop.type);
   if(!mapped||!dest)throw Error('Missing Text3D mapping for '+prop.name);
@@ -40,6 +39,7 @@ export function replacementEdits(source,destination,mapping,effectiveLength){
       if(!o.style)throw Error('Missing CSS variable override');
       entry.style[name]=o.style[prop.var];
     }else{
+      if(dest.type!=='text')throw Error('Invalid target text property mapping');
       const old=applied.find(a=>a.at===dest.at&&(dest.n==null||a.n===dest.n));
       if(old)old.text=o.text;
       else applied.push({at:dest.at,...(dest.n?{n:dest.n}:{}),text:o.text});
