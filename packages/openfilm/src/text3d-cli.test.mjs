@@ -12,7 +12,7 @@ test('Text3D CLI validates, registers and retrieves an immutable Saved component
  try {
   const folder=join(temp,'component');await mkdir(folder);
   const manifest={
-    formatVersion:1,runtimeVersion:1,componentId:'text3d/burn/v1',source2DId:'text/burn',
+    formatVersion:1,runtimeVersion:1,componentId:'text3d/burn/v1',source2DId:'text/text-burn-combined',
     sourceRevision:'sha256:abc123',displayName:'Burn 3D',version:'v1',
     capabilities:{characters:true,group:true},parameterMap:{Text:'Text'},
     props:[{name:'Text',type:'text',at:'.t'}],durationSeconds:8
@@ -22,7 +22,7 @@ test('Text3D CLI validates, registers and retrieves an immutable Saved component
   await writeFile(join(folder,'component.js'),'export function createText3D(){return {group:{},characters:[],frame(t){},dispose(){}}}');
   assert.equal((await text3DCommand(['validate',folder])).ok,true);
   assert.equal((await text3DCommand(['register',folder])).ok,true);
-  const lookup=await text3DCommand(['inspect','text/burn']);
+  const lookup=await text3DCommand(['inspect','text/text-burn-combined']);
   assert.equal(lookup.ok,true);
   assert.match(lookup.lines[0],/text3d\/burn\/v1/);
   const saved=JSON.parse(await readFile(join(temp,'saved','text3d','text3d','burn','v1','saved.json'),'utf8'));
@@ -31,6 +31,12 @@ test('Text3D CLI validates, registers and retrieves an immutable Saved component
   await stat(join(temp,'saved','text3d','text3d','burn','v1','files','vendor','geometries','TextGeometry.js'));
   const indexed=await readFile(join(temp,'saved','text3d','text3d','burn','v1','files','index.html'),'utf8');
   assert.match(indexed,/type="importmap"/);
+  const inherited=await readFile(join(temp,'saved','text3d','text3d','burn','v1','poster.svg'),'utf8');
+  assert.match(inherited,/<svg/);
+  await writeFile(join(folder,'component.js'),"import {broken} from './absent.mjs'; export function createText3D(){return broken}");
+  const missing=await text3DCommand(['register',folder]);
+  assert.equal(missing.ok,false);
+  assert.match(missing.lines[0],/Missing packaged Text3D dependency/);
   const repeated=await text3DCommand(['register',folder]);
   assert.equal(repeated.ok,false);
  }finally{
