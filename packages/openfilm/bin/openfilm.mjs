@@ -9,6 +9,7 @@ const USAGE = `openfilm — a film is a function of time: given t, it draws that
   openfilm render  [a-b]               the MP4, saved beside film.html
   openfilm get     [what] [--options]  media: free from OpenFilm's library (music, sounds, transitions…), else a connected service
   openfilm canvas  [apply <steps>]     the canvas beside the edit: read it, or lay out notes, files and what to make on it
+  openfilm text3d  <action>            inspect, validate and register reusable 3D text components
   openfilm skills                      the skills this film can be made with; \`openfilm skill <name>\` prints one
   openfilm update                      the newest OpenFilm; Studio starts again on it
   openfilm doctor                      what this computer has for OpenFilm, to paste into an issue
@@ -33,6 +34,7 @@ const COMMAND_HELP = {
   Starts OpenFilm Studio if it is not running and prints its address. A Studio page already open, in any browser,
   switches to the project, and nothing more opens; otherwise open the address in your built-in browser, and if no
   page connects within 15 s, Studio opens the person's browser (OPENFILM_NO_BROWSER=1: never).`,
+  text3d: `openfilm text3d list [source-id]\nopenfilm text3d inspect <source-id>\nopenfilm text3d validate <folder>\nopenfilm text3d register <folder>\n\n  Validates a generated Text3D component with manifest.json, index.html and component.js. Register copies an immutable bundle into the Saved library and promotes the new version.`,
   skills: `openfilm skills
 
   The skills the project around the current folder can be made with: ways of making a kind of film, each a folder with
@@ -213,6 +215,7 @@ if (RAW[0] === 'get') {
       }));
     },
     canvas: () => import('../studio/client.mjs').then((m) => m.canvasCommand(args, (line) => console.error(line))),
+    text3d: () => import('../src/text3d-cli.mjs').then((m) => m.text3DCommand(args)),
     update: () => import('../studio/client.mjs').then((m) => m.updateOpenfilm((line) => console.error(line))),
     skills: () => import('../src/skills-cli.mjs').then((m) => m.skillsCommand(RUN)),
     skill: () => import('../src/skills-cli.mjs').then((m) => m.skillCommand(args, RUN)),
