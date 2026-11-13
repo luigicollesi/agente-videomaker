@@ -85,7 +85,7 @@ Text3D components are editable pages using the shared Text3D runtime. When asked
 
 Prefer editing existing properties and character/group motion over regenerating components. For 2D-to-3D conversion, check for a compatible library counterpart first; otherwise rebuild real 3D glyph geometry and preserve internal effects, timing and editable parameters. Expose `group` for whole-text motion and `characters[]` for per-character motion; keep both separate from internal effects.
 
-Deliver a Text3D v1 component with `manifest.json` (source 2D ID and revision, parameters and mapping), `index.html` and `component.js`. Use the shared renderer and deterministic `frame(t)`. Validate rendering and compatibility before registration and replacement. Never overwrite the 2D source, create a competing motion clock, or substitute iframe projection or pixel extrusion for geometry.
+Use `openfilm text3d inspect <source-id>` before conversion, then `openfilm text3d validate <folder>` and `openfilm text3d register <folder>` after generating. The platform owns version promotion and the Saved library. Deliver a Text3D v1 component with `manifest.json` (source 2D ID and revision, parameters and mapping), `index.html` and `component.js`. Use the shared renderer and deterministic `frame(t)`. Validate rendering and compatibility before registration and replacement. Never overwrite the 2D source, create a competing motion clock, or substitute iframe projection or pixel extrusion for geometry.
 
 ## Seeing it
 

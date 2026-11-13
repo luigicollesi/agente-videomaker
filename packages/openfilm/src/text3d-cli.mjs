@@ -1,6 +1,6 @@
 // @ts-check
 /** Publish reusable Text3D components from a folder into Saved and the immutable-version registry. */
-import { cp, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, join, resolve, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
 import { activeText3D, listText3D, registerText3D } from '../studio/server/text3d/registry.mjs';
@@ -78,6 +78,7 @@ export async function text3DCommand(args) {
    try{
     const files=join(staging,'files');
     await cp(source,files,{recursive:true,errorOnExist:true,force:false});
+    await copyFile(new URL('./text3d-runtime.mjs',import.meta.url),join(files,'openfilm-text3d-runtime.mjs'));
     const duration=Number(manifest.durationSeconds);
     const seconds=Number.isFinite(duration)&&duration>0&&duration<=3600?duration:10.5;
     const clip={src:'index.html',time:[0,seconds],attrs:{
