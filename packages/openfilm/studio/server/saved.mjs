@@ -154,8 +154,12 @@ function bundleEntry(rel, item) {
 /** A bundle's picture, or null. */
 export async function bundlePoster(/** @type {unknown} */ path) {
   const root = await libraryRoot();
-  const file = join(inside(root, libraryRel(path)), 'poster.jpg');
-  return existsSync(file) ? file : null;
+  const folder=inside(root,libraryRel(path));
+  for (const ext of ['jpg','svg']) {
+    const file=join(folder,'poster.'+ext);
+    if (existsSync(file)) return file;
+  }
+  return null;
 }
 
 /** A name that is free in folder `dir`: `name`, else `name 2`, `name 3`… */

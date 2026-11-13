@@ -1,0 +1,58 @@
+{
+  "formatVersion": 1,
+  "runtimeVersion": 1,
+  "componentId": "text3d/sample/v1",
+  "source2DId": "text/sample",
+  "sourceRevision": "sha256:example",
+  "displayName": "Text3D Sample",
+  "version": "v1",
+  "capabilities": {
+    "characters": true,
+    "group": true
+  },
+  "durationSeconds": 10,
+  "parameterMap": {
+    "Text": "Text",
+    "Depth": "Depth",
+    "Front Color": "Front Color",
+    "Entrance time": "Entrance time",
+    "Exit time": "Exit time"
+  },
+  "props": [
+    {
+      "name": "Text",
+      "type": "text",
+      "at": ".t"
+    },
+    {
+      "name": "Depth",
+      "type": "var",
+      "var": "--text3d-depth"
+    },
+    {
+      "name": "Front Color",
+      "type": "var",
+      "var": "--text3d-color"
+    },
+    {
+      "name": "Entrance time",
+      "type": "var",
+      "var": "--text3d-in"
+    },
+    {
+      "name": "Exit time",
+      "type": "var",
+      "var": "--text3d-out"
+    },
+    {
+      "name": "Motion events (JSON)",
+      "type": "var",
+      "var": "--text3d-events"
+    },
+    {
+      "name": "Clip length",
+      "type": "var",
+      "var": "--clip-length"
+    }
+  ]
+}

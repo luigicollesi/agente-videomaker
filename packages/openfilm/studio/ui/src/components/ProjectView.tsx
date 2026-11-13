@@ -30,6 +30,10 @@ import { keepTemplateFilm, TemplateFilmSection, TemplateSection, type TemplateHo
 import { cutMovesOn, headStyle, joinedStyle, presetsOn, restStyle, takesMotion, withCutMove, type Preset, type PresetSlot } from '@/lib/clip-presets';
 import { ClipMotionSection, type ClipMotionHost } from '@/components/ClipMotionSection';
 import { TemplatePicker } from '@/components/TemplatePicker';
+import { isText3DClip } from '@/lib/text3d-clip';
+import { planText3DApply } from '@/lib/text3d-apply';
+import { text3DSourceId } from '@/lib/text3d-source-id';
+import { Text3DExistingDialog, type Text3DRegistryEntry } from '@/components/Text3DExistingDialog';
 import { isLibraryText, layoutTracks, type TimelineBlock, type TimelineTrack } from '@/lib/timeline-layout';
 import { organizeTracks } from '@/lib/organize-tracks';
 import { useAgentWorking } from '@/lib/agent-working';
@@ -3502,14 +3506,73 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     { id: 'copy-attrs', label: t('clipAttrs.copy'), icon: <ClipboardCopy size={14} />, shortcut: keyHint('copy-attrs'), disabled: blocks.length !== 1, onSelect: () => copyAttrs(blocks) },
     { id: 'paste-attrs', label: t('clipAttrs.pasteMenu'), icon: <ClipboardPaste size={14} />, shortcut: keyHint('paste-attrs'), disabled: !copiedAttrs, hint: t('clipAttrs.nothing'), onSelect: () => askPasteAttrs(blocks) },
   ];
+  const [text3dExisting, setText3dExisting] = React.useState<{entry:Text3DRegistryEntry;block:TimelineBlock}|null>(null);
+  const [text3dApplying, setText3dApplying] = React.useState(false);
+  const askAgentForText3D = React.useCallback((block:TimelineBlock, source2DId:string, replacing?:Text3DRegistryEntry) => {
+    if (!studioHost?.ask) {
+      toast.showError('Connect an agent in the Agente Videomaker desktop chat to create 3D text.');
+      return;
+    }
+    studioHost.ask({
+      refs:[refOfBlock(block)],
+      text:(replacing ? [
+        'Update Text3D '+replacing.componentId+' ('+replacing.version+') on '+(block.clipId??'')+'.',
+        'Recreate existing source animations/VFX in 3D; keep timing, text and mapped params unless requested. Never copy sample motions.',
+        'Create a new immutable version if needed; retain previous versions.',
+        'Run videomaker text3d inspect, validate, register and apply. Verify before apply.'
+      ] : [
+        'Convert '+source2DId+' to real Text3D on '+(block.clipId??'')+'.',
+        'Inspect and recreate the 2D source animations/VFX in 3D; preserve timing, text and mapped params. Never copy sample motions.',
+        'Reuse a match or create Text3D v1 with real geometry, group/character motion and parameterMap.',
+        'Run videomaker text3d inspect, validate, register and apply. Verify before apply.'
+      ]).join('\n')
+    });
+  },[toast,refOfBlock]);
+  const requestText3D = React.useCallback(async (block:TimelineBlock) => {
+    try{
+      const source2DId=await text3DSourceId(block.src??'',projectId,libraryItemOfClip(block.src)?.id);
+      const response=await fetch('/api/text3d?source='+encodeURIComponent(source2DId),{cache:'no-store'});
+      if(!response.ok)throw new Error('Text3D library lookup failed');
+      const data=await response.json() as {active:Text3DRegistryEntry|null};
+      if(data.active){setText3dExisting({entry:data.active,block});return}
+      askAgentForText3D(block,source2DId);
+    }catch(error){toast.showError(error instanceof Error?error.message:String(error));return}
+  },[askAgentForText3D,projectId,toast]);
+  const applyExistingText3D = React.useCallback(async () => {
+    const found=text3dExisting;
+    if(!found?.block.clipId || text3dApplying)return;
+    const source=filmClipOf(found.block.clipId);
+    if(!source||source.src!==found.block.src){toast.showError('The source clip changed.');setText3dExisting(null);return}
+    setText3dApplying(true);
+    try{
+      const taken=await api.takeSaved(projectId,found.entry.bundlePath);
+      if(!('clip' in taken))throw new Error('The saved 3D component is unavailable');
+      const edits=planText3DApply(source as never,taken.clip as never,found.entry,(found.block.endMs-found.block.startMs)/1000);
+      const error=await edit([{op:'props',edits:edits as never}],'Apply existing 3D Text');
+      if(error)throw new Error(error);
+      setText3dExisting(null);
+    }catch(error){toast.showError(error instanceof Error?error.message:String(error))}
+    finally{setText3dApplying(false)}
+  },[text3dExisting,text3dApplying,filmClipOf,projectId,edit,toast]);
   const timelineMenuExtra = React.useCallback((blocks: readonly TimelineBlock[], clicked?: TimelineBlock) => {
     if (!blocks.length) return [];
     const lead = referEntry(() => blocks.map(refOfBlock));
     if (clicked && compoundFolder(clicked.src)) {
       lead.push({ id: 'enter-compound', label: t('timeline.menuEnterCompound'), icon: <FolderOpen size={14} />, onSelect: () => enterCompound(clicked) });
     }
+    if (clicked?.clipId && clicked.src && blocks.length === 1) {
+      const original = filmClipOf(clicked.clipId);
+      const text = original && (isLibraryText(clicked.src) || propsOf(original).some(prop => prop.type === 'text'));
+      if (original && text && !isText3DClip(original)) {
+        lead.push({
+          id: 'convert-text3d',
+          label: 'Make 3D...',
+          onSelect: () => requestText3D(clicked),
+        });
+      }
+    }
     return menuGroups(lead, menuGroups(menuGroups(saveEntry(blocks), tools.menuExtra(blocks)), attrsEntries(blocks)));
-  }, [t, keyHint, tools.menuExtra, copiedAttrs, copyAttrs, askPasteAttrs, saveBlocks, enterCompound]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [t, keyHint, tools.menuExtra, copiedAttrs, copyAttrs, askPasteAttrs, saveBlocks, enterCompound, filmClipOf, requestText3D]); // eslint-disable-line react-hooks/exhaustive-deps
   const trackMenuExtra = React.useCallback((track: TimelineTrack) => {
     const docIndex = track.docIndex;
     const refer = docIndex == null || !studioHost?.refer ? [] : referEntry(() => { const ref = trackRef(tracksRef.current, docIndex); return ref ? [ref] : []; }, false);
@@ -5032,6 +5095,13 @@ export function ProjectView({ projectId, onProject, onLeave }: {
             toast.show(t('canvas.exampleCopied').replace('{folder}', `assets/examples/${example.id}/`));
           }, (e: unknown) => toast.showError(e instanceof Error ? e.message : String(e)));
         }} />
+      {text3dExisting ? <Text3DExistingDialog
+        entry={text3dExisting.entry}
+        busy={text3dApplying}
+        onClose={() => setText3dExisting(null)}
+        onApply={() => void applyExistingText3D()}
+        onNew={() => { const existing=text3dExisting;setText3dExisting(null);askAgentForText3D(existing.block,existing.entry.source2DId,existing.entry); }}
+      /> : null}
       <SettingsModal open={settingsOpen !== null} section={settingsOpen ?? undefined} onClose={() => setSettingsOpen(null)} />
       {templateAsk ? (
         <TemplatePicker

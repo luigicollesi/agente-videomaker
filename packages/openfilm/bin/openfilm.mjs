@@ -2,24 +2,25 @@
 import { setPriority } from 'node:os';
 import { parseArgs } from 'node:util';
 
-const USAGE = `openfilm — a film is a function of time: given t, it draws that moment
+const USAGE = `videomaker — a film is a function of time: given t, it draws that moment
 
-  openfilm open    [folder | url]      start or open a project; Studio shows it to the person
-  openfilm look    [what] [t | a-b]    check the film and draw it: a contact sheet with its sound and loudness
-  openfilm render  [a-b]               the MP4, saved beside film.html
-  openfilm get     [what] [--options]  media: free from OpenFilm's library (music, sounds, transitions…), else a connected service
-  openfilm canvas  [apply <steps>]     the canvas beside the edit: read it, or lay out notes, files and what to make on it
-  openfilm skills                      the skills this film can be made with; \`openfilm skill <name>\` prints one
-  openfilm update                      the newest OpenFilm; Studio starts again on it
-  openfilm doctor                      what this computer has for OpenFilm, to paste into an issue
+  videomaker open    [folder | url]      start or open a project; Studio shows it to the person
+  videomaker look    [what] [t | a-b]    check the film and draw it: a contact sheet with its sound and loudness
+  videomaker render  [a-b]               the MP4, saved beside film.html
+  videomaker get     [what] [--options]  media: free from OpenFilm's library (music, sounds, transitions…), else a connected service
+  videomaker canvas  [apply <steps>]     the canvas beside the edit: read it, or lay out notes, files and what to make on it
+  videomaker text3d  <action>            inspect, validate and register reusable 3D text components
+  videomaker skills                      the skills this film can be made with; \`videomaker skill <name>\` prints one
+  videomaker update                      the newest OpenFilm; Studio starts again on it
+  videomaker doctor                      what this computer has for OpenFilm, to paste into an issue
 
-  Run with no arguments for the manual; \`openfilm <command> --help\` for one command's options; --version for the version.
+  Run with no arguments for the manual; \`videomaker <command> --help\` for one command's options; --version for the version.
   look, render, get and canvas work on the project around the current folder.
   Exit status: 0 done, 1 the film or the command failed (the output says why), 2 not a project or a wrong command.`;
 
 /* one command's help: what it does, what it takes, where its output goes */
 const COMMAND_HELP = {
-  open: `openfilm open [folder | url]
+  open: `videomaker open [folder | url]
 
   folder   a new film: a folder named after it (made if missing); or an existing project
            A folder that is not a project yet gets an empty film.html, 1920 × 1080 (its viewport <meta>) with no
@@ -33,13 +34,14 @@ const COMMAND_HELP = {
   Starts OpenFilm Studio if it is not running and prints its address. A Studio page already open, in any browser,
   switches to the project, and nothing more opens; otherwise open the address in your built-in browser, and if no
   page connects within 15 s, Studio opens the person's browser (OPENFILM_NO_BROWSER=1: never).`,
-  skills: `openfilm skills
+  text3d: `videomaker text3d list [source-id]\nvideomaker text3d inspect <source-id>\nvideomaker text3d validate <folder>\nvideomaker text3d register <folder>\nvideomaker text3d apply <project-folder> <clip-id> <component-id>\n\n  Validates a generated Text3D component with manifest.json, index.html and component.js. Register copies an immutable bundle into the Saved library and promotes the new version.`,
+  skills: `videomaker skills
 
   The skills the project around the current folder can be made with: ways of making a kind of film, each a folder with
   a SKILL.md (its name, what it is for, how to work) and the files it brings. Looked for in the project's skills/,
   then yours (Skills/ beside the projects, ~/Movies/OpenFilm/Skills on macOS), then the official ones; the first
   holding a name wins.`,
-  skill: `openfilm skill <name>
+  skill: `videomaker skill <name>
 openfilm skill add <GitHub address | folder>
 openfilm skill remove <name>
 
@@ -49,19 +51,19 @@ openfilm skill remove <name>
   remove   move one of yours to the trash, where you can take it back
 
   Yours are kept in Skills/ beside the projects (~/Movies/OpenFilm/Skills on macOS; OPENFILM_SKILLS names another).`,
-  update: `openfilm update
+  update: `videomaker update
 
   The newest OpenFilm from npm, and Studio started again on it once nothing is being exported or made; pages open on
   it come back on the new version. The desktop app's Studio updates with the app, a source checkout with git pull:
   each is said instead.`,
-  doctor: `openfilm doctor
+  doctor: `videomaker doctor
 
   Checks what OpenFilm needs here and prints a report to paste into an issue: OpenFilm's and Node's versions, the
   system, which agent ran the command, Studio, ffmpeg, the browser films are drawn in and its graphics, the data and
   projects folders, how much the projects' .film folders hold, npm, and the last errors in Studio's log. Paths under
   your home folder read ~; no keys, accounts or projects are in it. Exit status 1 when something needs fixing; the
   report says what.`,
-  look: `openfilm look [what] [t | a-b]
+  look: `videomaker look [what] [t | a-b]
 
   what   the project (default), a web page (.html), or a media file (video, image, sound)
   t      one frame at full size, e.g. 4.5
@@ -77,7 +79,7 @@ openfilm skill remove <name>
                   given: white flashes, frames unlike those on both sides, still pictures (6 s or more) and
                   black, each with its time
   --loudness=<n>  say how far the mix is from n LUFS and -1 dBTP, the target render --loudness brings it to`,
-  canvas: `openfilm canvas [apply <steps>]
+  canvas: `videomaker canvas [apply <steps>]
 
   The project's canvas: a board beside the edit where the person lays out notes, the project's files and nodes that
   make a picture, a clip or a sound, wired into each other. Nothing on it is in the film until it is put on the timeline.
@@ -93,16 +95,16 @@ openfilm skill remove <name>
                          it in that order), else below the rest. A group made around nodes holds them. A cut is
                          the order what is wired into it goes onto the timeline in, when the person sends it there.
     {"op":"set","id":"…", …}   {"op":"remove","id":"…"}   {"op":"wire","from":"…","to":"…"}   {"op":"unwire",…}
-    {"op":"version","id":"…","path":"assets/…"}   a file made with \`openfilm get\` as a making node's newest version
+    {"op":"version","id":"…","path":"assets/…"}   a file made with \`videomaker get\` as a making node's newest version
 
   A making node is asked its prompt with the notes wired into it first; a tts node speaks it in opts.voice (a voiceId
-  from \`openfilm get voice\`; none: its service's first voice in the person's language). How a video uses the
+  from \`videomaker get voice\`; none: its service's first voice in the person's language). How a video uses the
   pictures wired in is its opts.mode: text, first (the first picture is its first frame), firstLast (first and last
   frame), refs (references for people and places) or omni (pictures, a voice or a clip). A picture's preset puts
   ready words first: portrait, fullBody, expressions, turnaround16 (a character), storyboard, cameras9, scene,
-  product… The person presses Make (a group's Make all makes it in wire order), or you make it with \`openfilm get\`
+  product… The person presses Make (a group's Make all makes it in wire order), or you make it with \`videomaker get\`
   and add the file as a version. The person sees each change on the board at once.`,
-  render: `openfilm render [a-b]
+  render: `videomaker render [a-b]
 
   Render the project around the current folder to video.
   The whole film goes to <project>/<folder name>.mp4, beside film.html; a range (a-b) goes to .film/cache/render/.
@@ -131,7 +133,7 @@ const RUN = process.env.OPENFILM_RUN || (process.env.npm_command === 'exec' ? 'n
  */
 const updateNotice = async (network) => {
   const latest = await (await import('../studio/client.mjs')).newerOpenfilm({ network }).catch(() => null);
-  if (latest) console.error(`openfilm ${latest} is out (this is an older one): \`${RUN} update\` updates it, and Studio with it.`);
+  if (latest) console.error(`videomaker ${latest} is out (this is an older one): \`${RUN} update\` updates it, and Studio with it.`);
 };
 if (RAW.length === 0) {
   const { readFileSync } = await import('node:fs');
@@ -160,14 +162,14 @@ if (RAW[0] === 'get') {
   await keptNotice();
   let result;
   try { result = await (await import('../studio/client.mjs')).getMedia(RAW.slice(1), (line) => console.error(line)); }
-  catch (e) { result = { code: 1, lines: [`openfilm get: ${e.message}`] }; }
+  catch (e) { result = { code: 1, lines: [`videomaker get: ${e.message}`] }; }
   for (const line of result.lines) console.log(line);
   /* the process ends by itself, as after the other commands: process.exit() here, after the answer is printed,
      aborts Node 24.17 on Windows (`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)`, exit status 127) */
   process.exitCode = result.code;
 } else {
   /* the help speaks the name this was run as: `openfilm` or `npx openfilm` */
-  const named = (text) => text.replace(/^( {2})?openfilm(?= )/gm, `$1${RUN}`).replace('`openfilm <command>', `\`${RUN} <command>`);
+  const named = (text) => text.replace(/^( {2})?openfilm(?= )/gm, `$1${RUN}`).replace('`videomaker <command>', `\`${RUN} <command>`);
   let parsed;
   try {
     parsed = parseArgs({
@@ -213,6 +215,7 @@ if (RAW[0] === 'get') {
       }));
     },
     canvas: () => import('../studio/client.mjs').then((m) => m.canvasCommand(args, (line) => console.error(line))),
+    text3d: () => import('../src/text3d-cli.mjs').then((m) => m.text3DCommand(args)),
     update: () => import('../studio/client.mjs').then((m) => m.updateOpenfilm((line) => console.error(line))),
     skills: () => import('../src/skills-cli.mjs').then((m) => m.skillsCommand(RUN)),
     skill: () => import('../src/skills-cli.mjs').then((m) => m.skillCommand(args, RUN)),
@@ -272,7 +275,7 @@ if (RAW[0] === 'get') {
     } catch (e) { return { ok: false, lines: [`${RUN} open: ${e.message}`] }; }
   }
   /**
-   * `openfilm open <url>`: the repository or folder fetched into the projects library (studio/server/fetch-repo.mjs),
+   * `videomaker open <url>`: the repository or folder fetched into the projects library (studio/server/fetch-repo.mjs),
    * its progress on stderr.
    * @param {string} url
    */

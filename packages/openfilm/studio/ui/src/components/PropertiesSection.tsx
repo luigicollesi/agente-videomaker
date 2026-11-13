@@ -7,6 +7,9 @@
  * its layer on the picture.
  */
 import * as React from 'react';
+import { Text3DMotionEditor } from './Text3DMotionEditor';
+import { Text3DCanonicalMotionEditor, decodeCanonicalMotions } from './Text3DCanonicalMotionEditor';
+import { parseMotions } from '../lib/text3d-motion';
 import { HardDriveUpload, ImageIcon, Plus, RotateCcw } from 'lucide-react';
 
 import { useT } from '@/i18n';
@@ -79,8 +82,14 @@ export function PropertiesSection({ host, commit }: {
   const props = host.props();
   /* a clip's length is Studio's to keep (studio/server/ops.mjs), not the person's to set: not shown */
   const shown = props.filter((p) => !(p.type === 'var' && p.var === '--clip-length'));
-  const advanced = shown.filter((p) => p.type === 'var' && p.advanced);
-  const ordinary = shown.filter((p) => !(p.type === 'var' && p.advanced));
+  const is3D = (host.page.includes('text3d-motion.html') || host.page.includes('/text3d/'));
+  const visual3D = new Set(['--text3d-depth','--text3d-color','--text3d-side','--text3d-shadow','--text3d-light']);
+  const motion3D = new Set(['--text3d-events']);
+  const appearance3D = is3D ? shown.filter(p => p.type === 'var' && visual3D.has(p.var)) : [];
+  const movement3D = is3D ? shown.filter(p => p.type === 'var' && motion3D.has(p.var)) : [];
+  const standard = shown.filter(p => !is3D || p.type !== 'var' || (!visual3D.has(p.var) && !motion3D.has(p.var)));
+  const advanced = standard.filter((p) => p.type === 'var' && p.advanced);
+  const ordinary = standard.filter((p) => !(p.type === 'var' && p.advanced));
   const kept = JSON.stringify(overrides ?? []);
   React.useEffect(() => {
     let live = true;
@@ -161,6 +170,17 @@ export function PropertiesSection({ host, commit }: {
         const paint = (next: string | null) => {
           if (!prop.advanced) host.preview({ at: ROOT }, next == null ? null : { style: { [prop.var]: next } });
         };
+        if (prop.var === '--text3d-events' && is3D && decodeCanonicalMotions(now) !== null &&
+            (parseMotions(now).length === 0 || now.includes('"target"')) && !host.page.includes('text3d-motion.html')) {
+          const lengthProp = propValue(overrides, { name: 'Clip length', type: 'var', var: '--clip-length' });
+          const length = parseFloat(typeof lengthProp === 'string' ? lengthProp : controls?.vars.find(v => v.name === '--clip-length')?.value ?? '10.5');
+          return <Text3DCanonicalMotionEditor value={now} length={Number.isFinite(length) ? length : 10.5} onCommit={next => set(prop, next)} />;
+        }
+        if (prop.var === '--text3d-events' && is3D && (parseMotions(now).length > 0 || now.trim().replace(/^[\x27\x22]|[\x27\x22]$/g, '') === '[]')) {
+          const lengthProp = propValue(overrides, { name: 'Clip length', type: 'var', var: '--clip-length' });
+          const length = parseFloat(typeof lengthProp === 'string' ? lengthProp : controls?.vars.find(v => v.name === '--clip-length')?.value ?? '10.5');
+          return <Text3DMotionEditor value={now} length={Number.isFinite(length) ? length : 10.5} onCommit={next => set(prop, next)} />;
+        }
         return isFontVar(prop.var, now)
           ? <FontInput label={prop.name} value={now} onCommit={(next) => set(prop, next)} onPreview={paint} />
           : <VarInput name={prop.name} field={fieldOf(now, isNamedColor)} onCommit={(next) => set(prop, next)} onPreview={paint} />;
@@ -172,10 +192,10 @@ export function PropertiesSection({ host, commit }: {
      telling how to make a property of a layer of it */
   if (!shown.length && isLibraryClip(host.page)) return null;
 
-  const section = (list: ComponentProp[], isAdvanced: boolean) => (
+  const section = (list: ComponentProp[], isAdvanced: boolean, special?: 'appearance' | 'motion') => (
     <Section
-      id={isAdvanced ? 'advanced-properties' : 'properties'}
-      title={t(isAdvanced ? 'inspector.advancedProperties' : 'inspector.props')}
+      id={special ? `text3d-${special}` : isAdvanced ? 'advanced-properties' : 'properties'}
+      title={special === 'appearance' ? '3D Properties' : special === 'motion' ? '3D Motion' : t(isAdvanced ? 'inspector.advancedProperties' : 'inspector.props')}
       aside={(
         <span className="flex items-center">
           {list.some((p) => propValue(overrides, p) != null) ? (
@@ -218,6 +238,8 @@ export function PropertiesSection({ host, commit }: {
   );
   return <>
     {ordinary.length || !isLibraryClip(host.page) ? section(ordinary, false) : null}
+    {appearance3D.length ? section(appearance3D, true, 'appearance') : null}
+    {movement3D.length ? section(movement3D, true, 'motion') : null}
     {advanced.length ? section(advanced, true) : null}
     {menu ? <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} /> : null}
   </>;

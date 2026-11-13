@@ -1,7 +1,7 @@
 {
   "name": "openfilm",
   "version": "0.3.2",
-  "description": "The open source AI video agent: films as web pages, the manual that teaches your coding agent to make them, the `openfilm` command, and Studio, the editor to change anything in them.",
+  "description": "The open source AI video agent: films as web pages, the manual that teaches your coding agent to make them, the `videomaker` command, and Studio, the editor to change anything in them.",
   "license": "MIT",
   "homepage": "https://openfilm.dev",
   "repository": {
@@ -23,6 +23,7 @@
   ],
   "type": "module",
   "bin": {
+    "videomaker": "bin/openfilm.mjs",
     "openfilm": "bin/openfilm.mjs"
   },
   "exports": {
@@ -70,7 +71,8 @@
     "node": ">=22.2"
   },
   "dependencies": {
-    "playwright-core": "1.61.1"
+    "playwright-core": "1.61.1",
+    "three": "0.187.0"
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",

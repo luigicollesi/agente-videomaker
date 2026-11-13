@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "kind": "clip",
+  "clip": {
+    "src": "text3d-motion.html",
+    "time": [
+      0,
+      10.5
+    ],
+    "attrs": {
+      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Entrance time\",\"type\":\"var\",\"var\":\"--text3d-in\"},{\"name\":\"Exit time\",\"type\":\"var\",\"var\":\"--text3d-out\"},{\"name\":\"Depth\",\"type\":\"var\",\"var\":\"--text3d-depth\"},{\"name\":\"Front color\",\"type\":\"var\",\"var\":\"--text3d-color\"},{\"name\":\"Side color\",\"type\":\"var\",\"var\":\"--text3d-side\"},{\"name\":\"Shadow blur\",\"type\":\"var\",\"var\":\"--text3d-shadow\"},{\"name\":\"Lighting\",\"type\":\"var\",\"var\":\"--text3d-light\"},{\"name\":\"Motion events (JSON)\",\"type\":\"var\",\"var\":\"--text3d-events\"},{\"name\":\"Clip length (managed by timeline)\",\"type\":\"var\",\"var\":\"--clip-length\"}]"
+    }
+  },
+  "durationMs": 10500
+}

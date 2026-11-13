@@ -119,6 +119,9 @@ importers:
       playwright-core:
         specifier: 1.61.1
         version: 1.61.1
+      three:
+        specifier: 0.187.0
+        version: 0.187.0
     devDependencies:
       '@fontsource-variable/inter':
         specifier: ^5.3.0
@@ -3251,6 +3254,9 @@ packages:
 
   typebox@1.3.27:
     resolution: {integrity: sha512-zu+jc1pcy4UiNThxikUr36f0Rybk9PEeCg/NE6adeWr/SKsdNO4EzZHYRDlv2YCVAfj3Odq3dESSo/jNyoBXzA==}
+
+  three@0.187.0:
+    resolution: {integrity: sha512-Qiu7R+Cmh8CstZsY1uJOSWnVlfo7ZtNLV7mF8Jltk3LB3AtDu9cRZlcnRKkAk8Y4z6KKw35z7Y7Urd7jWY8etA==}
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
@@ -6906,6 +6912,8 @@ snapshots:
       mime-types: 3.0.2
 
   typebox@1.3.27: {}
+
+  three@0.187.0: {}
 
   typescript@5.9.3: {}
 

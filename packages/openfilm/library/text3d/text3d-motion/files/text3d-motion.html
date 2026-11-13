@@ -1,0 +1,57 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenFilm — Text 3D Motion</title><style>
+:root{--clip-length:10.5s;--text3d-in:2;--text3d-out:3;--text3d-depth:14;--text3d-color:#d9eaff;--text3d-side:#4675ac;--text3d-shadow:12;--text3d-light:1;--text3d-events:'[{"id":"spin-1","type":"rotate3d","start":4,"duration":1.25,"axis":"y","turns":1},{"id":"spin-2","type":"rotate3d","start":7,"duration":0.75,"axis":"x","turns":1}]'}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
+body{display:grid;place-items:center;perspective:1100px;perspective-origin:50% 45%}
+.t{position:absolute;opacity:0;pointer-events:none;white-space:pre}
+#object{position:relative;width:100%;height:100%;transform-style:preserve-3d;will-change:transform}
+.layer{position:absolute;inset:0;display:grid;place-items:center;white-space:pre;font:900 clamp(30px,11vw,176px) Impact,'Arial Black',system-ui,sans-serif;letter-spacing:.015em;backface-visibility:visible;text-align:center;line-height:1;pointer-events:none}
+#front{color:var(--text3d-color);text-shadow:0 0 calc(var(--text3d-shadow) * 1px) rgba(36,83,135,.65);filter:brightness(var(--text3d-light))}
+</style></head><body><span class="t">INFERNO</span><div id="object"></div><script>
+(()=>{'use strict';
+const root=document.documentElement,obj=document.getElementById('object'),word=document.querySelector('.t');
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const smooth=x=>{const u=clamp(x);return u*u*(3-2*u)};
+const read=(css,key,fallback)=>{const v=parseFloat(css.getPropertyValue(key));return Number.isFinite(v)?v:fallback};
+const textLayers=[];for(let i=0;i<14;i++){const el=document.createElement('div');el.className='layer';obj.append(el);textLayers.push(el)}
+const front=document.createElement('div');front.className='layer';front.id='front';obj.append(front);
+let lastText='',current=0;
+function eventsOf(raw){let value=raw.trim();if((value[0]==='"'&&value.at(-1)==='"')||(value[0]==="'"&&value.at(-1)==="'"))value=value.slice(1,-1);try{const parsed=JSON.parse(value);return Array.isArray(parsed)?parsed.filter(e=>e&&typeof e==='object').slice(0,64):[]}catch{return []}}
+function timing(){
+ const css=getComputedStyle(root),total=Math.max(.01,read(css,'--clip-length',10.5));
+ const out=Math.min(total,Math.max(0,read(css,'--text3d-out',3)));
+ const entrance=Math.min(Math.max(0,read(css,'--text3d-in',2)),total-out);
+ return {total,entrance,out,hold:Math.max(0,total-entrance-out),depth:clamp(read(css,'--text3d-depth',14),0,80),events:eventsOf(css.getPropertyValue('--text3d-events'))};
+}
+function frame(t){
+ const p=timing();current=clamp(Number(t)||0,0,p.total);
+ const txt=word.textContent||' ';if(txt!==lastText){front.textContent=txt;for(const el of textLayers)el.textContent=txt;lastText=txt}
+ const side=getComputedStyle(root).getPropertyValue('--text3d-side').trim()||'#4675ac';
+ for(let i=0;i<textLayers.length;i++){const layer=textLayers[i];layer.style.color=side;layer.style.opacity=String(p.depth?1:0);layer.style.transform='translateZ('+(-p.depth*(i+1)/textLayers.length).toFixed(3)+'px)'}
+ front.style.transform='translateZ(1px)';
+ let scale=p.entrance>0?smooth(current/p.entrance):1;
+ if(p.out>0&&current>=p.total-p.out)scale*=1-smooth((current-(p.total-p.out))/p.out);
+ else if(p.out===0&&current>=p.total)scale=0;
+ const angles={x:0,y:0,z:0};let dx=0,dy=0,dz=0;
+ for(const e of p.events){
+  const start=Number(e.start),duration=Number(e.duration);
+  if(!Number.isFinite(start)||!Number.isFinite(duration)||duration<=0||start<0)continue;
+  const progress=smooth((current-start)/duration);
+  if(e.type==='rotate3d'&&['x','y','z'].includes(e.axis)){
+    const turns=clamp(Number(e.turns)||0,-20,20);angles[e.axis]+=360*turns*progress;
+  }else if(e.type==='translate3d'){
+    dx+=clamp(Number(e.x)||0,-4000,4000)*progress;dy+=clamp(Number(e.y)||0,-4000,4000)*progress;dz+=clamp(Number(e.z)||0,-4000,4000)*progress;
+  }else if(e.type==='scale'){
+    const to=clamp(Number(e.to)||1,0,10);scale*=1+(to-1)*progress;
+  }
+ }
+ obj.style.transform='translate3d('+dx+'px,'+dy+'px,'+dz+'px) rotateX('+angles.x+'deg) rotateY('+angles.y+'deg) rotateZ('+angles.z+'deg) scale('+Math.max(0,scale).toFixed(6)+')';
+ obj.style.visibility=current>=p.total?'hidden':'visible';
+}
+window.film={frame,frameReadsOverrides:true};window.text3d={frame,getState:()=>({...timing(),time:current})};
+new ResizeObserver(()=>frame(current)).observe(document.body);
+new MutationObserver(()=>frame(current)).observe(word,{childList:true,characterData:true,subtree:true});
+new MutationObserver(()=>frame(current)).observe(root,{attributes:true,attributeFilter:['style']});
+frame(0);
+if(!window.filmHost){const initial=performance.now();function animate(now){frame(((now-initial)/1000)%timing().total);requestAnimationFrame(animate)}requestAnimationFrame(animate)}
+})();
+</script></body></html>

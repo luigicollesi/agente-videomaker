@@ -303,7 +303,7 @@ export const enUS = {
   turnLog: {
     thoughtNotKept: 'not kept in the agent\'s record',
     skills: 'Skills and MCP',
-    skillsOpenfilm: 'OpenFilm\'s skills',
+    skillsOpenfilm: 'Videomaker skills',
     skillsHidden: 'Your own skills, off',
     skillsUnfiltered: 'This agent has all your own skills, as in its own app',
     mcpHidden: 'Your own MCP servers, off',

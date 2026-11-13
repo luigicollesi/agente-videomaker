@@ -1,6 +1,6 @@
 ---
 name: edit
-description: How an OpenFilm film is made, and how to see it. Read it whole before you make or change a film, its film.html or its pages, and before you look at one.
+description: How an Agente Videomaker film is made, and how to see it. Read it whole before you make or change a film, its film.html or its pages, and before you look at one.
 ---
 
 # Making a film
@@ -48,7 +48,7 @@ A folder:
   - `left`, `top`, `width`, `height` in its `style` (px) and `rotate` (degrees, clockwise): where it sits. Without them, a video or picture is the stage, and a page is its own size, centered. With only `width` or `height`, the other keeps its proportions.
   - Its look is CSS, in `class` or `style`: a video or picture fits whole in its box unless you say otherwise (`object-fit: cover` crops it to the box).
   - It moves by CSS animation: `animation` in its `style`, its `@keyframes` in film.html's `<style>`. Its time starts at the clip's `at`. Move it with `translate` (px, or `vw`/`vh` of the stage), `scale` and `rotate`, never `transform`, `left` or `top`: these go on top of its box, about its center. `--clip-length` is how long the clip is (`4.2s`): time a way out from its end with it. For example a slow push in and a push out to the left:
-    `<style>@keyframes push { from { scale: 1 } to { scale: 1.1 } } @keyframes out { to { translate: -100vw 0 } }</style>` … `style="animation: push var(--clip-length) linear both, out .5s ease-in calc(var(--clip-length) - .5s) both"`. Shots that follow one another go end to end on one track. A transition at a cut is one of the library's (`openfilm get transition`, see media), put over the cut as its `--take` says; one of your own is each shot's way in and out on that same track. Only two clips that must show at once, one fading over the other, overlap on two tracks.
+    `<style>@keyframes push { from { scale: 1 } to { scale: 1.1 } } @keyframes out { to { translate: -100vw 0 } }</style>` … `style="animation: push var(--clip-length) linear both, out .5s ease-in calc(var(--clip-length) - .5s) both"`. Shots that follow one another go end to end on one track. A transition at a cut is one of the library's (`videomaker get transition`, see media), put over the cut as its `--take` says; one of your own is each shot's way in and out on that same track. Only two clips that must show at once, one fading over the other, overlap on two tracks.
   - `speed` (video and sound): 0.1 to 100. The clip lasts `(out − in) / speed` seconds. To make it faster or slower, change `speed` only: never make the file again at another speed, nor move its `.vtt`'s times. Its words (the `.vtt` beside it) follow `speed` on their own.
   - `volume` (video and sound): 1 is the file's own level; `muted` silences it.
   - `id`: a name, unique in the film; without it, the file's name.
@@ -79,8 +79,14 @@ A folder:
 
 The words of a sound or a video are a WebVTT beside it with the same name (`vo/1.wav` → `vo/1.vtt`): a cue per subtitle line, a timestamp tag at each word. When the person asks for captions, Studio makes a caption track of them (SPEC: Captions); never draw subtitles in a page.
 
+## 3D text
+
+For 3D typography in Agente Videomaker, inspect the selected clip's HTML, props, overrides, fonts, dependencies and `frame(t)`. First run `videomaker text3d inspect <source-id>`; reuse a compatible registered component if available. Otherwise create real glyph geometry using the shared Text3D runtime, with separate `group` and `characters[]` motion, preserving text, supported properties, internal effects and timeline timing.
+
+The selected 2D component is the authoritative animation specification. Inspect its actual HTML/CSS/JS, `frame(t)`, assets and configured overrides; identify every entrance, hold, exit and per-character effect (including easing, staggering, combustion, particles and disappearance). Recreate those same effects and their temporal sequence in the new 3D implementation using real glyph geometry and 3D-compatible VFX. This is a source-specific reconstruction, NOT a generic preset conversion. Do not copy the sample Text3D component's entrance/exit/scale envelope or substitute generic fades. The sample demonstrates geometry, renderer and motion APIs only. If an effect cannot be faithfully adapted, report the limitation rather than silently substituting an unrelated animation.\n\nGenerate `manifest.json`, `index.html` and `component.js` as a self-contained component. Import only bundled dependencies; never reference absolute project paths. Run `videomaker text3d validate <folder>`, verify actual rendering, then `videomaker text3d register <folder>` to publish an immutable reusable Saved-library bundle (including the original 2D poster). Only after publication and verification, run `videomaker text3d apply <project-folder> <clip-id> <component-id>`. Never treat a copied project asset as the canonical library component. Keep `frame(t)` deterministic. Never overwrite the 2D source, silently drop unmapped properties, introduce another animation clock, or substitute iframe/pixel extrusion for real 3D geometry.
+
 ## Seeing it
 
-`openfilm look`, in the film's folder: a contact sheet of the whole film with its sound, and a check that the same t draws the same picture. `look 4.5` is one frame at full size, `look 3-6` a stretch, `look assets/a.mp4` a media file. After a render, `look --full` watches every frame of the rendered film for white flashes, jumping frames, still pictures and black, and `look --loudness=-14` says how far the mix is from a delivery loudness. Reading a frame it saves shows it to you: check every shot with it after you change the film, and never say it works or looks right before you have.
+`videomaker look`, in the film's folder: a contact sheet of the whole film with its sound, and a check that the same t draws the same picture. `look 4.5` is one frame at full size, `look 3-6` a stretch, `look assets/a.mp4` a media file. After a render, `look --full` watches every frame of the rendered film for white flashes, jumping frames, still pictures and black, and `look --loudness=-14` says how far the mix is from a delivery loudness. Reading a frame it saves shows it to you: check every shot with it after you change the film, and never say it works or looks right before you have.
 
 A render that stopped on its own (a crash or the computer asleep) is resumed by running it again with the same options: it draws only what it had not finished. Cancelling on purpose clears its chunks.
