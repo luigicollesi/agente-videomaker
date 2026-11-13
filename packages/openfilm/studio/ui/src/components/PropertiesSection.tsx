@@ -8,6 +8,7 @@
  */
 import * as React from 'react';
 import { Text3DMotionEditor } from './Text3DMotionEditor';
+import { parseMotions } from '../lib/text3d-motion';
 import { HardDriveUpload, ImageIcon, Plus, RotateCcw } from 'lucide-react';
 
 import { useT } from '@/i18n';
@@ -168,7 +169,7 @@ export function PropertiesSection({ host, commit }: {
         const paint = (next: string | null) => {
           if (!prop.advanced) host.preview({ at: ROOT }, next == null ? null : { style: { [prop.var]: next } });
         };
-        if (prop.var === '--text3d-events' && host.page.includes('text3d-motion.html')) {
+        if (prop.var === '--text3d-events' && is3D && (parseMotions(now).length > 0 || /^['\"]?\\[\\]['\"]?$/.test(now.trim()))) {
           const lengthProp = propValue(overrides, { name: 'Clip length', type: 'var', var: '--clip-length' });
           const length = parseFloat(typeof lengthProp === 'string' ? lengthProp : controls?.vars.find(v => v.name === '--clip-length')?.value ?? '10.5');
           return <Text3DMotionEditor value={now} length={Number.isFinite(length) ? length : 10.5} onCommit={next => set(prop, next)} />;
