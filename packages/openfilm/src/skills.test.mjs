@@ -390,6 +390,7 @@ test("OpenFilm's own skills: in order, each named by the manual, printed with th
   for (const s of core) assert.ok(!readFileSync(s.file, 'utf8').includes('npx openfilm'), `${s.name} says \`openfilm\``);
   assert.equal(asRun('`openfilm-edit`: `openfilm look`, and `openfilm skill <name>`', 'npx -y openfilm@latest'),
     '`openfilm-edit`: `npx -y openfilm@latest look`, and `npx -y openfilm@latest skill <name>`', 'a skill\'s name stays');
+  assert.equal(asRun('`videomaker text3d inspect foo`', '/app/bin/videomaker'), '`/app/bin/videomaker text3d inspect foo`');
   const printed = await skillCommand(['openfilm/edit'], 'npx -y openfilm@latest', { cwd: tmpdir() });
   assert.ok(printed.ok);
   assert.ok(printed.lines[0].includes('`npx -y openfilm@latest look`') && !/npx openfilm /.test(printed.lines[0]));
