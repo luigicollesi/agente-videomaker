@@ -118,13 +118,13 @@ export async function text3DCommand(args) {
     }
     const indexPath=join(files,'index.html');
     const oldHtml=await readFile(indexPath,'utf8');
-    if(!/<\\/head>/i.test(oldHtml) || /type=['"]importmap['"]/i.test(oldHtml))
+    if(!/<\/head>/i.test(oldHtml) || /type=['"]importmap['"]/i.test(oldHtml))
       throw new Error('index.html requires a </head> and must not define another import map');
     const importMap='<script type="importmap">'+JSON.stringify({imports:{
       three:'./vendor/three.module.js',
       'three/addons/':'./vendor/'
     }})+'</script>';
-    await writeFile(indexPath,oldHtml.replace(/<\\/head>/i,importMap+'</head>'));
+    await writeFile(indexPath,oldHtml.replace(/<\/head>/i,importMap+'</head>'));
     const duration=Number(manifest.durationSeconds);
     const seconds=Number.isFinite(duration)&&duration>0&&duration<=3600?duration:10.5;
     const clip={src:'index.html',time:[0,seconds],attrs:{

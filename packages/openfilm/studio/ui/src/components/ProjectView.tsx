@@ -3522,7 +3522,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
         'Inspect the HTML and relevant dependencies; preserve the effects, timing, text and configured parameters.',
         'Generate Text3D v1 (manifest.json, index.html, component.js) with real glyph geometry, group and character motion, and explicit parameterMap.',
         'Run openfilm text3d validate <folder> then openfilm text3d register <folder>; apply the registered component to this exact clip after validation.'
-      ].join('\\n')
+      ].join('\n')
     });
   },[toast,refOfBlock]);
   const requestText3D = React.useCallback(async (block:TimelineBlock) => {
