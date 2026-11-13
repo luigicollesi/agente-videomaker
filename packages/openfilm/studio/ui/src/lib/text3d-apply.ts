@@ -25,6 +25,7 @@ export function planText3DApply(source:Text3DClip,destination:Text3DClip,registr
   const sourceProps=propsOf(source),destProps=propsOf(destination);
   let overrides:FilmOverride[]|undefined=destination.overrides ? structuredClone(destination.overrides):undefined;
   for(const prop of sourceProps) {
+    if(prop.type==='var'&&prop.var==='--clip-length')continue;
     const value=propValue(source.overrides,prop);
     if(value===null)continue;
     const target=registry.parameterMap[prop.name];
@@ -41,13 +42,14 @@ export function planText3DApply(source:Text3DClip,destination:Text3DClip,registr
   const root=source.overrides?.find(o=>o.at===':root');
   if(root?.style) {
     const vars=new Set(sourceProps.filter(p=>p.type==='var').map(p=>p.var));
+    vars.add('--clip-length');
     if(Object.keys(root.style).some(k=>k.startsWith('--')&&!vars.has(k)))
       throw new Error('Source contains unmapped CSS variables');
   }
   const fade=source.overrides?.filter(o=>!o.at && o.fade);
   if(fade?.length)overrides=[...fade,...(overrides??[])];
-  const time=source.time?.length===2?source.time:[0,durationSeconds];
-  const attrs={...destination.attrs,'data-openfilm-content-type':'text3d','data-text3d-source-id':registry.source2DId,'data-text3d-version':registry.version};
+  const time=[0,durationSeconds];
+  const attrs={...source.attrs,...destination.attrs,'data-openfilm-content-type':'text3d','data-text3d-source-id':registry.source2DId,'data-text3d-version':registry.version};
   return [
     {clip:source.id,prop:'src',value:destination.src},
     {clip:source.id,prop:'time',value:time},

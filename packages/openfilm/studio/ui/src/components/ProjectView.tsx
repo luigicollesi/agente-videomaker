@@ -32,6 +32,7 @@ import { ClipMotionSection, type ClipMotionHost } from '@/components/ClipMotionS
 import { TemplatePicker } from '@/components/TemplatePicker';
 import { isText3DClip } from '@/lib/text3d-clip';
 import { planText3DApply } from '@/lib/text3d-apply';
+import { text3DSourceId } from '@/lib/text3d-source-id';
 import { Text3DExistingDialog, type Text3DRegistryEntry } from '@/components/Text3DExistingDialog';
 import { isLibraryText, layoutTracks, type TimelineBlock, type TimelineTrack } from '@/lib/timeline-layout';
 import { organizeTracks } from '@/lib/organize-tracks';
@@ -3507,38 +3508,33 @@ export function ProjectView({ projectId, onProject, onLeave }: {
   ];
   const [text3dExisting, setText3dExisting] = React.useState<{entry:Text3DRegistryEntry;block:TimelineBlock}|null>(null);
   const [text3dApplying, setText3dApplying] = React.useState(false);
-  const askAgentForText3D = React.useCallback((block:TimelineBlock, replacing?:Text3DRegistryEntry) => {
+  const askAgentForText3D = React.useCallback((block:TimelineBlock, source2DId:string, replacing?:Text3DRegistryEntry) => {
     if (!studioHost?.ask) {
       toast.showError('Connect an agent in the OpenFilm desktop chat to create 3D text.');
       return;
     }
-    const source2DId=libraryItemOfClip(block.src)?.id ?? block.src ?? '';
     studioHost.ask({
       refs:[refOfBlock(block)],
       text:[
-        'Convert the referenced 2D text component into native OpenFilm Text3D following the core edit skill.',
-        'Original component ID: '+source2DId+'. Selected clip ID: '+(block.clipId??'')+'.',
-        ...(replacing ? ['An active 3D version already exists: '+replacing.componentId+' ('+replacing.version+'). Generate and validate a NEW immutable version before promoting it; retain old_vN.'] : []),
-        'Inspect only the original HTML, direct dependencies, fonts, data-props, overrides and frame(t) animations.',
-        'Preserve animated effects and configured parameters with real vector glyph geometry.',
-        'Expose group and characters[] for independent external motion. Use the shared Text3D runtime.',
-        'Generate index.html, component.js and manifest.json with source ID, revision and an explicit parameterMap.',
-        'Test deterministic frames, register the validated Saved component via the Text3D registry, then replace the referenced clip while preserving its timing, box and mapped parameters.',
-        'Never overwrite the original 2D component; no iframe or pixel extrusion.'
+        'Use the OpenFilm edit skill Text3D section to convert the referenced 2D component.',
+        'source2DId='+source2DId+'; clipId='+(block.clipId??'')+'.',
+        ...(replacing?['Replace active '+replacing.componentId+' ('+replacing.version+') with a newly validated immutable version. Retain old_vN.']:[]),
+        'Inspect the HTML and relevant dependencies; preserve the effects, timing, text and configured parameters.',
+        'Generate Text3D v1 (manifest.json, index.html, component.js) with real glyph geometry, group and character motion, and explicit parameterMap.',
+        'Run openfilm text3d validate <folder> then openfilm text3d register <folder>; apply the registered component to this exact clip after validation.'
       ].join('\\n')
     });
   },[toast,refOfBlock]);
   const requestText3D = React.useCallback(async (block:TimelineBlock) => {
-    const source2DId=libraryItemOfClip(block.src)?.id;
-    if(!source2DId){askAgentForText3D(block);return}
     try{
+      const source2DId=await text3DSourceId(block.src??'',projectId,libraryItemOfClip(block.src)?.id);
       const response=await fetch('/api/text3d?source='+encodeURIComponent(source2DId),{cache:'no-store'});
       if(!response.ok)throw new Error('Text3D library lookup failed');
       const data=await response.json() as {active:Text3DRegistryEntry|null};
       if(data.active){setText3dExisting({entry:data.active,block});return}
+      askAgentForText3D(block,source2DId);
     }catch(error){toast.showError(error instanceof Error?error.message:String(error));return}
-    askAgentForText3D(block);
-  },[askAgentForText3D,toast]);
+  },[askAgentForText3D,projectId,toast]);
   const applyExistingText3D = React.useCallback(async () => {
     const found=text3dExisting;
     if(!found?.block.clipId || text3dApplying)return;
@@ -5101,7 +5097,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
         busy={text3dApplying}
         onClose={() => setText3dExisting(null)}
         onApply={() => void applyExistingText3D()}
-        onNew={() => { const existing=text3dExisting;setText3dExisting(null);askAgentForText3D(existing.block,existing.entry); }}
+        onNew={() => { const existing=text3dExisting;setText3dExisting(null);askAgentForText3D(existing.block,existing.entry.source2DId,existing.entry); }}
       /> : null}
       <SettingsModal open={settingsOpen !== null} section={settingsOpen ?? undefined} onClose={() => setSettingsOpen(null)} />
       {templateAsk ? (
