@@ -96,3 +96,38 @@ export function createText3DMotion(config){
  };
  return {frame,setMotion,getMotion:()=>events.map(e=>({...e,from:[...e.from],to:[...e.to]}))};
 }
+
+/**
+ * Normalize the Studio's legacy CSS Motion Stack format to the canonical
+ * group/character transform contract. Newly generated components may use the
+ * canonical events directly; existing CSS presets remain unchanged.
+ * @param {unknown} incoming
+ * @returns {MotionEvent[]}
+ */
+export function normalizeText3DEvents(incoming) {
+ if(!Array.isArray(incoming)||incoming.length>64)throw new Error('Invalid Text3D motion event count');
+ const events=incoming.map(raw=>{
+  if(!raw||typeof raw!=='object')throw new Error('Invalid Text3D event');
+  if(validMotionEvent(raw))return {...raw,from:[...raw.from],to:[...raw.to]};
+  const e=/** @type {any} */(raw);
+  if(typeof e.id!=='string'||!e.id||!Number.isFinite(e.start)||e.start<0||
+     !Number.isFinite(e.duration)||e.duration<=0)throw new Error('Invalid legacy Text3D event');
+  if(e.type==='rotate3d'){
+   if(!['x','y','z'].includes(e.axis)||!Number.isFinite(e.turns)||Math.abs(e.turns)>20)throw new Error('Invalid 3D rotation');
+   const to=[0,0,0];to[['x','y','z'].indexOf(e.axis)]=e.turns*360;
+   return {id:e.id,target:'group',type:'rotate',start:e.start,duration:e.duration,from:[0,0,0],to,easing:'ease-in-out'};
+  }
+  if(e.type==='translate3d'){
+   if(![e.x,e.y,e.z].every(Number.isFinite))throw new Error('Invalid 3D translation');
+   return {id:e.id,target:'group',type:'translate',start:e.start,duration:e.duration,from:[0,0,0],to:[e.x,e.y,e.z],easing:'ease-in-out'};
+  }
+  if(e.type==='scale'){
+   if(!Number.isFinite(e.to)||e.to<0||e.to>10)throw new Error('Invalid 3D scale');
+   return {id:e.id,target:'group',type:'scale',start:e.start,duration:e.duration,from:[1,1,1],to:[e.to,e.to,e.to],easing:'ease-in-out'};
+  }
+  throw new Error('Unsupported Text3D event type');
+ });
+ if(new Set(events.map(e=>e.id)).size!==events.length||!events.every(validMotionEvent))
+  throw new Error('Invalid normalized Text3D events');
+ return events;
+}
