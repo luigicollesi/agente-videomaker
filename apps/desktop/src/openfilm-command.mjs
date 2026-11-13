@@ -33,7 +33,7 @@ export function commandScript(node, cli, { ffmpeg = null, env = {} } = {}) {
   return `#!/bin/sh\n# Agente Videomaker bundled CLI (written by the app; changes are lost)\n${set.map((s) => `${s} `).join('')}ELECTRON_RUN_AS_NODE=1 OPENFILM_NO_UPDATE_CHECK=1 exec ${sq(node)} ${sq(cli)} "$@"\n`;
 }
 
-/** The same for Windows: a `.cmd` (what a command line there finds as `openfilm`). */
+/** The same for Windows: a `.cmd` (what a command line there finds as `videomaker`). */
 export function commandScriptWindows(node, cli, { ffmpeg = null, env = {} } = {}) {
   const set = [...Object.entries(env).map(([k, v]) => `set "${k}=${v}"\r\n`), ...(ffmpeg ? [`set "PATH=${ffmpeg};%PATH%"\r\n`] : [])];
   return `@echo off\r\nrem Agente Videomaker bundled CLI (written by the app; changes are lost)\r\nsetlocal\r\n${set.join('')}set ELECTRON_RUN_AS_NODE=1\r\nset OPENFILM_NO_UPDATE_CHECK=1\r\n"${node}" "${cli}" %*\r\n`;
@@ -41,7 +41,7 @@ export function commandScriptWindows(node, cli, { ffmpeg = null, env = {} } = {}
 
 /**
  * The command in `bin` as an agent's shell types it: its whole path, quoted. Some agents' shells read the person's
- * shell profile again (Codex, Cursor, CodeBuddy), and a PATH set there can put another `openfilm` before the app's: an
+ * shell profile again (Codex, Cursor, CodeBuddy), and a PATH set there can put another `videomaker` before the app's: an
  * older one installed globally, on the person's own Studio. Null on Windows, where the name on the PATH is kept.
  */
 export function openfilmCommand(bin, platform = process.platform) {
