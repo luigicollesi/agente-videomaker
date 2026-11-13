@@ -3517,12 +3517,12 @@ export function ProjectView({ projectId, onProject, onLeave }: {
       refs:[refOfBlock(block)],
       text:(replacing ? [
         'Update Text3D '+replacing.componentId+' ('+replacing.version+') on '+(block.clipId??'')+'.',
-        'Keep text, VFX, timing and mapped params unless requested.',
+        'Preserve source animations/VFX, timing, text and mapped params unless requested; never copy sample motions.'
         'Create a new immutable version if needed; retain previous versions.',
         'Run videomaker text3d inspect, validate, register and apply. Verify before apply.'
       ] : [
         'Convert '+source2DId+' to real Text3D on '+(block.clipId??'')+'.',
-        'Keep text, VFX, timing and mapped params.',
+        'Adapt the source animations/VFX to 3D; keep timing, text and mapped params. Do not copy sample motions.',
         'Reuse a match or create Text3D v1 with real geometry, group/character motion and parameterMap.',
         'Run videomaker text3d inspect, validate, register and apply. Verify before apply.'
       ]).join('\n')
