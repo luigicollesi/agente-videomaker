@@ -3,6 +3,7 @@
 import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
+import { builtInRoot } from '../studio/server/library.mjs';
 import { replacementEdits } from './text3d-replace.mjs';
 import { readProjectFilm, editProjectFilm } from '../studio/server/film.mjs';
 import { takeSaved } from '../studio/server/saved.mjs';
@@ -55,7 +56,7 @@ async function validateText3D(dir) {
 /** @param {string[]} args */
 export async function text3DCommand(args) {
  const [action, ...rest]=args;
- const usage='openfilm text3d list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
+ const usage='videomaker text3d list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
  try {
   if(action==='list'||action==='inspect'){
    const entries=action==='inspect'?[await activeText3D(rest[0]??'')].filter(Boolean):await listText3D(rest[0]??null);
@@ -91,7 +92,7 @@ export async function text3DCommand(args) {
    const sourceId=String(manifest.source2DId);
    const version=String(manifest.version);
    const pathParts=id.split('/');
-   if(pathParts.some(p=>!p||!/[a-z0-9][a-z0-9_-]*/i.test(p)))
+   if(pathParts.some(p=>!p||!/^[a-z0-9][a-z0-9_-]*$/i.test(p))||pathParts.length<2||pathParts.at(-1)!==version)
     throw new Error('Unsafe Text3D component identifier');
    const folder=join(savedRoot(),'text3d',...pathParts);
    const relative='text3d/'+pathParts.join('/');
@@ -132,6 +133,23 @@ export async function text3DCommand(args) {
       'data-text3d-version':version,'data-props':JSON.stringify(manifest.props)
     }};
     await writeFile(join(staging,'saved.json'),JSON.stringify({version:2,kind:'clip',clip,durationMs:seconds*1000},null,2));
+    // Preserve the exact 2D library poster in the immutable 3D Saved bundle.
+    const original=join(builtInRoot(),...sourceId.split('/'));
+    for(const ext of ['jpg','svg']){
+      const cover=join(original,'poster.'+ext);
+      if((await stat(cover).catch(()=>null))?.isFile()){
+        await copyFile(cover,join(staging,'poster.'+ext));
+        break;
+      }
+    }
+    // Ensure local module imports still resolve after the bundle is relocated.
+    for(const [fileName, sourceCode] of [['component.js',await readFile(join(files,'component.js'),'utf8')]]){
+      for(const [,relative] of sourceCode.matchAll(/(?:from\s*|import\s*\(\s*)['"](\.[^'"]+)['"]/g)){
+        const dependency=resolve(files,relative);
+        if(!dependency.startsWith(files+sep)||!(await stat(dependency).catch(()=>null))?.isFile())
+          throw new Error('Missing packaged Text3D dependency in '+fileName+': '+relative);
+      }
+    }
     await mkdir(join(folder,'..'),{recursive:true});
     await rename(staging,folder);
    }catch(error){await rm(staging,{recursive:true,force:true});throw error}
