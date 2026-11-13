@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
-import { createText3DMotion, text3DEnvelope, text3DGraphemes } from './openfilm-text3d-runtime.mjs';
+import { createText3DMotion, normalizeText3DEvents, text3DEnvelope, text3DGraphemes } from './openfilm-text3d-runtime.mjs';
 
 /** Reference implementation of the Text3DComponent v1 contract. */
 export async function createText3D({ canvas, element, root }) {
@@ -85,7 +85,7 @@ export async function createText3D({ canvas, element, root }) {
     if (nextText !== text || depth !== currentDepth) rebuild(nextText, depth);
     const events = css.getPropertyValue('--text3d-events');
     if (events !== currentEvents) {
-      motion.setMotion(parseEvents(events));
+      motion.setMotion(normalizeText3DEvents(parseEvents(events)));
       currentEvents = events;
     }
     front.color.set(css.getPropertyValue('--text3d-color').trim() || '#dae9ff');
