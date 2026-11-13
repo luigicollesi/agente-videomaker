@@ -169,7 +169,7 @@ export function PropertiesSection({ host, commit }: {
         const paint = (next: string | null) => {
           if (!prop.advanced) host.preview({ at: ROOT }, next == null ? null : { style: { [prop.var]: next } });
         };
-        if (prop.var === '--text3d-events' && is3D && (parseMotions(now).length > 0 || /^['\"]?\\[\\]['\"]?$/.test(now.trim()))) {
+        if (prop.var === '--text3d-events' && is3D && (parseMotions(now).length > 0 || now.trim().replace(/^[\x27\x22]|[\x27\x22]$/g, '') === '[]')) {
           const lengthProp = propValue(overrides, { name: 'Clip length', type: 'var', var: '--clip-length' });
           const length = parseFloat(typeof lengthProp === 'string' ? lengthProp : controls?.vars.find(v => v.name === '--clip-length')?.value ?? '10.5');
           return <Text3DMotionEditor value={now} length={Number.isFinite(length) ? length : 10.5} onCommit={next => set(prop, next)} />;
