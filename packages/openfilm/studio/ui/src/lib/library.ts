@@ -20,6 +20,8 @@ export type LibraryNames = Partial<Record<Language, string>> & { en: string };
 export interface LibraryItem {
   /** Its place in the library (`effects/snow`, `sounds/whoosh.m4a`). */
   id: string;
+  savedPath?: string;
+  source2DId?: string;
   cat: LibraryCategory;
   group: string;
   name: LibraryNames;
@@ -167,7 +169,7 @@ export const waveUrl = (item: LibraryItem): string => libraryUrl(item.id.replace
  * on (`apply`: a clip, a cut), being no clip itself.
  */
 export function libraryDragItem(item: LibraryItem, name: string): ResourceDragItem | null {
-  const saved = `${BUILT_IN}/${item.id}`;
+  const saved = item.savedPath ?? `${BUILT_IN}/${item.id}`;
   if (item.kind === 'look' || item.kind === 'fade') return { path: saved, name, kind: 'other', saved, apply: item.kind };
   /* a transition that moves the two shots: onto a cut, as a fade goes */
   if (item.kind === 'motion' && item.place === 'cut') return { path: saved, name, kind: 'other', saved, apply: 'fade' };

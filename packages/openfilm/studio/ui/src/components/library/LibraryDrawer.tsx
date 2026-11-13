@@ -11,6 +11,7 @@
  * it among the favorites, for every project.
  */
 import React from 'react';
+import { useText3DRegistry, text3DRegistryItems } from '@/lib/text3d-registry';
 import { ChevronDown, ChevronsLeft, ChevronsRight, Plus, Search, Star, X } from 'lucide-react';
 import { useLanguage, useT } from '@/i18n';
 import { studioHost } from '@/lib/host';
@@ -132,6 +133,8 @@ export function LibraryDrawer({ media, mediaScope, onMediaScope, mediaRequest, a
   const [shownCat, setCat] = React.useState<Category>(SHOWN.cat);
   /* one turned off while it was shown: the media in its place */
   const cat: Category = categories.includes(shownCat) ? shownCat : 'media';
+  const registry=useText3DRegistry(isShown && cat==='text3d');
+  const registryItems=React.useMemo(()=>text3DRegistryItems(registry),[registry]);
   const [group, setGroup] = React.useState<string>(firstLine(SHOWN.cat));
   const [textOpen, setTextOpen] = React.useState(SHOWN.textOpen);
   const [starredText, setStarredText] = React.useState(SHOWN.starredText);
@@ -264,7 +267,7 @@ export function LibraryDrawer({ media, mediaScope, onMediaScope, mediaRequest, a
   const shown = React.useMemo(() => {
     const [section, of] = group.split(':');
     const starred = group === FAVORITES ? new Set(favorites) : null;
-    return (index?.items ?? []).filter((item) => {
+    return [...(index?.items ?? []), ...(cat==='text3d'?registryItems:[])].filter((item) => {
       if (item.cat !== cat || isClipMotion(item)) return false;
       const text = cat === 'text' ? textKind(item) : null;
       if (cat === 'text' && !text) return false;
@@ -274,17 +277,18 @@ export function LibraryDrawer({ media, mediaScope, onMediaScope, mediaRequest, a
       if (cat === 'sticker') return (section === STILL || section === LIVE) && (section === STILL) === Boolean(item.still) && (!of || item.group === of);
       return !group || item.group === group;
     }).sort((a, b) => Number(Boolean(a.still)) - Number(Boolean(b.still)));
-  }, [index, cat, q, group, starredText, favorites]);
+  }, [index, registryItems, cat, q, group, starredText, favorites]);
   const sources = React.useMemo(() => sourcesIn(shown.map(sourceOf)), [shown]);
   const items = React.useMemo(() => source && sources.includes(source) ? shown.filter((item) => sourceOf(item) === source) : shown, [source, sources, shown]);
   const presetItems = React.useMemo(() => presets.map((p, i): LibraryItem => ({
     id: `presets/${p.id}`, cat: 'text', group: PRESETS, kind: 'textstyle',
     name: { en: t('assetDrawer.textPreset').replace('{n}', String(i + 1)) }, vars: p.vars,
   })), [presets, t]);
-  const pickedItem = picked ? index?.items.find((i) => i.id === picked) ?? presetItems.find((i) => i.id === picked) : null;
+  const pickedItem = picked ? [...(index?.items ?? []), ...registryItems].find((i) => i.id === picked) ?? presetItems.find((i) => i.id === picked) : null;
   /* what of it still needs fetching (a sound, a piece of music, a template's music): its download shown first, then "+" */
   const hereOf = useLibraryHere();
   const cardHere = (item: LibraryItem): HereState => {
+    if(item.savedPath)return 'here';
     const asset = hereOf(item.id);
     if (item.kind !== 'group') return asset;
     const example = hereOf(templateExamplePath(item));
@@ -304,7 +308,7 @@ export function LibraryDrawer({ media, mediaScope, onMediaScope, mediaRequest, a
     const round = ++intent.current;
     setPicked(item.id);
     onPreviewStart();
-    if (item.kind !== 'group' && (!mayNeedFetch(item) || isLibraryItemReady(item.id))) { tryOut.current(item); return; }
+    if (item.kind !== 'group' && (item.savedPath || !mayNeedFetch(item) || isLibraryItemReady(item.id))) { tryOut.current(item); return; }
     tryOut.current(null);
     void prepareCard(item).then((ok) => {
       if (round !== intent.current) return;
@@ -315,7 +319,7 @@ export function LibraryDrawer({ media, mediaScope, onMediaScope, mediaRequest, a
   /* prepare any required assets before adding */
   const addWhenHere = (it: LibraryItem) => {
     closePreview();
-    if (!mayNeedFetch(it) || isLibraryItemReady(it.id)) { actions.add(it); return; }
+    if (it.savedPath || !mayNeedFetch(it) || isLibraryItemReady(it.id)) { actions.add(it); return; }
     void prepareLibraryItem(it.id).then((ok) => { if (ok) actions.add(it); else onDownloadFailed(); });
   };
 
@@ -331,6 +335,10 @@ export function LibraryDrawer({ media, mediaScope, onMediaScope, mediaRequest, a
     : (index?.groups[cat as LibraryCategory] ?? []).filter((g) => !clipMotionGroups.has(g.id)).map((g) => ({ id: g.id, name: nameOf(g.name, lang) }))
       /* the groups of what moves first, those of stills (the emoji's) after them */
       .sort((a, b) => Number(stillGroup(a.id)) - Number(stillGroup(b.id)));
+  if(cat==='text3d' && registry.length){
+    own.push({id:'generated',name:'Generated with AI'});
+    if(registry.some(e=>!e.active))own.push({id:'archived',name:'Previous versions'});
+  }
   /* the text category's groups, under Word art or Templates by what they hold */
   const textGroups = React.useMemo(() => {
     const of = { [ART]: new Set<string>(), [TEMPLATES]: new Set<string>() };
