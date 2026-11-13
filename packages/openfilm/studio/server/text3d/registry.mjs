@@ -3,11 +3,14 @@
 import { readFile, mkdir, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { savedRoot } from '../../src/locations.mjs';
+import { savedRoot } from '../../../src/locations.mjs';
+
+/** @typedef {{source2DId:string,componentId:string,version:string,bundlePath:string,displayName:string,sourceRevision:string,parameterMap:Record<string,string>,status:'ready',active?:boolean}} RegistryEntry */
 
 const REGISTRY = '.text3d-registry.json';
 const ID = /^[a-z0-9][a-z0-9/_-]{0,159}$/i;
 const VERSION = /^v[1-9][0-9]*$/;
+/** @param {any} entry @returns {entry is RegistryEntry} */
 const supported = entry => entry && typeof entry === 'object' &&
   ID.test(entry.source2DId ?? '') && ID.test(entry.componentId ?? '') &&
   VERSION.test(entry.version ?? '') && typeof entry.bundlePath === 'string' &&
@@ -19,16 +22,19 @@ const supported = entry => entry && typeof entry === 'object' &&
     typeof from === 'string' && from.length > 0 && from.length <= 120 &&
     typeof to === 'string' && to.length > 0 && to.length <= 120);
 
+/** @param {string|undefined} root */
 const storagePath = root => join(root ?? savedRoot(), REGISTRY);
+/** @param {string|undefined} root @returns {Promise<RegistryEntry[]>} */
 async function read(root) {
  try {
   const doc = JSON.parse(await readFile(storagePath(root), 'utf8'));
   return Array.isArray(doc.entries) ? doc.entries.filter(supported) : [];
  } catch (error) {
-  if (error?.code === 'ENOENT') return [];
+  if (/** @type {NodeJS.ErrnoException} */ (error)?.code === 'ENOENT') return [];
   throw error;
  }
 }
+/** @param {string|undefined} root @param {RegistryEntry[]} entries */
 async function write(root, entries) {
  const dest=storagePath(root);
  await mkdir(dirname(dest),{recursive:true});
@@ -37,15 +43,18 @@ async function write(root, entries) {
  await rename(temp,dest);
 }
 /** List exact source matches, active first. Never infer identity from display names. */
+/** @param {string|null} [source2DId] @param {string} [root] */
 export async function listText3D(source2DId=null,root) {
  const entries=await read(root);
  return entries.filter(e=>source2DId==null||e.source2DId===source2DId)
    .sort((a,b)=>a.source2DId.localeCompare(b.source2DId)||Number(b.version.slice(1))-Number(a.version.slice(1)));
 }
+/** @param {string} source2DId @param {string} [root] */
 export async function activeText3D(source2DId,root) {
  return (await listText3D(source2DId,root)).find(e=>e.active===true)??null;
 }
 /** Register a validated component, promote it atomically, and retain earlier versions. */
+/** @param {RegistryEntry} input @param {string} [root] */
 export async function registerText3D(input,root) {
  if(!supported(input))throw new Error('Invalid Text3D registry entry');
  const entries=await read(root);
@@ -59,6 +68,7 @@ export async function registerText3D(input,root) {
  return next.at(-1);
 }
 /** The display-only name for archived versions, without changing immutable IDs. */
+/** @param {RegistryEntry} entry */
 export function displayText3D(entry) {
  return entry.active ? entry.displayName : `${entry.displayName} — old_${entry.version}`;
 }

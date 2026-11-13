@@ -255,11 +255,11 @@ export async function startStudio({ port = 4747, key, openBrowser = systemBrowse
           if (typeof entry.bundlePath !== 'string') throw new Error('Missing bundle path');
           const rel = libraryRel(entry.bundlePath);
           const root = await savedLibrary();
-          const saved = JSON.parse(await readFile(join(root, rel, 'saved.json'), 'utf8'));
+          const saved = JSON.parse(await readFile(inside(root, join(rel, 'saved.json')), 'utf8'));
           if (saved.kind !== 'clip' || !saved.clip || typeof saved.clip.src !== 'string') {
             throw new Error('A validated Saved clip bundle is required');
           }
-          return json(res, 201, { entry: await registerText3D(entry) });
+          return json(res, 201, { entry: await registerText3D(/** @type {any} */ (entry)) });
         } catch (error) {
           throw new HttpError(400, error instanceof Error ? error.message : String(error));
         }
