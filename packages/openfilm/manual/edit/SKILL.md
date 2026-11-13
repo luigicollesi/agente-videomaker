@@ -79,6 +79,14 @@ A folder:
 
 The words of a sound or a video are a WebVTT beside it with the same name (`vo/1.wav` → `vo/1.vtt`): a cue per subtitle line, a timestamp tag at each word. When the person asks for captions, Studio makes a caption track of them (SPEC: Captions); never draw subtitles in a page.
 
+## 3D text
+
+Text3D components are editable pages using the shared Text3D runtime. When asked to create, convert or edit 3D typography, locate the referenced clip and inspect only its HTML, text, fonts, declared props, overrides, direct dependencies and `frame(t)` animation.
+
+Prefer editing existing properties and character/group motion over regenerating components. For 2D-to-3D conversion, check for a compatible library counterpart first; otherwise rebuild real 3D glyph geometry and preserve internal effects, timing and editable parameters. Expose `group` for whole-text motion and `characters[]` for per-character motion; keep both separate from internal effects.
+
+Deliver a Text3D v1 component with `manifest.json` (source 2D ID and revision, parameters and mapping), `index.html` and `component.js`. Use the shared renderer and deterministic `frame(t)`. Validate rendering and compatibility before registration and replacement. Never overwrite the 2D source, create a competing motion clock, or substitute iframe projection or pixel extrusion for geometry.
+
 ## Seeing it
 
 `openfilm look`, in the film's folder: a contact sheet of the whole film with its sound, and a check that the same t draws the same picture. `look 4.5` is one frame at full size, `look 3-6` a stretch, `look assets/a.mp4` a media file. After a render, `look --full` watches every frame of the rendered film for white flashes, jumping frames, still pictures and black, and `look --loudness=-14` says how far the mix is from a delivery loudness. Reading a frame it saves shows it to you: check every shot with it after you change the film, and never say it works or looks right before you have.

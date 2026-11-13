@@ -30,11 +30,7 @@ import { keepTemplateFilm, TemplateFilmSection, TemplateSection, type TemplateHo
 import { cutMovesOn, headStyle, joinedStyle, presetsOn, restStyle, takesMotion, withCutMove, type Preset, type PresetSlot } from '@/lib/clip-presets';
 import { ClipMotionSection, type ClipMotionHost } from '@/components/ClipMotionSection';
 import { TemplatePicker } from '@/components/TemplatePicker';
-import { Text3DConvertDialog, type Text3DConvertSettings } from '@/components/Text3DConvertDialog';
-import { buildText3DConversion } from '@/lib/text3d-conversion';
-import { buildProjectionHtml, safeProjectPage } from '@/lib/text3d-projection';
-import { buildGeometryHtml } from '@/lib/text3d-geometry';
-import { isText3DClip, text3DEligibility } from '@/lib/text3d-clip';
+import { isText3DClip } from '@/lib/text3d-clip';
 import { isLibraryText, layoutTracks, type TimelineBlock, type TimelineTrack } from '@/lib/timeline-layout';
 import { organizeTracks } from '@/lib/organize-tracks';
 import { useAgentWorking } from '@/lib/agent-working';
@@ -3507,41 +3503,26 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     { id: 'copy-attrs', label: t('clipAttrs.copy'), icon: <ClipboardCopy size={14} />, shortcut: keyHint('copy-attrs'), disabled: blocks.length !== 1, onSelect: () => copyAttrs(blocks) },
     { id: 'paste-attrs', label: t('clipAttrs.pasteMenu'), icon: <ClipboardPaste size={14} />, shortcut: keyHint('paste-attrs'), disabled: !copiedAttrs, hint: t('clipAttrs.nothing'), onSelect: () => askPasteAttrs(blocks) },
   ];
-  const [text3dAsk, setText3dAsk] = React.useState<{title:string;src:string;clipId:string;text:string;simple:boolean;durationSeconds:number}|null>(null);
-  const convertText3D = React.useCallback(async (config: Text3DConvertSettings) => {
-    const ask = text3dAsk;
-    if (!ask || (config.mode === 'projection' ? !safeProjectPage(ask.src) : !isTextClip(ask.src) || !ask.text.trim())) return;
-    const original = filmClipOf(ask.clipId);
-    if (!original || original.src !== ask.src) { toast.showError('The original clip has changed.'); setText3dAsk(null); return; }
-    try {
-      const convertedPath = 'text3d/converted-' + crypto.randomUUID() + '.html';
-      const page = config.mode === 'geometry' ? buildGeometryHtml(ask.text) : buildProjectionHtml(ask.src, original.time?.[0] ?? 0);
-      const written = await api.writePage(projectId, convertedPath, page, null);
-      let applied = false;
-      try {
-      const text3DProps: ComponentProp[] = [
-        ...(config.mode === 'geometry' ? [{name:'Text',type:'text' as const,at:'.t'}] : []),
-        ...([
-          ['Entrance time','--text3d-in'],['Exit time','--text3d-out'],
-          ['Depth','--text3d-depth'],['Front color','--text3d-color'],
-          ['Side color','--text3d-side'],['Shadow blur','--text3d-shadow'],
-          ['Lighting','--text3d-light'],['Motion events (JSON)','--text3d-events'],
-          ['Clip length','--clip-length']
-        ] as const).map(([name,variable]) => ({name,type:'var' as const,var:variable}))
-      ];
-      const sourceRange = Array.isArray(original.time) && original.time.length === 2 ? original.time : [0, ask.durationSeconds];
-      const changes = buildText3DConversion({ ...original, time: sourceRange } as never, {
-        src:convertedPath, attrs:{'data-props':propsAttr(text3DProps) ?? '[]'}
-      },config,ask.text.trim() || ask.title);
-      const error = await edit([{op:'props',edits:changes as never}], 'Convert to 3D Text');
-      if (error) throw new Error(error);
-      applied = true;
-      setText3dAsk(null);
-      } finally {
-        if (!applied) await api.writePage(projectId, convertedPath, null, written, true).catch(() => null);
-      }
-    } catch (error) { toast.showError(error instanceof Error ? error.message : String(error)); }
-  }, [text3dAsk,filmClipOf,projectId,edit,toast]);
+  const requestText3D = React.useCallback((block: TimelineBlock) => {
+    if (!studioHost?.ask) {
+      toast.showError('Connect an agent in the OpenFilm desktop chat to convert text to 3D.');
+      return;
+    }
+    const reference = refOfBlock(block);
+    studioHost.ask({
+      refs: [reference],
+      text: [
+        'Convert the referenced 2D text component to native OpenFilm Text3D.',
+        'Follow the 3D text section of the core edit skill and the Text3D runtime contract.',
+        'Inspect the source HTML, direct dependencies, data-props, overrides, fonts and frame(t) behavior.',
+        'Check the Text3D registry for this source ID before generating; reuse only if compatible.',
+        'If a new implementation is needed, create real vector-based 3D glyph geometry, preserve the original effects and animations, and expose group and per-character motion.',
+        'Produce a manifest with source identity and a 2D-to-3D parameter map; validate before registering or replacing the referenced clip.',
+        'Retain its effective timeline duration, position, dimensions, text and mapped parameters.',
+        'Do not overwrite the 2D source, use an iframe or raster-pixel extrusion, or mark an unvalidated conversion as ready.'
+      ].join('\\n')
+    });
+  }, [toast, refOfBlock]);
   const timelineMenuExtra = React.useCallback((blocks: readonly TimelineBlock[], clicked?: TimelineBlock) => {
     if (!blocks.length) return [];
     const lead = referEntry(() => blocks.map(refOfBlock));
@@ -3555,12 +3536,12 @@ export function ProjectView({ projectId, onProject, onLeave }: {
         lead.push({
           id: 'convert-text3d',
           label: 'Make 3D...',
-          onSelect: () => setText3dAsk({ title: clicked.title, src: clicked.src!, clipId: clicked.clipId!, text: clicked.words ?? '', simple: isLibraryText(clicked.src) && !!clicked.words, durationSeconds: (clicked.endMs-clicked.startMs)/1000 }),
+          onSelect: () => requestText3D(clicked),
         });
       }
     }
     return menuGroups(lead, menuGroups(menuGroups(saveEntry(blocks), tools.menuExtra(blocks)), attrsEntries(blocks)));
-  }, [t, keyHint, tools.menuExtra, copiedAttrs, copyAttrs, askPasteAttrs, saveBlocks, enterCompound, filmClipOf]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [t, keyHint, tools.menuExtra, copiedAttrs, copyAttrs, askPasteAttrs, saveBlocks, enterCompound, filmClipOf, requestText3D]); // eslint-disable-line react-hooks/exhaustive-deps
   const trackMenuExtra = React.useCallback((track: TimelineTrack) => {
     const docIndex = track.docIndex;
     const refer = docIndex == null || !studioHost?.refer ? [] : referEntry(() => { const ref = trackRef(tracksRef.current, docIndex); return ref ? [ref] : []; }, false);
@@ -5083,13 +5064,6 @@ export function ProjectView({ projectId, onProject, onLeave }: {
             toast.show(t('canvas.exampleCopied').replace('{folder}', `assets/examples/${example.id}/`));
           }, (e: unknown) => toast.showError(e instanceof Error ? e.message : String(e)));
         }} />
-      {text3dAsk ? <Text3DConvertDialog
-        title={text3dAsk.title}
-        geometryEligible={isTextClip(text3dAsk.src) && !!text3dAsk.text.trim()}
-        reason={text3DEligibility(text3dAsk.src, true).reason}
-        onClose={() => setText3dAsk(null)}
-        {...(safeProjectPage(text3dAsk.src) ? { onApply: convertText3D } : {})}
-      /> : null}
       <SettingsModal open={settingsOpen !== null} section={settingsOpen ?? undefined} onClose={() => setSettingsOpen(null)} />
       {templateAsk ? (
         <TemplatePicker
