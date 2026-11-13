@@ -148,6 +148,7 @@ export async function text3DCommand(args) {
     // Ensure local module imports still resolve after the bundle is relocated.
     for(const [fileName, sourceCode] of [['component.js',await readFile(join(files,'component.js'),'utf8')]]){
       for(const [,relative] of sourceCode.matchAll(/(?:from\s*|import\s*\(\s*)['"](\.[^'"]+)['"]/g)){
+        if(!relative)continue;
         const dependency=resolve(files,relative);
         if(!dependency.startsWith(files+sep)||!(await stat(dependency).catch(()=>null))?.isFile())
           throw new Error('Missing packaged Text3D dependency in '+fileName+': '+relative);
