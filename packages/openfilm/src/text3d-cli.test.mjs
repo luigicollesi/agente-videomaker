@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, readFile, writeFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { text3DCommand } from './text3d-cli.mjs';
@@ -18,7 +18,7 @@ test('Text3D CLI validates, registers and retrieves an immutable Saved component
     props:[{name:'Text',type:'text',at:'.t'}],durationSeconds:8
   };
   await writeFile(join(folder,'manifest.json'),JSON.stringify(manifest));
-  await writeFile(join(folder,'index.html'),'<html><style>:root{--clip-length:8s}</style><script>window.film={frame(t){},frameReadsOverrides:true};</script></html>');
+  await writeFile(join(folder,'index.html'),'<html><head><style>:root{--clip-length:8s}</style></head><body><script>window.film={frame(t){},frameReadsOverrides:true};</script></body></html>');
   await writeFile(join(folder,'component.js'),'export function createText3D(){return {group:{},characters:[],frame(t){},dispose(){}}}');
   assert.equal((await text3DCommand(['validate',folder])).ok,true);
   assert.equal((await text3DCommand(['register',folder])).ok,true);
@@ -27,6 +27,10 @@ test('Text3D CLI validates, registers and retrieves an immutable Saved component
   assert.match(lookup.lines[0],/text3d\/burn\/v1/);
   const saved=JSON.parse(await readFile(join(temp,'saved','text3d','text3d','burn','v1','saved.json'),'utf8'));
   assert.equal(saved.clip.attrs['data-openfilm-content-type'],'text3d');
+  await stat(join(temp,'saved','text3d','text3d','burn','v1','files','vendor','three.module.js'));
+  await stat(join(temp,'saved','text3d','text3d','burn','v1','files','vendor','geometries','TextGeometry.js'));
+  const indexed=await readFile(join(temp,'saved','text3d','text3d','burn','v1','files','index.html'),'utf8');
+  assert.match(indexed,/type="importmap"/);
   const repeated=await text3DCommand(['register',folder]);
   assert.equal(repeated.ok,false);
  }finally{

@@ -1,7 +1,7 @@
 // @ts-check
 /** Publish reusable Text3D components from a folder into Saved and the immutable-version registry. */
 import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
-import { basename, join, resolve, sep } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
 import { activeText3D, listText3D, registerText3D } from '../studio/server/text3d/registry.mjs';
 
@@ -79,6 +79,29 @@ export async function text3DCommand(args) {
     const files=join(staging,'files');
     await cp(source,files,{recursive:true,errorOnExist:true,force:false});
     await copyFile(new URL('./text3d-runtime.mjs',import.meta.url),join(files,'openfilm-text3d-runtime.mjs'));
+    const moduleMain=new URL(import.meta.resolve('three'));
+    const vendorFiles=[
+      [moduleMain, 'three.module.js'],
+      [new URL('./three.core.js',moduleMain),'three.core.js'],
+      [new URL(import.meta.resolve('three/addons/geometries/TextGeometry.js')),'geometries/TextGeometry.js'],
+      [new URL(import.meta.resolve('three/addons/loaders/FontLoader.js')),'loaders/FontLoader.js'],
+      [new URL(import.meta.resolve('three/examples/fonts/helvetiker_regular.typeface.json')),'fonts/helvetiker_regular.typeface.json'],
+      [new URL('../LICENSE',moduleMain),'LICENSE.txt']
+    ];
+    for(const [url,path] of vendorFiles){
+      const dest=join(files,'vendor',path);
+      await mkdir(dirname(dest),{recursive:true});
+      await copyFile(url,dest);
+    }
+    const indexPath=join(files,'index.html');
+    const oldHtml=await readFile(indexPath,'utf8');
+    if(!/<\\/head>/i.test(oldHtml) || /type=['"]importmap['"]/i.test(oldHtml))
+      throw new Error('index.html requires a </head> and must not define another import map');
+    const importMap='<script type="importmap">'+JSON.stringify({imports:{
+      three:'./vendor/three.module.js',
+      'three/addons/':'./vendor/'
+    }})+'</script>';
+    await writeFile(indexPath,oldHtml.replace(/<\\/head>/i,importMap+'</head>'));
     const duration=Number(manifest.durationSeconds);
     const seconds=Number.isFinite(duration)&&duration>0&&duration<=3600?duration:10.5;
     const clip={src:'index.html',time:[0,seconds],attrs:{
