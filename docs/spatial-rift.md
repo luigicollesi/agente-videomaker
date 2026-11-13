@@ -18,7 +18,7 @@ For a clip beginning at source time zero, with entrance 2 seconds and exit 3 sec
 | 10.5 s | 0–2 s | 2–7.5 s | 7.5–10.5 s |
 | 20 s | 0–2 s | 2–17 s | 17–20 s |
 
-**Implementation:** `files/spatial-rift-timeline-v2.html` uses `window.film = { frame, frameReadsOverrides: true }` with no native `duration`. It reads `--clip-length` at every frame, so extending a clip past the original 6.6 s cannot freeze its clock at 6.599 s. The clip still initially inserts at 6.6 s via `saved.json.clip.time` and catalog `durationMs`; these are not a maximum.
+**Implementation:** `files/spatial-rift-timeline-v3.html` uses `window.film = { frame, frameReadsOverrides: true }` with no native `duration`. It reads `--clip-length` at every frame, so extending a clip past the original 6.6 s cannot freeze its clock at 6.599 s. The clip still initially inserts at 6.6 s via `saved.json.clip.time` and catalog `durationMs`; these are not a maximum.
 
 ### Trim and split
 
@@ -26,11 +26,11 @@ OpenFilm requests **source-time** `frame(t)`, not a timeline-local time. The end
 
 ### Existing projects
 
-The new internal HTML filename `spatial-rift-timeline-v2.html` avoids reusing the old copied source. **Reinsert Spatial Rift from the library** to obtain the corrected version in an existing project. Clips already importing `spatial-rift.html` keep the original motor and need explicit replacement. Their customizations will not be automatically migrated.
+The new internal HTML filename `spatial-rift-timeline-v3.html` avoids reusing the old copied source. **Reinsert Spatial Rift from the library** to obtain the corrected version in an existing project. Clips already importing `spatial-rift.html` keep the original motor and need explicit replacement. Their customizations will not be automatically migrated.
 
 ### Artistic settings
 
-Portal hue (`--rift-color`) changes the edges, particles, dimensional layers and title reflections. Other controls adjust glow, opening, particles, text size, shadows, outline, softness and seed. The background is transparent; no external assets are required.
+Portal color (`--rift-color`, a CSS hex color selected with OpenFilm's native color picker) changes the edges, particles, dimensional layers and title reflections. Other controls adjust glow, opening, particles, text size, shadows, outline, softness and seed. The background is transparent; no external assets are required.
 
 ## Verification status (November 12, 2026)
 
