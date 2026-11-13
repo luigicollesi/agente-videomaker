@@ -33,3 +33,10 @@ test('reject unknown visual override and invalid duration',()=>{
  assert.throws(()=>replacementEdits(extra,target,{Text:'Text',Color:'Color3D'}),/Unmapped clip override/);
  assert.throws(()=>replacementEdits(clip,target,{Text:'Text',Color:'Color3D'},0),/Invalid effective/);
 });
+
+test('invalid data-props fails before replacing source clip',()=>{
+ const malformed={...clip,attrs:{...clip.attrs,'data-props':'{broken'}};
+ assert.throws(()=>replacementEdits(malformed,target,{Text:'Text',Color:'Color3D'}),/Invalid data-props/);
+ const malformedShape={...clip,attrs:{...clip.attrs,'data-props':JSON.stringify([{name:'Color',type:'var'}])}};
+ assert.throws(()=>replacementEdits(malformedShape,target,{Text:'Text',Color:'Color3D'}),/Invalid data-props/);
+});
