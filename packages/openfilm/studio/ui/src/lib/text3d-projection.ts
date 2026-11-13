@@ -10,7 +10,7 @@ export function buildProjectionHtml(src:string, sourceStart:number):string {
  const relative='../'+src;
  // JSON quoting is necessary for the JS string, and HTML escaping for attributes.
  const quoted=JSON.stringify(relative).replace(/</g,'\\u003c');
- return \`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+ return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
  :root{--clip-length:10.5s;--text3d-depth:18;--text3d-shadow:15;--text3d-light:1;--text3d-in:0;--text3d-out:0;--text3d-events:'[]'}
  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
  body{perspective:1200px;perspective-origin:center;display:grid;place-items:center}
@@ -50,5 +50,5 @@ export function buildProjectionHtml(src:string, sourceStart:number):string {
  }
  window.film={frame:render,frameReadsOverrides:true};
  })();
- </script></body></html>\`;
+ </script></body></html>`;
 }

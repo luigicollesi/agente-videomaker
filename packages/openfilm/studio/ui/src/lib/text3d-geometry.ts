@@ -4,7 +4,7 @@
 export function buildGeometryHtml(text:string):string {
  if(!text.trim() || text.length>120)throw new Error('Geometry text must contain 1–120 characters');
  const payload=JSON.stringify(text).replace(/</g,'\\u003c').replace(/>/g,'\\u003e');
- return \`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+ return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
  :root{--clip-length:10.5s;--text3d-depth:18;--text3d-shadow:12;--text3d-light:1;--text3d-color:#d9eaff;--text3d-side:#4675ac;--text3d-in:0;--text3d-out:0;--text3d-events:'[]'}
  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
  canvas{width:100%;height:100%;display:block;background:transparent;filter:drop-shadow(0 0 calc(var(--text3d-shadow) * 1px) #23476c)} .t{position:absolute;opacity:0;pointer-events:none}
@@ -87,5 +87,5 @@ export function buildGeometryHtml(text:string):string {
  new MutationObserver(()=>{verts=makeVerts(glyph.textContent||' ');gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(verts),gl.STATIC_DRAW);frame(0)}).observe(glyph,{childList:true,characterData:true,subtree:true});frame(0);
  if(!window.filmHost){const start=performance.now();const tick=now=>{frame(((now-start)/1000)%10.5);requestAnimationFrame(tick)};requestAnimationFrame(tick)}
  })();
- </script></body></html>\`;
+ </script></body></html>`;
 }
