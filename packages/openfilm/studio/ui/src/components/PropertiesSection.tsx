@@ -80,7 +80,7 @@ export function PropertiesSection({ host, commit }: {
   const props = host.props();
   /* a clip's length is Studio's to keep (studio/server/ops.mjs), not the person's to set: not shown */
   const shown = props.filter((p) => !(p.type === 'var' && p.var === '--clip-length'));
-  const is3D = host.page.includes('text3d-motion.html');
+  const is3D = (host.page.includes('text3d-motion.html') || host.page.includes('/text3d/'));
   const visual3D = new Set(['--text3d-depth','--text3d-color','--text3d-side','--text3d-shadow','--text3d-light']);
   const motion3D = new Set(['--text3d-events']);
   const appearance3D = is3D ? shown.filter(p => p.type === 'var' && visual3D.has(p.var)) : [];

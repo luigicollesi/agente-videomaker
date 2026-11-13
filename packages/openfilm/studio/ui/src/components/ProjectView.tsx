@@ -32,6 +32,7 @@ import { ClipMotionSection, type ClipMotionHost } from '@/components/ClipMotionS
 import { TemplatePicker } from '@/components/TemplatePicker';
 import { Text3DConvertDialog, type Text3DConvertSettings } from '@/components/Text3DConvertDialog';
 import { buildText3DConversion } from '@/lib/text3d-conversion';
+import { buildProjectionHtml, safeProjectPage } from '@/lib/text3d-projection';
 import { isText3DClip, text3DEligibility } from '@/lib/text3d-clip';
 import { isLibraryText, layoutTracks, type TimelineBlock, type TimelineTrack } from '@/lib/timeline-layout';
 import { organizeTracks } from '@/lib/organize-tracks';
@@ -3510,12 +3511,14 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     const ask = text3dAsk;
     // Only simple text whose actual words the timeline can identify is supported.
     // Procedural HTML must retain its original renderer until a frame adapter exists.
-    if (!ask?.simple || config.mode !== 'projection') return;
+    if (!ask || config.mode !== 'projection' || !safeProjectPage(ask.src)) return;
     const original = filmClipOf(ask.clipId);
     if (!original || original.src !== ask.src) { toast.showError('The original clip has changed.'); setText3dAsk(null); return; }
     try {
-      const taken = await api.takeSaved(projectId, 'openfilm/text3d/text3d-motion');
-      if (!('path' in taken)) throw new Error('3D Text asset is unavailable.');
+      const convertedPath = 'text3d/converted-' + crypto.randomUUID() + '.html';
+      const written = await api.writePage(projectId, convertedPath, buildProjectionHtml(ask.src, original.time?.[0] ?? 0), null);
+      let applied = false;
+      try {
       const text3DProps: ComponentProp[] = [
         {name:'Text',type:'text',at:'.t'},
         ...([
@@ -3527,11 +3530,15 @@ export function ProjectView({ projectId, onProject, onLeave }: {
         ] as const).map(([name,variable]) => ({name,type:'var' as const,var:variable}))
       ];
       const changes = buildText3DConversion(original as never, {
-        src:taken.path, attrs:{'data-props':propsAttr(text3DProps)}
-      },config,ask.text);
+        src:convertedPath, attrs:{'data-props':propsAttr(text3DProps)}
+      },config,ask.text.trim() || ask.title);
       const error = await edit([{op:'props',edits:changes as never}], 'Convert to 3D Text');
       if (error) throw new Error(error);
+      applied = true;
       setText3dAsk(null);
+      } finally {
+        if (!applied) await api.writePage(projectId, convertedPath, null, written, true).catch(() => null);
+      }
     } catch (error) { toast.showError(error instanceof Error ? error.message : String(error)); }
   }, [text3dAsk,filmClipOf,projectId,edit,toast]);
   const timelineMenuExtra = React.useCallback((blocks: readonly TimelineBlock[], clicked?: TimelineBlock) => {
@@ -5080,7 +5087,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
         geometryEligible={text3DEligibility(text3dAsk.src, true).geometry}
         reason={text3DEligibility(text3dAsk.src, true).reason}
         onClose={() => setText3dAsk(null)}
-        {...(text3dAsk.simple ? { onApply: convertText3D } : {})}
+        {...(safeProjectPage(text3dAsk.src) ? { onApply: convertText3D } : {})}
       /> : null}
       <SettingsModal open={settingsOpen !== null} section={settingsOpen ?? undefined} onClose={() => setSettingsOpen(null)} />
       {templateAsk ? (

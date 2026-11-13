@@ -13,7 +13,7 @@ export function Text3DConvertDialog({title,geometryEligible,reason,onClose,onApp
      <div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Convert to 3D Text</h2><button type="button" aria-label="Close" onClick={onClose}>✕</button></div>
      <p className="text-xs text-[var(--text-muted)]">Source: {title}</p>
      <fieldset className="flex flex-col gap-3"><legend className="mb-2 text-xs font-semibold">Conversion mode</legend>
-       <label className="flex gap-2 text-xs"><input type="radio" checked={mode==='projection'} onChange={()=>setMode('projection')}/> <span><strong>Project original HTML in 3D</strong><span className="block text-[var(--text-muted)]">For simple text only: rebuild its words using the Text3D title renderer. Complex HTML effects are not preserved.</span></span></label>
+       <label className="flex gap-2 text-xs"><input type="radio" checked={mode==='projection'} onChange={()=>setMode('projection')}/> <span><strong>Project original HTML in 3D</strong><span className="block text-[var(--text-muted)]">Wrap the original HTML as a 3D surface and request its original frames. Requires same-origin frame access and a compatible film.frame(t) renderer.</span></span></label>
        <label className="flex gap-2 text-xs"><input type="radio" disabled={!geometryEligible} checked={mode==='geometry'} onChange={()=>setMode('geometry')}/><span><strong>Rebuild actual 3D letters</strong><span className="block text-[var(--text-muted)]">{geometryEligible?'Rebuild compatible vector glyphs as geometry.':reason}</span></span></label>
      </fieldset>
      <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-3">
