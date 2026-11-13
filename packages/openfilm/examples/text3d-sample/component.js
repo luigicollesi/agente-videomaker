@@ -3,7 +3,7 @@ import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { createText3DMotion, normalizeText3DEvents, text3DEnvelope, text3DGraphemes } from './openfilm-text3d-runtime.mjs';
 
-/** Reference implementation of the Text3DComponent v1 contract. */
+/** Runtime/geometry API reference only. Its envelope/motion and visual timing are NOT templates for conversion: adapt the selected 2D source's entrance/exit/VFX instead. */
 export async function createText3D({ canvas, element, root }) {
   const renderer = new THREE.WebGLRenderer({
     canvas, alpha: true, antialias: true, preserveDrawingBuffer: true
