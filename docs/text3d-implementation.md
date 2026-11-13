@@ -7,7 +7,7 @@ OpenFilm supports two Text3D types:
 - The built-in **Text 3D — Motion Stack** is a legacy CSS layered extrusion effect, retained for backward compatibility.
 - Reusable generated Text3D bundles use **Three.js TextGeometry**, real 3D scene objects and the shared deterministic runtime (`frame(t)`).
 
-The agent follows `manual/edit/SKILL.md`. The CLI supports `text3d list`, `inspect`, `validate`, `register` and `apply`. A registered component is immutable; newer versions promote a distinct entry while earlier bundles remain available.
+**Source animation contract:** The selected 2D asset (including its configured overrides) is the sole visual/temporal reference. Reconstruct its own entrance, hold, exit, easing, staggering, destruction, particles and state transitions using 3D geometry/VFX. The sample's `text3DEnvelope` scale-in/out and motion presets are implementation examples, not default motions for conversions. Never replace burn, freeze, shatter, or other source-specific transitions with generic scale/fade. Preserve duration governed by the timeline; document fidelity limitations.\n\nThe agent follows `manual/edit/SKILL.md`. The CLI supports `text3d list`, `inspect`, `validate`, `register` and `apply`. A registered component is immutable; newer versions promote a distinct entry while earlier bundles remain available.
 
 Studio and the CLI use the same conservative `src/text3d-replace.mjs` planner. Conversion preserves compatible configured text/CSS values, fades and the effective timeline length; unsupported custom visual overrides reject the swap rather than silently disappearing. Conversion is **not** an automatic CSS/SVG-to-geometry translator. The agent must rebuild source-specific effects in the generated 3D component.
 
