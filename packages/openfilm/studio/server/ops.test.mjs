@@ -226,7 +226,7 @@ test('Gentle Breeze: timeline length is authoritative and keeps --clip-length in
 test('Spatial Rift: timeline clip controls hold and preserved phase durations', () => {
   const saved = JSON.parse(readFileSync(new URL('../../library/text/spatial-rift/saved.json', import.meta.url), 'utf8'));
   const props = JSON.parse(saved.clip.attrs['data-props']);
-  assert.equal(saved.clip.src, 'spatial-rift-timeline-v2.html');
+  assert.equal(saved.clip.src, 'spatial-rift-timeline-v3.html');
   assert.equal(props.filter((p) => p.var === '--clip-length').length, 1);
   assert.deepEqual(props.filter((p) => /--rift-(entry|exit|total)$/.test(p.var ?? '')).map((p) => p.var),
     ['--rift-entry', '--rift-exit']);
