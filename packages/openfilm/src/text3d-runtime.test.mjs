@@ -58,3 +58,11 @@ test('canonical character animations remain supported, invalid legacy events rej
  assert.throws(()=>normalizeText3DEvents([{id:'bad',type:'rotate3d',axis:'q',turns:1,start:0,duration:1}]));
  assert.throws(()=>normalizeText3DEvents([{id:'a',type:'scale',to:2,start:0,duration:1},{id:'a',type:'scale',to:2,start:0,duration:1}]));
 });
+
+test('invalid easing, reverse and oversized event sets are rejected',()=>{
+ const base={id:'one',target:'group',type:'rotate',start:0,duration:1,from:[0,0,0],to:[0,90,0]};
+ const setup=events=>createText3DMotion({group:object(),characters:[],events});
+ assert.throws(()=>setup([{...base,easing:'unknown'}]),/Invalid Text3D motion events/);
+ assert.throws(()=>setup([{...base,reverse:'yes'}]),/Invalid Text3D motion events/);
+ assert.throws(()=>setup(Array.from({length:65},(_,i)=>({...base,id:'e'+i}))),/Invalid Text3D motion events/);
+});
