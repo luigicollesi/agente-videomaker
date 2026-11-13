@@ -1,26 +1,30 @@
-# Text 3D — incremental implementation
+# Text3D — implementation and validation
 
-## Implemented in initial MVP
+## Architecture
 
-New **Text 3D** category in the existing OpenFilm library drawer, with a new `Text 3D — Motion Stack` procedural clip. It uses stacked planar glyph layers with CSS 3D transforms to simulate extrusion, transparent background, configurable text/colors/depth, and a JSON motion sequence supporting `rotate3d`, `scale`, and `translate3d` events.
+OpenFilm supports two Text3D types:
 
-The clip has a timeline-managed `--clip-length`, per-phase `--text3d-in` and `--text3d-out`, and no native `window.film.duration`. Its absolute-time renderer declares `frameReadsOverrides:true`.
+- The built-in **Text 3D — Motion Stack** is a legacy CSS layered extrusion effect, retained for backward compatibility.
+- Reusable generated Text3D bundles use **Three.js TextGeometry**, real 3D scene objects and the shared deterministic runtime (`frame(t)`).
 
-The `--text3d-events` CSS custom property is an array serialized as a CSS string; for example:
-```json
-[
-  {"id":"spin-1","type":"rotate3d","start":4,"duration":1.25,"axis":"y","turns":1},
-  {"id":"spin-2","type":"rotate3d","start":7,"duration":0.75,"axis":"x","turns":1}
-]
-```
-Each event is evaluated at the requested source time. The editor currently offers this as a **raw JSON property**, not yet a dynamic drag-and-drop event editor. Only 64 events are accepted for safety.
+The agent follows `manual/edit/SKILL.md`. The CLI supports `text3d list`, `inspect`, `validate`, `register` and `apply`. A registered component is immutable; newer versions promote a distinct entry while earlier bundles remain available.
 
-## Scope boundaries
+Studio and the CLI use the same conservative `src/text3d-replace.mjs` planner. Conversion preserves compatible configured text/CSS values, fades and the effective timeline length; unsupported custom visual overrides reject the swap rather than silently disappearing. Conversion is **not** an automatic CSS/SVG-to-geometry translator. The agent must rebuild source-specific effects in the generated 3D component.
 
-This MVP **does not** automatically turn an arbitrary existing HTML clip into 3D, does not extract real font mesh geometry, and does not add draggable timeline event handles. Its depth is layered CSS typography, not a watertight polygon mesh; it is the safe integration baseline before introducing a Three.js adapter and GPU capture.
+## Motion format
 
-Legacy Text/Effects and the timeline player are left unchanged. The new library item is opt-in and non-destructive.
+Canonical geometry motion events have `id`, `target` (`group` / `characters`), `type` (`rotate` / `translate` / `scale`), `start`, `duration`, and 3D vectors `from` / `to`; optional fields are `easing`, `stagger`, and `reverse`. Rotations use degrees in serialized events. The runtime evaluates motions at absolute time independent of previous frames.
 
-## Acceptance / pending
+The legacy CSS Motion Stack uses `rotate3d`, `translate3d`, and `scale`. `normalizeText3DEvents` adapts this format to canonical events for the Three.js runtime. Existing CSS entries retain their own renderer; they are not silently replaced with geometry.
 
-Automated tests cover library registration, temporal properties, and that the player can address 8/10.5/20 second source times without a native-duration clamp. Still required: OpenFilm Studio visual smoke test, real timeline seek after 10.5 s, render/export parity, user-project persistence, old HTML projection adapter, and interactive event editor. Do not claim full architecture implemented until these pass.
+The Studio inspector offers separate editors for compatible legacy motion and canonical geometry motion. Canonical editing supports whole-text and per-character targets.
+
+## Timeline and export
+
+The timeline owns total duration via `--clip-length`. Components must not impose native `window.film.duration`. Entrance/exit phase lengths are independent; remaining time is hold. The player owns frame progression. A generated WebGL page uses a transparent renderer and `preserveDrawingBuffer: true`.
+
+## Verification
+
+Automated tests in `packages/openfilm/src/text3d-*.test.mjs` cover the registry, CLI, replacement, event normalization, WebGL capture, time scrubbing and an MP4 export fixture. The visual/export tests require Chromium (with WebGL) and ffmpeg and may be environment-dependent.
+
+**Release acceptance still requires** a successful GitHub CI run, an actual OpenFilm Studio preview/seek and export of representative source conversions (especially Burn and Frost Shatter), plus verification on the packaged desktop installation. A successful unit suite alone must not be presented as proof of effect-faithful 2D-to-3D conversion.
