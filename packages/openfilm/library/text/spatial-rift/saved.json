@@ -2,13 +2,13 @@
   "version": 2,
   "kind": "clip",
   "clip": {
-    "src": "spatial-rift-timeline-v2.html",
+    "src": "spatial-rift-timeline-v3.html",
     "time": [
       0,
       6.6
     ],
     "attrs": {
-      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Entrance time\",\"type\":\"var\",\"var\":\"--rift-entry\"},{\"name\":\"Exit time\",\"type\":\"var\",\"var\":\"--rift-exit\"},{\"name\":\"Portal hue (0–359)\",\"type\":\"var\",\"var\":\"--rift-color\"},{\"name\":\"Glow\",\"type\":\"var\",\"var\":\"--rift-glow\"},{\"name\":\"Opening\",\"type\":\"var\",\"var\":\"--rift-opening\"},{\"name\":\"Particles\",\"type\":\"var\",\"var\":\"--rift-particles\"},{\"name\":\"Text size\",\"type\":\"var\",\"var\":\"--rift-text-size\"},{\"name\":\"Shadow\",\"type\":\"var\",\"var\":\"--rift-shadow\"},{\"name\":\"Outline\",\"type\":\"var\",\"var\":\"--rift-outline\"},{\"name\":\"Softness\",\"type\":\"var\",\"var\":\"--rift-softness\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--rift-seed\"},{\"name\":\"Clip length (managed by timeline)\",\"type\":\"var\",\"var\":\"--clip-length\"}]"
+      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Entrance time\",\"type\":\"var\",\"var\":\"--rift-entry\"},{\"name\":\"Exit time\",\"type\":\"var\",\"var\":\"--rift-exit\"},{\"name\":\"Portal color\",\"type\":\"var\",\"var\":\"--rift-color\"},{\"name\":\"Glow\",\"type\":\"var\",\"var\":\"--rift-glow\"},{\"name\":\"Opening\",\"type\":\"var\",\"var\":\"--rift-opening\"},{\"name\":\"Particles\",\"type\":\"var\",\"var\":\"--rift-particles\"},{\"name\":\"Text size\",\"type\":\"var\",\"var\":\"--rift-text-size\"},{\"name\":\"Shadow\",\"type\":\"var\",\"var\":\"--rift-shadow\"},{\"name\":\"Outline\",\"type\":\"var\",\"var\":\"--rift-outline\"},{\"name\":\"Softness\",\"type\":\"var\",\"var\":\"--rift-softness\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--rift-seed\"},{\"name\":\"Clip length (managed by timeline)\",\"type\":\"var\",\"var\":\"--clip-length\"}]"
     }
   },
   "durationMs": 6600
