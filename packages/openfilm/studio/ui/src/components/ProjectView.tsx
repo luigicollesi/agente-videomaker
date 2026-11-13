@@ -3507,7 +3507,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     { id: 'copy-attrs', label: t('clipAttrs.copy'), icon: <ClipboardCopy size={14} />, shortcut: keyHint('copy-attrs'), disabled: blocks.length !== 1, onSelect: () => copyAttrs(blocks) },
     { id: 'paste-attrs', label: t('clipAttrs.pasteMenu'), icon: <ClipboardPaste size={14} />, shortcut: keyHint('paste-attrs'), disabled: !copiedAttrs, hint: t('clipAttrs.nothing'), onSelect: () => askPasteAttrs(blocks) },
   ];
-  const [text3dAsk, setText3dAsk] = React.useState<{title:string;src:string;clipId:string;text:string;simple:boolean}|null>(null);
+  const [text3dAsk, setText3dAsk] = React.useState<{title:string;src:string;clipId:string;text:string;simple:boolean;durationSeconds:number}|null>(null);
   const convertText3D = React.useCallback(async (config: Text3DConvertSettings) => {
     const ask = text3dAsk;
     if (!ask || (config.mode === 'projection' ? !safeProjectPage(ask.src) : !isTextClip(ask.src) || !ask.text.trim())) return;
@@ -3529,7 +3529,8 @@ export function ProjectView({ projectId, onProject, onLeave }: {
           ['Clip length','--clip-length']
         ] as const).map(([name,variable]) => ({name,type:'var' as const,var:variable}))
       ];
-      const changes = buildText3DConversion(original as never, {
+      const sourceRange = Array.isArray(original.time) && original.time.length === 2 ? original.time : [0, ask.durationSeconds];
+      const changes = buildText3DConversion({ ...original, time: sourceRange } as never, {
         src:convertedPath, attrs:{'data-props':propsAttr(text3DProps)}
       },config,ask.text.trim() || ask.title);
       const error = await edit([{op:'props',edits:changes as never}], 'Convert to 3D Text');
@@ -3554,7 +3555,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
         lead.push({
           id: 'convert-text3d',
           label: 'Make 3D...',
-          onSelect: () => setText3dAsk({ title: clicked.title, src: clicked.src!, clipId: clicked.clipId!, text: clicked.words ?? '', simple: isLibraryText(clicked.src) && !!clicked.words }),
+          onSelect: () => setText3dAsk({ title: clicked.title, src: clicked.src!, clipId: clicked.clipId!, text: clicked.words ?? '', simple: isLibraryText(clicked.src) && !!clicked.words, durationSeconds: (clicked.endMs-clicked.startMs)/1000 }),
         });
       }
     }
