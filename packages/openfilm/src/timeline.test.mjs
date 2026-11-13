@@ -1521,7 +1521,7 @@ test('a module without a network buffer is retried with the page; a permanent fa
 
 test("Spatial Rift's resizable page clock receives late timeline frames", { timeout: 120_000 }, async () => {
   const dir = mkdtempSync(join(tmpdir(), 'of-rift-clock-'));
-  const source = readFileSync(new URL('../library/text/spatial-rift/files/spatial-rift-timeline-v2.html', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../library/text/spatial-rift/files/spatial-rift-timeline-v3.html', import.meta.url), 'utf8');
   writeFileSync(join(dir, 'rift.html'), source);
   try {
     for (const length of [8, 10.5, 20]) {
