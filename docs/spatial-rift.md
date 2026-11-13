@@ -1,37 +1,45 @@
-# Spatial Rift V6 — title effect
+# Spatial Rift — timeline-driven title effect
 
-Spatial Rift is a transparent, deterministic HTML/Canvas 2D text effect in **Text → Titles**.
+Spatial Rift is a transparent, deterministic HTML/Canvas 2D title in **Text → Titles**. The visual sequence remains unchanged: the jagged fissure opens, text emerges, the fissure closes, and the title later retreats through the reopened tear.
 
-## Sequence
+## Timeline timing contract
 
-1. A thin irregular fracture forms and opens into a small dimensional slit.
-2. The title emerges, the rift closes, and the text remains visible.
-3. The tear reopens; the title retreats into it and the fracture closes.
+The **timeline clip duration is the only total duration**. There are just two editable time parameters:
+- **Entrance time** (`--rift-entry`, seconds, default 2.4).
+- **Exit time** (`--rift-exit`, seconds, default 2.4).
 
-## Studio usage
+The technical `--clip-length` variable is registered in `data-props` for automatic synchronization by OpenFilm and **hidden from the inspector**. Hold is derived: `max(0, timelineDuration - entrance - exit)`. Resizing the clip changes hold without changing the two configured phase durations. If their sum exceeds the clip length, preserve the exit as far as the clip permits and shorten the entrance; hold never becomes negative.
 
-Insert **Spatial Rift — enter / hold / return** from the Text library onto a video track. Select the clip and edit **Text** in the inspector.
+For a clip beginning at source time zero, with entrance 2 seconds and exit 3 seconds:
 
-Set these **three temporal values** together:
-- **Total duration (s)**: entire effect duration (`--rift-total`).
-- **Entry duration (s)**: time to emerge and close first rift (`--rift-entry`).
-- **Exit duration (s)**: time to reopen, retract and close (`--rift-exit`).
+| Clip length | Entrance | Hold | Exit |
+| --- | --- | --- | --- |
+| 8 s | 0–2 s | 2–5 s | 5–8 s |
+| 10.5 s | 0–2 s | 2–7.5 s | 7.5–10.5 s |
+| 20 s | 0–2 s | 2–17 s | 17–20 s |
 
-The hold time is **total − entry − exit**; the total must be at least entry + exit. Also **resize the timeline clip to the same total duration** when editing the Total duration property: the effect itself cannot change its parent clip length in the timeline.
+**Implementation:** `files/spatial-rift-timeline-v3.html` uses `window.film = { frame, frameReadsOverrides: true }` with no native `duration`. It reads `--clip-length` at every frame, so extending a clip past the original 6.6 s cannot freeze its clock at 6.599 s. The clip still initially inserts at 6.6 s via `saved.json.clip.time` and catalog `durationMs`; these are not a maximum.
 
-**Portal hue (0–359)** (`--rift-color`) changes the hue of the rift, atmospheric layers, glow, particles, and text reflections. The other inspector controls tune opening, glow, particles, text size, shadows, outline, softness, and procedural seed.
+### Trim and split
 
-## Rendering and compatibility
+OpenFilm requests **source-time** `frame(t)`, not a timeline-local time. The ending `--clip-length` is the source end. On clips trimmed from the beginning (`start > 0`), exit remains tied to the source end but entrance does not automatically restart at the new visible beginning. Splitting behaves similarly. No global `sourceAt()` change was made.
 
-- `window.film.frame(t)` uses absolute seconds and does not depend on previously rendered frames.
-- The default clip length and `window.film.duration` are 6.6 seconds.
-- Output background is transparent. Composite it above video/images in the OpenFilm timeline.
-- The implementation has no external assets or third-party runtime dependencies.
-- Source: `packages/openfilm/library/text/spatial-rift/files/spatial-rift.html`.
-- Bundle: `saved.json` and `poster.svg`; catalog: `packages/openfilm/library/index.json`.
-- V6 uses Canvas 2D; perspective is simulated and cannot physically refract an underlying source clip.
-- Library poster is static; animation preview can be seen when the clip is played in the timeline. A versioned `preview.mp4` has not been included.
+### Existing projects
 
-## Validation plan
+The new internal HTML filename `spatial-rift-timeline-v3.html` avoids reusing the old copied source. **Reinsert Spatial Rift from the library** to obtain the corrected version in an existing project. Clips already importing `spatial-rift.html` keep the original motor and need explicit replacement. Their customizations will not be automatically migrated.
 
-Check rendering in Chromium at arbitrary time values and reversed order; test hue values 0, 120, 240; verify the text alone in hold, transparency outside the effect, clip-duration correspondence, accented characters, and text updates in the Studio inspector. Run `pnpm test`, `pnpm typecheck`, `pnpm audit:public`, and `pnpm check:pack` from the monorepo root before merge. Do not claim these full suite commands passed unless CI or local logs confirm them.
+### Artistic settings
+
+Portal color (`--rift-color`, a CSS hex color selected with OpenFilm's native color picker) changes the edges, particles, dimensional layers and title reflections. Other controls adjust glow, opening, particles, text size, shadows, outline, softness and seed. The background is transparent; no external assets are required.
+
+## Verification status (November 12, 2026)
+
+Executed locally with Chromium/Playwright against the new HTML engine at 800×450:
+- All 8, 10.5 and 20-second timing cases with entrance 2/exit 3; hold visible; final frame transparent.
+- Frames at t=19, t=2, t=19 produced identical first/last pixels. Frames at 19 and 10.499 differed.
+- Hue overrides were reflected in rendered pixels. Entrance/exit overlap was handled without JavaScript errors.
+- `window.film.frameReadsOverrides === true`, and `window.film.duration` was absent.
+
+**Not yet validated:** actual Studio timeline resizing and player dispatch, preview-versus-export pixel equivalence, source trimming and splitting in the running app, migration/reuse of old project bundles, 1080p/4K performance and the complete repository test suite. These require OpenFilm integration tests and must not be marked as passed based solely on the HTML test.
+
+See `docs/vfx-timeline-timing-contract.md` and `.agents/skills/openfilm-vfx-timeline/SKILL.md`.

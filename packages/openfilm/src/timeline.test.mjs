@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1514,6 +1514,51 @@ test('a module without a network buffer is retried with the page; a permanent fa
   } finally {
     await browser.close();
     await site.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+
+test("Spatial Rift's resizable page clock receives late timeline frames", { timeout: 120_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'of-rift-clock-'));
+  const source = readFileSync(new URL('../library/text/spatial-rift/files/spatial-rift-timeline-v3.html', import.meta.url), 'utf8');
+  writeFileSync(join(dir, 'rift.html'), source);
+  try {
+    for (const length of [8, 10.5, 20]) {
+      writeFileSync(join(dir, 'film.html'), filmHtml({
+        stage: { w: 800, h: 450 }, tracks: [{ clips: [{
+          id: 'rift', src: 'rift.html', time: [0, length],
+          overrides: [{ at: ':root', style: { '--clip-length': `${length}s`, '--rift-entry': '2', '--rift-exit': '3' } }],
+        }] }],
+      }));
+      const s = await open(dir);
+      try {
+        await s.film.seek(0.5);
+        const iframe = s.film.page.locator('#rift');
+        const configured = await iframe.evaluate((el) => {
+          const w = el.contentWindow;
+          return { keys: Object.keys(w.film), duration: w.spatialRift.getParams().total, readsOverrides: w.film.frameReadsOverrides };
+        });
+        assert.equal(configured.duration, length);
+        assert.equal(configured.keys.includes('duration'), false, 'no native duration must clamp late frames');
+        assert.equal(configured.readsOverrides, true);
+
+        await iframe.evaluate((el) => {
+          const w = el.contentWindow;
+          const original = w.film.frame;
+          w.__requestedTimes = [];
+          w.film.frame = (t) => { w.__requestedTimes.push(t); return original(t); };
+        });
+        const nearEnd = length - 1;
+        await s.film.seek(nearEnd);
+        const actual = await iframe.evaluate((el) => el.contentWindow.__requestedTimes.at(-1));
+        assert.ok(Math.abs(actual - nearEnd) < .05,
+          `timeline must deliver ${nearEnd}s, not the original 6.6s clock: received ${actual}`);
+      } finally {
+        await s.close();
+      }
+    }
+  } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
