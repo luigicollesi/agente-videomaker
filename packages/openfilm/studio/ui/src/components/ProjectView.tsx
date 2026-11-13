@@ -3515,14 +3515,17 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     }
     studioHost.ask({
       refs:[refOfBlock(block)],
-      text:[
-        'Use the Videomaker edit/Text3D skill to convert the selected 2D component.',
-        'source2DId='+source2DId+'; clipId='+(block.clipId??'')+'.',
-        ...(replacing?['Replace active '+replacing.componentId+' ('+replacing.version+') with a newly validated immutable version. Retain old_vN.']:[]),
-        'Inspect the HTML and relevant dependencies; preserve the effects, timing, text and configured parameters.',
-        'Generate Text3D v1 (manifest.json, index.html, component.js) with real glyph geometry, group and character motion, and explicit parameterMap.',
-        'Run videomaker text3d inspect, validate, register and apply; verify before applying. Report failures.'
-      ].join('\n')
+      text:(replacing ? [
+        'Update Text3D '+replacing.componentId+' ('+replacing.version+') on '+(block.clipId??'')+'.',
+        'Keep text, VFX, timing and mapped params unless requested.',
+        'Create a new immutable version if needed; retain previous versions.',
+        'Run videomaker text3d inspect, validate, register and apply. Verify before apply.'
+      ] : [
+        'Convert '+source2DId+' to real Text3D on '+(block.clipId??'')+'.',
+        'Keep text, VFX, timing and mapped params.',
+        'Reuse a match or create Text3D v1 with real geometry, group/character motion and parameterMap.',
+        'Run videomaker text3d inspect, validate, register and apply. Verify before apply.'
+      ]).join('\n')
     });
   },[toast,refOfBlock]);
   const requestText3D = React.useCallback(async (block:TimelineBlock) => {
