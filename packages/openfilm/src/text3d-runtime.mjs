@@ -108,8 +108,8 @@ export function normalizeText3DEvents(incoming) {
  if(!Array.isArray(incoming)||incoming.length>64)throw new Error('Invalid Text3D motion event count');
  const events=incoming.map(raw=>{
   if(!raw||typeof raw!=='object')throw new Error('Invalid Text3D event');
-  if(validMotionEvent(raw))return {...raw,from:[...raw.from],to:[...raw.to]};
   const e=/** @type {any} */(raw);
+  if(validMotionEvent(e))return {...e,from:[...e.from],to:[...e.to]};
   if(typeof e.id!=='string'||!e.id||!Number.isFinite(e.start)||e.start<0||
      !Number.isFinite(e.duration)||e.duration<=0)throw new Error('Invalid legacy Text3D event');
   if(e.type==='rotate3d'){
