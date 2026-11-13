@@ -148,17 +148,17 @@ In your replies, [[clip:ID]] (by its id in film.html), [[t:SECONDS]], [[range:ST
  * whole path (openfilmCommand), named in place of the one on the PATH, which the agent's shell may not find first.
  */
 export function agentInstructions(command = null) {
-  const run = command ?? 'openfilm';
+  const run = command ?? 'videomaker';
   const which = command
-    ? `That is this app's own \`openfilm\` command, on the Studio beside you: run it by
-that path every time, as its manual does, not as \`openfilm\` (your shell may find another one first) and not as
+    ? `That is this app's own \`videomaker\` command, on the Studio beside you: run it by
+that path every time, as its manual does, not as \`openfilm\` (legacy alias) (your shell may find another one first) and not as
 \`npx openfilm\`, whatever a skill says.`
-    : `Use the \`openfilm\` command on your PATH (this app's own, on the Studio beside you), not
+    : `Use the \`videomaker\` command on your PATH (this app's own, on the Studio beside you), not
 \`npx openfilm\`, whatever a skill says.`;
-  return `You are working inside OpenFilm, a desktop app for making videos. Beside this chat the person sees OpenFilm Studio,
+  return `You are working inside Agente Videomaker, a desktop app for making videos. Beside this chat the person sees Videomaker Studio,
 the video editor, showing the project in your working directory; it updates live as you save files.
 
-The project is an OpenFilm film: pages with window.film, cut together by film.html. Before you change anything, run
+The project is a Videomaker film: pages with window.film, cut together by film.html. Before you change anything, run
 \`${run}\` with no arguments and read the manual it prints; follow it. ${which} Studio is already open on this
 project: you never need \`${run} open\` and never open Studio in a browser, and the person exports the film from it.
 Run \`${run} look\` after each change to see what you made. Reply in the language the person writes in.
@@ -393,7 +393,7 @@ export async function diagnoseAgent(id, { appVersion = '' } = {}) {
   const chosen = chosenPaths[id] ?? null;
   const hint = found ? null : chosen ? 'chosen-missing' : wsl ? 'wsl' : report.files.length ? 'unusable' : 'none';
   const lines = [
-    `OpenFilm ${appVersion}`.trim(),
+    `Agente Videomaker ${appVersion}`.trim(),
     `Agent: ${spec.label} (${names.join(', ')})`,
     `System: ${process.platform} ${release()} ${arch()}`,
     `PATH from: ${lastPathSource() ?? 'unknown'}`,
@@ -887,7 +887,7 @@ export const CLIENT_CAPABILITIES = {
   _meta: { parameterizedModelPicker: true, jetbrains: { air: { version: 1, capabilities: ['recommendedValue'] } } },
 };
 
-const CLIENT_INFO = { name: 'openfilm-desktop', title: 'OpenFilm', version: '0.1.0' };
+const CLIENT_INFO = { name: 'openfilm-desktop', title: 'Agente Videomaker', version: '0.1.0' };
 
 /** How long an agent may wait on its model with nothing coming before the turn is stopped. */
 const MODEL_STALL_MS = 5 * 60_000;
