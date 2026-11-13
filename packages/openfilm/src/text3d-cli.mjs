@@ -90,6 +90,7 @@ export async function text3DCommand(args) {
    const source=resolve(rest[0]),manifest=await validateText3D(source);
    const id=String(manifest.componentId);
    const sourceId=String(manifest.source2DId);
+   if(!/^[a-z0-9_-]+(?:\/[a-z0-9_-]+)*$/i.test(sourceId))throw new Error('Unsafe Text3D source identifier');
    const version=String(manifest.version);
    const pathParts=id.split('/');
    if(pathParts.some(p=>!p||!/^[a-z0-9][a-z0-9_-]*$/i.test(p))||pathParts.length<2||pathParts.at(-1)!==version)
