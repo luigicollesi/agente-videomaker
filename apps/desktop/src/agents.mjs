@@ -151,8 +151,8 @@ export function agentInstructions(command = null) {
   const run = command ?? 'videomaker';
   const which = command
     ? `That is this app's own \`videomaker\` command, on the Studio beside you: run it by
-that path every time, as its manual does, not as \`openfilm\` (legacy alias) (your shell may find another one first) and not as
-\`npx openfilm\`, whatever a skill says.`
+that path every time, as its manual does, not as \`openfilm\` (legacy alias; your shell may find another copy) and never as
+\`npx openfilm\`, even if an older skill suggests it.`
     : `Use the \`videomaker\` command on your PATH (this app's own, on the Studio beside you), not
 \`npx openfilm\`, whatever a skill says.`;
   return `You are working inside Agente Videomaker, a desktop app for making videos. Beside this chat the person sees Videomaker Studio,
@@ -172,8 +172,8 @@ export const INSTRUCTIONS = agentInstructions();
  * The app's own agent's whole system prompt, in place of Pi's (a coding assistant's, with Pi's own docs): who it is,
  * where it is and how it talks with the person (agent-prompt.md: written for it, so not INSTRUCTIONS, which tell
  * another agent to go and read the manual), and how the person points at Studio (STUDIO_REFERENCES). How a film is
- * made is OpenFilm's skills' (openfilm/skills coreSkills), which Pi lists after it and the agent reads when a task
- * needs one. `edit` false: the person turned OpenFilm's `edit` off, so the prompt does not send the agent to it.
+ * made is Videomaker's skills' (openfilm/skills coreSkills), which Pi lists after it and the agent reads when a task
+ * needs one. `edit` false: the person turned Videomaker's `edit` off, so the prompt does not send the agent to it.
  */
 export function ownAgentPrompt({ edit = true } = {}) {
   const read = readFileSync(new URL('./agent-prompt.md', import.meta.url), 'utf8').trim();
@@ -947,7 +947,7 @@ export function codexTooOld(agent, path, e, versionOf = codexVersion) {
   const version = versionOf(path);
   if (!version || !laterVersion(CODEX_TESTED, version)) return e;
   const why = e instanceof Error ? e.message : String(e);
-  return Object.assign(new Error(`Codex ${version} is older than OpenFilm needs (${CODEX_TESTED} or later): update Codex, then try again. ${why}`.trim()), { code: 'outdated' });
+  return Object.assign(new Error(`Codex ${version} is older than Videomaker needs (${CODEX_TESTED} or later): update Codex, then try again. ${why}`.trim()), { code: 'outdated' });
 }
 
 /**
@@ -1173,7 +1173,7 @@ export class AgentSession {
    *           onSend?: (sent: { prompt: any[], _meta?: any }) => void, stallMs?: number, answerOnly?: boolean }} opts
    * `onSend` hears each message as it goes to the agent, whole (the app's words before the first one's, for an agent
    * told them there); `opened`, once started, says what it was started and opened with.
-   * `skills`: the session has its maker's skills and MCP servers, OpenFilm's skills, and of the person's own only those
+   * `skills`: the session has its maker's skills and MCP servers, Videomaker's skills, and of the person's own only those
    * let in (`allowed`, `mcpAllowed`), each agent told by its own switch (agent-skills.mjs); `opened.skills` says how.
    * `stallMs`: how long the agent may wait on its model with nothing coming (MODEL_STALL_MS) before the turn is stopped.
  * `answerOnly`: it may only answer (Studio's own questions): every permission it asks is refused, even what the app
@@ -1186,7 +1186,7 @@ export class AgentSession {
     if (HARNESS_AGENTS.includes(opts.agent) && !opts.harness) throw Object.assign(new Error('Connect this agent in Settings → Agents first.'), { code: 'not-ready' });
     this.opts = opts;
     /* the app's own agent runs Pi (pi-agent.mjs), the person's their own program through its adapter */
-    this.spec = HARNESS_AGENTS.includes(opts.agent) ? { label: opts.agent === 'openfilm' ? 'OpenFilm' : 'Own key', env: () => ({}) } : AGENTS[opts.agent];
+    this.spec = HARNESS_AGENTS.includes(opts.agent) ? { label: opts.agent === 'openfilm' ? 'Videomaker' : 'Own key', env: () => ({}) } : AGENTS[opts.agent];
     this.sessionId = null;
     this.info = null;
     this.stderr = '';
@@ -1256,7 +1256,7 @@ export class AgentSession {
       ...harness.env,
       OPENFILM_GET_WEB: '1',
     };
-    /* its skills and MCP servers: its maker's, OpenFilm's skills, and the person's own only those let in (agent-skills.mjs) */
+    /* its skills and MCP servers: its maker's, Videomaker's skills, and the person's own only those let in (agent-skills.mjs) */
     const skills = this.opts.skills
       ? await sessionSkills(this.opts.agent, { cwd: this.opts.cwd, env: shell, ...this.opts.skills }).catch(() => null) : null;
     if (harness) own.OPENFILM_PI = JSON.stringify({ agentDir: harness.home, models: harness.models, model: harness.model, systemPrompt: ownAgentPrompt({ edit: skills?.piSkills?.names.includes('edit') ?? true }), skills: skills?.piSkills ?? null });
