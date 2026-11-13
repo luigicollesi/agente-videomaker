@@ -25,7 +25,7 @@ import { EditError, editProjectFilm, pageClipLook, readProjectFilm, settleProjec
 import { compoundOuter, readPartFilm, writePartFilm } from './parts.mjs';
 import { PARTS, compoundFolder, srcInto } from './compound.mjs';
 import { readPage, writePage } from './page-text.mjs';
-import { activeText3D, listText3D, registerText3D } from './text3d/registry.mjs';
+import { activeText3D, listText3D } from './text3d/registry.mjs';
 import { FileError, bringIn, collect, extractAudio, freezeFrame, importFile, inside, listFiles, makeFolder, moveCheck, moveFile, readable, relink, trashFile } from './files.mjs';
 import { mediaReferences } from '../../src/media-links.mjs';
 import { ExportError, createExports, draftApps, exportCapabilities, exportsRoot, projectSizes } from './exports.mjs';
@@ -239,31 +239,16 @@ export async function startStudio({ port = 4747, key, openBrowser = systemBrowse
     authorize(req);
     const parts = path.slice('/api/'.length).split('/').map(decodeURIComponent);
 
-    /* Text3D components saved by the agent, keyed by the original 2D component ID. */
-    if (parts[0] === 'text3d' && parts.length === 1) {
-      if (req.method === 'GET') {
-        const source = url.searchParams.get('source');
-        if (source && !/^[a-z0-9][a-z0-9/_-]{0,159}$/i.test(source)) throw new HttpError(400, 'Invalid source component ID');
-        return json(res, 200, {
-          entries: await listText3D(source || null),
-          active: source ? await activeText3D(source) : null,
-        });
-      }
-      if (req.method === 'POST') {
-        const entry = /** @type {Record<string, unknown>} */ (await readJson(req) ?? {});
-        try {
-          if (typeof entry.bundlePath !== 'string') throw new Error('Missing bundle path');
-          const rel = libraryRel(entry.bundlePath);
-          const root = await savedLibrary();
-          const saved = JSON.parse(await readFile(inside(root, join(rel, 'saved.json')), 'utf8'));
-          if (saved.kind !== 'clip' || !saved.clip || typeof saved.clip.src !== 'string') {
-            throw new Error('A validated Saved clip bundle is required');
-          }
-          return json(res, 201, { entry: await registerText3D(/** @type {any} */ (entry)) });
-        } catch (error) {
-          throw new HttpError(400, error instanceof Error ? error.message : String(error));
-        }
-      }
+    /* Registered Text3D library entries. Publishing is handled by the validating CLI. */
+    if (parts[0] === 'text3d' && parts.length === 1 && req.method === 'GET') {
+      const source = url.searchParams.get('source');
+      if (source && !/^[a-z0-9][a-z0-9/_-]{0,159}$/i.test(source)) throw new HttpError(400, 'Invalid source component ID');
+      const lib = await savedLibrary();
+      return json(res, 200, {
+        entries: await listText3D(source || null),
+        active: source ? await activeText3D(source) : null,
+        pageBase: pages.folderUrl({ id: SAVED_ORIGIN_ID, path: lib }),
+      });
     }
     /* stop: another app is taking over this machine's Studio, or `openfilm open` starts it afresh (`whenIdle`: not
        while an export runs or media is made — it would be lost). `pages`: how many were open, to come back */
