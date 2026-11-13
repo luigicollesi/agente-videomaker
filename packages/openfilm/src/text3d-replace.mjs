@@ -32,6 +32,7 @@ export function replacementEdits(source,destination,mapping,effectiveLength){
     used.add(i);
     if(prop.type==='var'){
       usedVars.add(prop.var);
+      if(dest.type!=='var')throw Error('Invalid target CSS variable mapping');
       const name=dest.var;
       const entry=applied.find(a=>a.at===':root')??{at:':root',style:{}};
       if(!applied.includes(entry))applied.push(entry);
