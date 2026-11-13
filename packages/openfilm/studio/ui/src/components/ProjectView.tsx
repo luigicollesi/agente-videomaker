@@ -3510,18 +3510,18 @@ export function ProjectView({ projectId, onProject, onLeave }: {
   const [text3dApplying, setText3dApplying] = React.useState(false);
   const askAgentForText3D = React.useCallback((block:TimelineBlock, source2DId:string, replacing?:Text3DRegistryEntry) => {
     if (!studioHost?.ask) {
-      toast.showError('Connect an agent in the OpenFilm desktop chat to create 3D text.');
+      toast.showError('Connect an agent in the Agente Videomaker desktop chat to create 3D text.');
       return;
     }
     studioHost.ask({
       refs:[refOfBlock(block)],
       text:[
-        'Use the OpenFilm edit skill Text3D section to convert the referenced 2D component.',
+        'Use the Videomaker edit/Text3D skill to convert the selected 2D component.',
         'source2DId='+source2DId+'; clipId='+(block.clipId??'')+'.',
         ...(replacing?['Replace active '+replacing.componentId+' ('+replacing.version+') with a newly validated immutable version. Retain old_vN.']:[]),
         'Inspect the HTML and relevant dependencies; preserve the effects, timing, text and configured parameters.',
         'Generate Text3D v1 (manifest.json, index.html, component.js) with real glyph geometry, group and character motion, and explicit parameterMap.',
-        'Run openfilm text3d validate <folder> then openfilm text3d register <folder>; apply the registered component to this exact clip after validation.'
+        'Run videomaker text3d inspect, validate, register and apply; verify before applying. Report failures.'
       ].join('\n')
     });
   },[toast,refOfBlock]);
