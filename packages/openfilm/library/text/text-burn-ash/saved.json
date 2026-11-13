@@ -2,13 +2,13 @@
   "version": 2,
   "kind": "clip",
   "clip": {
-    "src": "text-burn-ash.html",
+    "src": "text-burn-ash-timeline.html",
     "time": [
       0,
       3
     ],
     "attrs": {
-      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Intensity\",\"type\":\"var\",\"var\":\"--burn-intensity\"},{\"name\":\"Embers\",\"type\":\"var\",\"var\":\"--burn-embers\"},{\"name\":\"Legacy duration\",\"type\":\"var\",\"var\":\"--burn-duration\"},{\"name\":\"Burn In (s)\",\"type\":\"var\",\"var\":\"--burn-in-duration\"},{\"name\":\"Burn Out (s)\",\"type\":\"var\",\"var\":\"--burn-out-duration\"},{\"name\":\"Clip length (s)\",\"type\":\"var\",\"var\":\"--burn-clip-length\"},{\"name\":\"Final color\",\"type\":\"var\",\"var\":\"--burn-final-color\"},{\"name\":\"Letter stagger\",\"type\":\"var\",\"var\":\"--burn-stagger\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--burn-seed\"}]"
+      "data-props": "[{\"name\":\"Text\",\"type\":\"text\",\"at\":\".t\"},{\"name\":\"Intensity\",\"type\":\"var\",\"var\":\"--burn-intensity\"},{\"name\":\"Embers\",\"type\":\"var\",\"var\":\"--burn-embers\"},{\"name\":\"Entrance time\",\"type\":\"var\",\"var\":\"--burn-in-duration\"},{\"name\":\"Exit time\",\"type\":\"var\",\"var\":\"--burn-out-duration\"},{\"name\":\"Final color\",\"type\":\"var\",\"var\":\"--burn-final-color\"},{\"name\":\"Letter stagger\",\"type\":\"var\",\"var\":\"--burn-stagger\"},{\"name\":\"Seed\",\"type\":\"var\",\"var\":\"--burn-seed\"},{\"name\":\"Clip length (managed by timeline)\",\"type\":\"var\",\"var\":\"--clip-length\"}]"
     }
   },
   "durationMs": 3000
