@@ -23,7 +23,8 @@ test('the installed command names itself by its whole path in all it prints (OPE
     writeFileSync(node, '#!/bin/sh\nprintf %s "$OPENFILM_RUN"\n');
     chmodSync(node, 0o755);
     const bin = installOpenfilmCommand(dir, { node });
-    assert.equal(execFileSync(join(bin, 'openfilm'), { encoding: 'utf8' }), openfilmCommand(bin));
+    assert.equal(execFileSync(join(bin, 'videomaker'), { encoding: 'utf8' }), openfilmCommand(bin));
+    assert.equal(execFileSync(join(bin, 'openfilm'), { encoding: 'utf8' }), openfilmCommand(bin), 'legacy alias remains operational');
     assert.equal(execFileSync('/bin/sh', ['-c', `${openfilmCommand(bin)} --version`], { encoding: 'utf8' }), openfilmCommand(bin), 'runs as the agent types it');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
