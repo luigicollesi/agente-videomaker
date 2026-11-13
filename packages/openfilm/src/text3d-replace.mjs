@@ -19,6 +19,11 @@ export function replacementEdits(source,destination,mapping,effectiveLength){
   const input=/** @type {Override[]} */ (source.overrides??[]);
   const records=input.map((o,i)=>({o,i})).filter(({o})=>prop.type==='var'?o.at===':root'&&o.style&&Object.hasOwn(o.style,prop.var??''):o.at===prop.at&&(prop.n==null||o.n===prop.n)&& (prop.type==='text'?typeof o.text==='string':false));
   if(!records.length)continue;
+  if(prop.type==='var'&&prop.var==='--clip-length'){
+   for(const {i} of records)used.add(i);
+   usedVars.add('--clip-length');
+   continue;
+  }
   if(prop.type!=='var'&&prop.type!=='text')throw Error('Unsupported configured Text3D property: '+prop.name);
   const mapped=mapping[prop.name];
   const dest=target.find(p=>p.name===mapped&&p.type===prop.type);
@@ -27,7 +32,6 @@ export function replacementEdits(source,destination,mapping,effectiveLength){
     used.add(i);
     if(prop.type==='var'){
       usedVars.add(prop.var);
-      if(prop.var==='--clip-length')continue;
       const name=dest.var;
       const entry=applied.find(a=>a.at===':root')??{at:':root',style:{}};
       if(!applied.includes(entry))applied.push(entry);
