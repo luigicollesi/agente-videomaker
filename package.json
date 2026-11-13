@@ -1,7 +1,7 @@
 {
   "name": "openfilm-monorepo",
   "private": true,
-  "description": "OpenFilm: the open source AI video agent. The `openfilm` package (the format, the CLI and Studio), the desktop app, and what the clients share with the OpenFilm service.",
+  "description": "Agente Videomaker: AI video editor built on the MIT-licensed OpenFilm foundation, with Videomaker CLI and Studio.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@9.15.9",
