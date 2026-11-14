@@ -30,6 +30,7 @@ def main() -> int:
     analyze.add_argument("audio_path")
     analyze.add_argument("--output", required=True)
     analyze.add_argument("--audio-stream", type=int)
+    analyze.add_argument("--cache-dir", help="Optional content-addressed analysis cache")
     context = commands.add_parser("context", help="Query analyzed acoustic context in a time range")
     context.add_argument("analysis_path")
     context.add_argument("--start", type=float, required=True)
@@ -51,7 +52,7 @@ def main() -> int:
         elif arguments.command == "context":
             output = get_music_context(arguments.analysis_path, arguments.start, arguments.end)
         elif arguments.command == "analyze":
-            result = analyze_music(arguments.audio_path, arguments.output, arguments.audio_stream)
+            result = analyze_music(arguments.audio_path, arguments.output, arguments.audio_stream, arguments.cache_dir)
             output = {"status": "analyzed", "output_path": str(Path(arguments.output).resolve()),
                       "duration_seconds": result["source"]["decoded_duration_seconds"],
                       "bpm_estimate": result["rhythm"]["bpm_estimate"],
