@@ -1,0 +1,33 @@
+{
+  "contractVersion": 2,
+  "runtime": "three-webgl",
+  "id": "text3d/example",
+  "version": "v1",
+  "source2DId": "text/example",
+  "model": {
+    "type": "extruded-text",
+    "font": "./assets/font.json",
+    "depth": 0.15,
+    "bevel": true
+  },
+  "modules": {
+    "native": [],
+    "motion": [],
+    "appearance": [],
+    "vfx": []
+  },
+  "timeline": {
+    "durationSource": "clip",
+    "deterministic": true
+  },
+  "props": [
+    {
+      "name": "Text",
+      "type": "text",
+      "at": ".t"
+    }
+  ],
+  "parameterMap": {
+    "Text": "Text"
+  }
+}
