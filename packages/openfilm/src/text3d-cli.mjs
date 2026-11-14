@@ -3,6 +3,7 @@
 import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
+import { verifyText3D } from './text3d-verify.mjs';
 import { builtInRoot } from '../studio/server/library.mjs';
 import { replacementEdits } from './text3d-replace.mjs';
 import { readProjectFilm, editProjectFilm } from '../studio/server/film.mjs';
@@ -84,7 +85,7 @@ export async function text3DCommand(args) {
   }
   if(action==='validate'&&rest[0]){
    const manifest=await validateText3D(rest[0]);
-   return {ok:true,lines:['Text3D structure validated: '+manifest.componentId]};
+   return {ok:true,lines:['Text3D structure validated: '+manifest.componentId,'Run register for packaged visual verification.']};
   }
   if(action==='register'&&rest[0]){
    const source=resolve(rest[0]),manifest=await validateText3D(source);
@@ -154,6 +155,8 @@ export async function text3DCommand(args) {
           throw new Error('Missing packaged Text3D dependency in '+fileName+': '+relative);
       }
     }
+    // Only the packaged copy is authoritative; verify its imports and actual pixels.
+    await verifyText3D(files,seconds);
     await mkdir(join(folder,'..'),{recursive:true});
     await rename(staging,folder);
    }catch(error){await rm(staging,{recursive:true,force:true});throw error}
