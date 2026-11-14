@@ -39,7 +39,7 @@ def chunked_spectral_features(y, sr: int, n_fft: int = 2048,
         outputs["flatness"].append(librosa.feature.spectral_flatness(S=mag)[0])
         outputs["bandwidth"].append(librosa.feature.spectral_bandwidth(S=mag, sr=sr)[0])
         outputs["contrast"].append(librosa.feature.spectral_contrast(S=mag, sr=sr))
-        outputs["chroma"].append(librosa.feature.chroma_stft(S=energy, sr=sr, n_fft=n_fft, hop_length=hop))
+        outputs["chroma"].append(librosa.feature.chroma_stft(S=energy, sr=sr, n_fft=n_fft, hop_length=hop, tuning=0.0))
         frames = librosa.util.frame(block, frame_length=n_fft, hop_length=hop)
         outputs["zcr"].append(np.mean(np.diff(np.signbit(frames[:, :size]), axis=0), axis=0))
         # Spectral flux is normalized per frame and preserves continuity across blocks.
