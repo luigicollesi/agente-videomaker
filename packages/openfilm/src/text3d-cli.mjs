@@ -37,6 +37,8 @@ async function validateText3D(dir) {
  if(/<iframe\b/i.test(html)||/https?:\/\//i.test(html+code))
   throw new Error('Text3D pages cannot embed frames or fetch external network resources');
  if(!/createText3D/.test(code))throw new Error('component.js must export createText3D');
+ if(!/\b(?:THREE\.)?WebGLRenderer\s*\(/.test(code)||/\bSVGRenderer\b/.test(code))
+  throw new Error('Text3D requires Three.js WebGLRenderer; SVGRenderer fallback is not allowed');
  let count=0,total=0;
  /** @param {string} dir @param {number} depth */
  const walk=async(dir,depth)=>{
