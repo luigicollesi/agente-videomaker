@@ -31,6 +31,8 @@ export async function verifyText3D(directory,duration=10) {
   const page=await browser.newPage({viewport:{width:960,height:540}});
   const errors=[];
   page.on('pageerror',e=>errors.push(e.message));
+  page.on('requestfailed',req=>errors.push('Request failed: '+req.url()+' '+(req.failure()?.errorText??'')));
+  page.on('response',res=>{if(res.status()>=400)errors.push('HTTP '+res.status()+': '+res.url())});
   const address=server.address();
   if(!address||typeof address==='string')throw new Text3DVisualError('SERVER_ERROR','Unable to resolve local test server');
   const url='http://127.0.0.1:'+address.port+'/index.html';
