@@ -17,17 +17,10 @@ export async function createText3D({canvas,element,root}){
   }
  }
  const adapter={...THREE,TextGeometry};
- let core,previousText='',previousColor='';
- async function rebuild(text){
-  core?.dispose();
-  const modules={};
-  for(const kind of kinds)modules[kind]=await Promise.all(factories[kind].map(create=>create()));
-  core=createText3DCore({THREE:adapter,canvas,font,text,depth:manifest.model.depth,
-   ...modules});
-  previousText=text;
-  previousColor='';
- }
- await rebuild(element.textContent||' ');
+ const modules={};
+ for(const kind of kinds)modules[kind]=await Promise.all(factories[kind].map(create=>create()));
+ const core=createText3DCore({THREE:adapter,canvas,font,text:element.textContent||' ',depth:manifest.model.depth,...modules});
+ let previousColor='';
  return {
   get contractVersion(){return 2},
   get renderer(){return core.renderer},
@@ -37,11 +30,11 @@ export async function createText3D({canvas,element,root}){
   get animations(){return core.animations},
   async frame(t){
    const text=element.textContent||' ';
-   if(text!==previousText)await rebuild(text);
+   core.setText(text);
    const color=getComputedStyle(root).getPropertyValue('--text3d-color').trim()||'#dae9ff';
    if(color!==previousColor){core.setBaseColor(color);previousColor=color}
    await core.frame(t);
   },
-  dispose(){core?.dispose()}
+  dispose(){core.dispose()}
  };
 }
