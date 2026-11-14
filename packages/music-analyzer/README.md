@@ -106,3 +106,22 @@ passing end-to-end test of the Python analyzer.
 Spectral processing is **still full-matrix and not memory-bounded**.
 Do not claim chunked STFT support. Genre, emotion, key and chord
 classification remain outside the implemented scope.
+
+## Chunked spectral processing and stereo diagnostics (experimental)
+
+`dsp.measure_pcm` now uses overlapping spectral frame batches of 512 frames,
+rather than allocating one full-song STFT magnitude matrix. Frame centers
+remain aligned to the decoded PCM hop grid. Chroma tuning is fixed at zero
+for cross-batch comparability. The onset envelope now uses positive normalized
+spectral flux; onset and BPM counts **may differ** from older analyses.
+
+`stereo` reports channel RMS, channel correlation and Mid/Side energy ratio
+when the source has exactly two channels. `signal_diagnostics.sample_peak_dbfs`
+is measured on the decoded/resampled mono signal; values above 0 dBFS are
+possible after processing and do not prove clipping in the original source.
+Use `loudness.true_peak_dbtp` to evaluate the original-stream peak estimate.
+
+The onset envelope is still computed on the full frame-rate flux vector, and
+beats are tracked globally. Spectral matrices are bounded by the batch size,
+but the entire analysis is **not** constant-memory in audio duration.
+CI and full-track numerical regression must pass before this is considered stable.
