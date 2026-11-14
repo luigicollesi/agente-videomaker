@@ -28,3 +28,18 @@ source-timeline event positions.
 
 Next milestones: timebase verification, schema v1, DSP, segmentation,
 expressive heuristics and desktop tool registration.
+
+## DSP milestone (experimental)
+
+The analyzer now supports a preliminary `analyze` command:
+
+```bash
+music-analyzer analyze /path/to/audio.wav --output /tmp/music-analysis.json
+```
+
+Output includes estimated BPM/beats, onset events, RMS dBFS, spectral
+centroid, rolloff and flatness curves every 0.5s. The source timeline mapping
+is still **unverified**. Downbeats, segmentation, chroma, expressive heuristics,
+strict schema validation, caching, and editor integration are not available yet.
+
+Do not mistake estimated BPM or acoustic attack strength for calibrated confidence.
