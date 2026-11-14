@@ -22,6 +22,8 @@ def detect_repeated_regions(data: dict, step_seconds: float = 2.0,
     rms = np.asarray([p["rms_dbfs"] if p.get("rms_dbfs") is not None else -100 for p in points], dtype=float)
     centroid = np.asarray([p["spectral_centroid_hz"] for p in points], dtype=float)
     flux = np.asarray([p.get("normalized_spectral_flux", 0.0) for p in points], dtype=float)
+    has_mfcc = all(len(p.get("mfcc", [])) == 13 for p in points)
+    mfcc = np.asarray([p["mfcc"] for p in points], dtype=float) if has_mfcc else None
 
     # Relative scaling prevents any single physical unit dominating distances.
     def robust(x):
@@ -30,17 +32,19 @@ def detect_repeated_regions(data: dict, step_seconds: float = 2.0,
         return np.clip((x - center) / spread, -4, 4)
 
     starts = np.arange(0, duration, step)
-    feature, valid = [], []
+    feature, valid, mfcc_windows = [], [], []
     for t in starts:
         sel = (times >= t) & (times < min(duration, t + step))
         if not np.any(sel):
             feature.append(np.zeros(15))
             valid.append(False)
+            mfcc_windows.append(np.zeros(13))
             continue
         c = np.maximum(np.mean(chroma[sel], axis=0), 0)
         c = c / max(float(np.sum(c)), 1e-9)
         feature.append(np.r_[c, np.mean(rms[sel]), np.mean(centroid[sel]), np.mean(flux[sel])])
         valid.append(bool(np.mean(rms[sel]) > -55))
+        mfcc_windows.append(np.mean(mfcc[sel], axis=0) if has_mfcc else np.zeros(13))
     f = np.asarray(feature)
     good = np.asarray(valid)
     if np.count_nonzero(good) < 8:
@@ -52,7 +56,15 @@ def detect_repeated_regions(data: dict, step_seconds: float = 2.0,
     sim_ch = np.clip(ch @ ch.T, 0, 1)
     delta = extra[:, None, :] - extra[None, :, :]
     sim_extra = np.exp(-np.mean(delta * delta, axis=2))
-    similarity = 0.55 * sim_ch + 0.45 * sim_extra
+    if has_mfcc:
+        m = np.asarray(mfcc_windows, dtype=float)
+        m_center = np.median(m, axis=0)
+        m_scale = np.maximum(np.percentile(m, 75, axis=0) - np.percentile(m, 25, axis=0), 1e-3)
+        m = np.clip((m - m_center) / m_scale, -4, 4)
+        sim_mfcc = np.exp(-np.mean((m[:, None, :] - m[None, :, :]) ** 2, axis=2))
+        similarity = 0.40 * sim_ch + 0.30 * sim_extra + 0.30 * sim_mfcc
+    else:
+        similarity = 0.55 * sim_ch + 0.45 * sim_extra
     similarity[~good, :] = 0
     similarity[:, ~good] = 0
     n = len(starts)
@@ -84,7 +96,7 @@ def detect_repeated_regions(data: dict, step_seconds: float = 2.0,
                             "second_end_seconds": round(second + length_seconds, 3),
                             "duration_seconds": round(length_seconds, 3),
                             "similarity_score": round(avg, 5),
-                            "evidence": ["chroma", "rms_dbfs", "spectral_centroid_hz", "spectral_flux"],
+                            "evidence": ["chroma", "rms_dbfs", "spectral_centroid_hz", "spectral_flux"] + (["mfcc"] if has_mfcc else []),
                             "interpretation_status": "acoustic_repetition_candidate"
                         })
                 begin = None
@@ -101,7 +113,7 @@ def detect_repeated_regions(data: dict, step_seconds: float = 2.0,
             break
     return {
         "status": "heuristic",
-        "method": "sequence_multifeature_v1",
+        "method": "sequence_multifeature_mfcc_v2" if has_mfcc else "sequence_multifeature_v1",
         "analysis_step_seconds": round(step, 3),
         "repeated_regions": selected,
         "candidate_count": len(candidates),
