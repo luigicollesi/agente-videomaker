@@ -24,7 +24,6 @@ export function createText3DCore(options){
  const side=new THREE.MeshStandardMaterial({color:0x577eae,metalness:.4,roughness:.5});
  const characters=[],meshes=[];
  let modelText='';
- let modelVersion=0;
  const rebuildGeometry=(text)=>{
   const nextChars=[],nextMeshes=[];
   let cursor=0;
@@ -46,7 +45,7 @@ export function createText3DCore(options){
   meshes.splice(0,meshes.length,...nextMeshes);
   for(const child of characters)root.add(child);
   root.position.x=-cursor/2;
-  modelText=text;modelVersion++;
+  modelText=text;
  };
  rebuildGeometry(String(options.text??''));
  const animations={native:options.native??[],motion:options.motion??[],appearance:options.appearance??[],vfx:options.vfx??[]};
@@ -57,7 +56,7 @@ export function createText3DCore(options){
  const motion=createText3DMotion({group:outer,characters:[]});
  const snapshot=o=>({position:o.position.clone(),rotation:o.rotation.clone(),scale:o.scale.clone()});
  const restore=(o,b)=>{o.position.copy(b.position);o.rotation.copy(b.rotation);o.scale.copy(b.scale)};
- const rootBaseline=snapshot(root),cameraBaseline=snapshot(camera),outerBaseline=snapshot(outer);
+ let rootBaseline=snapshot(root);const cameraBaseline=snapshot(camera),outerBaseline=snapshot(outer);
  let baseline=characters.map(snapshot);
  let baseFront=front.color.clone(),baseSide=side.color.clone();
  const run=async(t)=>{
