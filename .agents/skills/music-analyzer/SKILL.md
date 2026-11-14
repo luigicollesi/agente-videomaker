@@ -9,7 +9,7 @@ license: MIT
 ## Purpose
 Provide **measured acoustic evidence** for music-video editing. Analyze the *entire original music timeline*, then allow the editing agent to query any interval for local tempo, activity, dynamics, texture, rhythmic events, changes, and limited interpretive estimates. Run deterministically on CPU without API credentials or neural models.
 
-This skill defines the **integration and technical specification**. A first decoder milestone now exists under `packages/music-analyzer/`, exposing CLI `inspect` and `decode` for local WAV/MP3/MP4 handling. DSP, verified editor-time mapping, `music-analysis.json`, and runtime agent tools remain **unimplemented**. Do not claim a music analysis exists merely because media was decoded.
+This skill defines the **integration and technical specification**. The Python package under `packages/music-analyzer/` provides CLI `inspect`, `decode`, and an **experimental** `analyze` command computing beats, onset events, RMS, centroid, rolloff, and flatness, writing a partial `music-analysis.json`. Verified source/editor-time mapping, downbeats, temporal segments, expressive heuristics, strict schema validation, caching and agent runtime tool registration remain **unimplemented**. Do not treat unverified decoded-time events as source-aligned timestamps.
 
 ## Mandatory boundaries
 - NEVER transcribe, infer lyrics, align words, detect named instruments, separate sources, or label formal verse/chorus sections.
@@ -27,7 +27,7 @@ This skill defines the **integration and technical specification**. A first deco
 5. Make transitions primarily at supported events/change points, taking narrative symbolism and footage into account. Keep a global visual direction; local texture/mood does not force scene-wide style changes.
 6. If optional lyrics timing JSON is supplied by the user, join on the **source audio timeline** without modifying or generating lyric timestamps.
 
-## Processing pipeline (partially implemented; DSP planned)
+## Processing pipeline (partially implemented; additional DSP planned)
 - WAV, MP3 and MP4 supported: FFprobe stream inspection and FFmpeg audio decoding, explicit audio-stream selection, timing/codec-delay mapping; mono analysis signal; keep original sample offsets.
 - DSP features: RMS/loudness proxy, spectral centroid, bandwidth, rolloff, contrast, flatness, ZCR, onset strength, tempo candidates, beat positions, beat strength, chroma/tonal stability, harmonic-percussive *feature decomposition* (no source separation outputs).
 - Multi-resolution: 10–50ms event-level extraction (STFT-dependent), 3s / 0.5s hop local profile, 10–20s / 2s hop contextual profile; defaults adjustable and documented.
