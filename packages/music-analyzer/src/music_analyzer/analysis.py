@@ -12,6 +12,7 @@ from music_analyzer.temporal import characterize
 from music_analyzer.advanced import add_advanced_features
 from music_analyzer.signal_metrics import measure_signal
 from music_analyzer.loudness import measure_loudness
+from music_analyzer.stereo import measure_stereo
 
 
 def analyze_music(audio_path: str, output_path: str,
@@ -40,6 +41,7 @@ def analyze_music(audio_path: str, output_path: str,
         result = add_advanced_features(characterize(result))
         result["signal_diagnostics"] = measure_signal(info.pcm_path, info.analysis_sample_rate_hz)
         result["loudness"] = measure_loudness(source, info.audio_stream_index)
+        result["stereo"] = measure_stereo(source, info.audio_stream_index, info.source_channels)
         output.parent.mkdir(parents=True, exist_ok=True)
         temporary = output.with_suffix(output.suffix + ".tmp")
         temporary.write_text(json.dumps(result, sort_keys=True, indent=2, allow_nan=False) + "\n",
