@@ -65,5 +65,16 @@ def get_music_context(analysis_path: str, start_seconds: float, end_seconds: flo
                 for k in range(12)
             ] if any(len(p.get("chroma_cens", [])) == 12 for p in points) else None
         },
+        "temporal_dynamics": {
+            "method": data.get("temporal_dynamics", {}).get("method"),
+            "curve": [
+                p for p in data.get("temporal_dynamics", {}).get("curve", [])
+                if start_seconds <= p["time_seconds"] < end_seconds
+            ][:1000],
+            "events": [
+                e for e in data.get("temporal_dynamics", {}).get("events", [])
+                if start_seconds <= e["time_seconds"] < end_seconds
+            ][:128]
+        },
         "warnings": data.get("warnings", [])
     }
