@@ -33,5 +33,19 @@ def get_music_context(analysis_path: str, start_seconds: float, end_seconds: flo
         "onset_count": sum(1 for e in events if e["type"] == "onset"),
         "acoustic_character": segments,
         "truncated": len(beats) > 256 or len([e for e in events if e["type"] != "onset"]) > 128,
+        "harmony": {
+            "global_pitch_class_profile": data.get("harmony", {}).get("global_pitch_class_profile"),
+            "mean_local_chroma_entropy_bits": (
+                round(sum(p["chroma_entropy_bits"] for p in points
+                          if p.get("chroma_entropy_bits") is not None) /
+                      sum(p.get("chroma_entropy_bits") is not None for p in points), 4)
+                if any(p.get("chroma_entropy_bits") is not None for p in points) else None
+            )
+        },
+        "recurrence_candidates": [
+            r for r in data.get("structure", {}).get("repetitions", [])
+            if start_seconds <= r["first_start_seconds"] < end_seconds
+            or start_seconds <= r["second_start_seconds"] < end_seconds
+        ][:24],
         "warnings": data.get("warnings", [])
     }
