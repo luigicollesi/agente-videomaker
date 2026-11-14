@@ -76,3 +76,17 @@ Re-run `music-analyzer analyze` to regenerate the JSON. Existing historical
 analyses are not automatically migrated. This milestone does not implement
 LUFS, pitch, full spectral descriptors, source-time alignment, style/emotion
 classification, or editor registration. Validation with real audio is pending.
+
+## Additional objective measurements (experimental)
+
+The current analysis includes per-0.5s `spectral_bandwidth_hz`,
+`zero_crossing_rate`, `spectral_contrast_mean_db` and a 12-element
+`chroma_energy` vector, plus global `signal_diagnostics`:
+sample peak, global RMS, crest factor, DC offset, near-full-scale fraction.
+These are DSP measurements, not inferred chords, emotions or instruments.
+
+For 332-second input, chroma/contrast extraction can increase CPU and memory
+use. The current implementation still materializes a full STFT matrix;
+bounded chunked STFT and verified editor timing remain future requirements.
+Tests include synthetic tones and silence; successful local validation with
+the complete user track and CI run must still be confirmed.
