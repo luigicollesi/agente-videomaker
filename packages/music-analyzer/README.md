@@ -90,3 +90,19 @@ use. The current implementation still materializes a full STFT matrix;
 bounded chunked STFT and verified editor timing remain future requirements.
 Tests include synthetic tones and silence; successful local validation with
 the complete user track and CI run must still be confirmed.
+
+## EBU R128 loudness measurements
+
+The analyzer now records `loudness.integrated_lufs`,
+`loudness.loudness_range_lu`, and `loudness.true_peak_dbtp`
+using FFmpeg loudnorm's input measurement pass. No normalization is
+applied to the signal used for DSP.
+
+Reference execution on Inferno-Divina_Comedia.wav (332 s) measured
+-14.62 LUFS integrated, 7.40 LU LRA, and -2.68 dBTP true peak.
+This is a direct FFmpeg measurement on the attached source, not a
+passing end-to-end test of the Python analyzer.
+
+Spectral processing is **still full-matrix and not memory-bounded**.
+Do not claim chunked STFT support. Genre, emotion, key and chord
+classification remain outside the implemented scope.
