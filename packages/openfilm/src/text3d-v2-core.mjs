@@ -43,12 +43,16 @@ export function createText3DCore(options){
    throw new Error('Invalid Text3D '+key+' animation modules');
  }
  const motion=createText3DMotion({group:outer,characters:[]});
- const baseline=characters.map(c=>({position:c.position.clone(),rotation:c.rotation.clone(),scale:c.scale.clone()}));
+ const snapshot=o=>({position:o.position.clone(),rotation:o.rotation.clone(),scale:o.scale.clone()});
+ const restore=(o,b)=>{o.position.copy(b.position);o.rotation.copy(b.rotation);o.scale.copy(b.scale)};
+ const rootBaseline=snapshot(root),cameraBaseline=snapshot(camera),outerBaseline=snapshot(outer);
+ const baseline=characters.map(snapshot);
  let baseFront=front.color.clone(),baseSide=side.color.clone();
  const run=async(t)=>{
   if(!Number.isFinite(t)||t<0)throw new Error('Invalid frame time');
   await motion.frame(t);
-  characters.forEach((c,i)=>{c.position.copy(baseline[i].position);c.rotation.copy(baseline[i].rotation);c.scale.copy(baseline[i].scale)});
+  restore(root,rootBaseline);restore(camera,cameraBaseline);restore(outer,outerBaseline);
+  characters.forEach((c,i)=>restore(c,baseline[i]));
   front.color.copy(baseFront);side.color.copy(baseSide);
   for(const kind of ['native','motion','appearance','vfx']){
    for(const module of animations[kind]){
