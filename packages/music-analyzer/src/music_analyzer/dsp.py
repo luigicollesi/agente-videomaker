@@ -10,6 +10,8 @@ from pathlib import Path
 
 import librosa
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
+from music_analyzer.spectral_chunks import chunked_spectral_features
 
 HOP = 512
 FFT = 2048
@@ -27,18 +29,20 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
         raise ValueError("PCM is empty or contains non-finite samples")
     # FFT matrix is bounded by input duration limits enforced at decoding.
     waveform = np.asarray(y)
-    rms = librosa.feature.rms(y=waveform, frame_length=FFT, hop_length=HOP)[0]
-    duration = min(float(duration_seconds), waveform.size / sample_rate)
     silent = bool(np.max(np.abs(waveform)) < 1e-7)
-    spec = np.abs(librosa.stft(waveform, n_fft=FFT, hop_length=HOP))
-    centroid = librosa.feature.spectral_centroid(S=spec, sr=sample_rate)[0]
-    flatness = librosa.feature.spectral_flatness(S=spec)[0]
-    rolloff = librosa.feature.spectral_rolloff(S=spec, sr=sample_rate)[0]
-    bandwidth = librosa.feature.spectral_bandwidth(S=spec, sr=sample_rate)[0]
-    contrast = librosa.feature.spectral_contrast(S=spec, sr=sample_rate)
-    zcr = librosa.feature.zero_crossing_rate(y=waveform, frame_length=FFT, hop_length=HOP)[0]
-    chroma = librosa.feature.chroma_stft(S=spec ** 2, sr=sample_rate, n_fft=FFT, hop_length=HOP)
-    onset_envelope = librosa.onset.onset_strength(y=waveform, sr=sample_rate, hop_length=HOP)
+    spectral = chunked_spectral_features(waveform, sample_rate, FFT, HOP)
+    rms = spectral["rms"]
+    centroid = spectral["centroid"]
+    flatness = spectral["flatness"]
+    rolloff = spectral["rolloff"]
+    bandwidth = spectral["bandwidth"]
+    contrast = spectral["contrast"]
+    chroma = spectral["chroma"]
+    zcr = spectral["zcr"]
+    duration = min(float(duration_seconds), waveform.size / sample_rate)
+    # Flux is extracted from consecutive normalized STFT frames. This replaces
+    # the prior librosa Mel onset strength; beat estimates may change.
+    onset_envelope = gaussian_filter1d(spectral["spectral_flux"], sigma=1.0)
     count = min(len(rms), len(centroid), len(flatness), len(rolloff), len(bandwidth), len(zcr), chroma.shape[1], contrast.shape[1])
     frame_times = librosa.frames_to_time(np.arange(count), sr=sample_rate, hop_length=HOP)
     points = []
@@ -90,7 +94,7 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
         "curves": {"hop_seconds": CURVE_STEP_SECONDS, "points": points},
         "events": [
             {"type": "onset", "time_seconds": item["time_seconds"],
-             "strength": item["strength"], "source_method": "librosa.onset.onset_detect"}
+             "strength": item["strength"], "source_method": "librosa.onset.onset_detect + normalized_spectral_flux"}
             for item in onsets
         ],
         "features": {
@@ -102,7 +106,9 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
             "zero_crossing_rate_unit": "fraction",
             "spectral_contrast_unit": "dB",
             "chroma_energy_unit": "relative_spectral_energy",
-            "chroma_representation": "STFT chroma; not key or chord estimates",
+            "chroma_representation": "STFT chroma with fixed tuning; not key or chord estimates",
+            "spectral_processing": "bounded_512_frame_batches",
+            "onset_method": "normalized_positive_spectral_flux",
             "curve_window_seconds": CURVE_STEP_SECONDS,
             "time_reference": "decoded_pcm_unverified_source_mapping"
         },
