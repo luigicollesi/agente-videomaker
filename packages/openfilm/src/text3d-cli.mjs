@@ -4,6 +4,7 @@ import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writ
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
 import { verifyText3D } from './text3d-verify.mjs';
+import { validateText3DV2 } from './text3d-v2-contract.mjs';
 import { builtInRoot } from '../studio/server/library.mjs';
 import { replacementEdits } from './text3d-replace.mjs';
 import { readProjectFilm, editProjectFilm } from '../studio/server/film.mjs';
@@ -16,6 +17,11 @@ const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)
 async function validateText3D(dir) {
  const base=resolve(dir);
  const manifest=JSON.parse(await readFile(join(base,'manifest.json'),'utf8'));
+ if(manifest?.contractVersion===2){
+  const issues=validateText3DV2(manifest);
+  if(issues.length)throw new Error('Text3D v2 contract: '+issues.join('; '));
+  throw new Error('Text3D v2 publishing is not yet supported; preserve draft and use a validated v1 bundle until the v2 runtime is integrated');
+ }
  if(!record(manifest)||manifest.formatVersion!==1||manifest.runtimeVersion!==1)
   throw new Error('Text3D manifest requires formatVersion=1 and runtimeVersion=1');
  const fields=['componentId','source2DId','sourceRevision','displayName','version'];
