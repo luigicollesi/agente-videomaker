@@ -1,6 +1,7 @@
 // @ts-check
 /** Shared Text3D v2 core. Rendering, model ownership and time are controlled here. */
 import {createText3DMotion,text3DGraphemes} from './text3d-runtime.mjs';
+import {Text3DResourceManager} from './text3d-resource-manager.mjs';
 
 /**
  * Animation modules are evaluated in absolute seconds, never accumulated deltas.
@@ -53,22 +54,40 @@ export function createText3DCore(options){
   if(!Array.isArray(animations[key])||animations[key].some(a=>typeof a?.evaluate!=='function'))
    throw new Error('Invalid Text3D '+key+' animation modules');
  }
+ const resources=new Text3DResourceManager();
+ // Effects may declare exclusive channel claims; reject ambiguous ownership.
+ const channels=new Map();
+ for(const kind of ['native','motion','appearance','vfx'])for(const [index,effect] of animations[kind].entries()){
+  const owner=kind+':'+index;
+  for(const channel of effect.channels??[]){
+   if(typeof channel!=='string'||!channel)throw new Error('Invalid effect channel');
+   if(channels.has(channel))throw new Error('Conflicting Text3D channel '+channel+' ('+channels.get(channel)+' / '+owner+')');
+   channels.set(channel,owner);
+  }
+ }
  const motion=createText3DMotion({group:outer,characters:[]});
  const snapshot=o=>({position:o.position.clone(),rotation:o.rotation.clone(),scale:o.scale.clone()});
  const restore=(o,b)=>{o.position.copy(b.position);o.rotation.copy(b.rotation);o.scale.copy(b.scale)};
  let rootBaseline=snapshot(root);const cameraBaseline=snapshot(camera),outerBaseline=snapshot(outer);
  let baseline=characters.map(snapshot);
  let baseFront=front.color.clone(),baseSide=side.color.clone();
+ const snapshotMaterial=m=>({color:m.color.clone(),emissive:m.emissive.clone(),emissiveIntensity:m.emissiveIntensity,opacity:m.opacity,transparent:m.transparent,roughness:m.roughness,metalness:m.metalness,visible:m.visible});
+ const baseMaterial=[snapshotMaterial(front),snapshotMaterial(side)];
+ const restoreMaterial=(m,b)=>{m.color.copy(b.color);m.emissive.copy(b.emissive);m.emissiveIntensity=b.emissiveIntensity;m.opacity=b.opacity;m.transparent=b.transparent;m.roughness=b.roughness;m.metalness=b.metalness;m.visible=b.visible};
+ const baseLight=[{intensity:ambient.intensity,color:ambient.color.clone(),position:ambient.position.clone()},{intensity:key.intensity,color:key.color.clone(),position:key.position.clone()}];
  const run=async(t)=>{
   if(!Number.isFinite(t)||t<0)throw new Error('Invalid frame time');
   await motion.frame(t);
   restore(root,rootBaseline);restore(camera,cameraBaseline);restore(outer,outerBaseline);
   characters.forEach((c,i)=>restore(c,baseline[i]));
+  restoreMaterial(front,baseMaterial[0]);restoreMaterial(side,baseMaterial[1]);
   front.color.copy(baseFront);side.color.copy(baseSide);
+  for(const [i,light] of [ambient,key].entries()){light.intensity=baseLight[i].intensity;light.color.copy(baseLight[i].color);light.position.copy(baseLight[i].position)}
   for(const kind of ['native','motion','appearance','vfx']){
-   for(const module of animations[kind]){
+   for(const [index,module] of animations[kind].entries()){
     if(module.enabled===false)continue;
-    await module.evaluate(t,{scene,camera,renderer,model:{root,characters,meshes},materials:[front,side]});
+    const owner=kind+':'+index;
+    await module.evaluate(t,{scene,camera,renderer,model:{root,characters,meshes},materials:[front,side],resources:{track:resource=>resources.track(owner,resource)}});
    }
   }
   renderer.render(scene,camera);
@@ -81,9 +100,12 @@ export function createText3DCore(options){
   animations,setBaseColor(color){front.color.set(color);side.color.copy(front.color).multiplyScalar(.48);baseFront=front.color.clone();baseSide=side.color.clone()},frame:async t=>{if(disposed)throw new Error('Text3D disposed');await run(t)},
   dispose(){
    if(disposed)return;disposed=true;
-   for(const kind of ['native','motion','appearance','vfx'])for(const module of animations[kind])module.dispose?.();
-   for(const mesh of meshes)mesh.geometry.dispose();
-   front.dispose();side.dispose();renderer.dispose();
+   const errors=[];
+   for(const kind of ['native','motion','appearance','vfx'])for(const module of animations[kind])try{module.dispose?.()}catch(e){errors.push(e)}
+   try{resources.releaseAll()}catch(e){errors.push(e)}
+   for(const mesh of meshes)try{mesh.geometry.dispose()}catch(e){errors.push(e)}
+   for(const object of [front,side,renderer])try{object.dispose()}catch(e){errors.push(e)}
+   if(errors.length)throw new AggregateError(errors,'Text3D disposal errors');
   }
  };
 }
