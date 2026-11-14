@@ -125,3 +125,14 @@ The onset envelope is still computed on the full frame-rate flux vector, and
 beats are tracked globally. Spectral matrices are bounded by the batch size,
 but the entire analysis is **not** constant-memory in audio duration.
 CI and full-track numerical regression must pass before this is considered stable.
+
+## JSON integrity validation
+
+```bash
+music-analyzer analyze /path/to/song.wav --output /tmp/music-analysis.json
+music-analyzer validate /tmp/music-analysis.json
+```
+
+Validation checks chronological ordering, source duration bounds, overlapping
+segments and non-finite numeric values. It does **not** establish musical
+accuracy or source/editor-time synchronization.
