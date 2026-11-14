@@ -136,3 +136,20 @@ music-analyzer validate /tmp/music-analysis.json
 Validation checks chronological ordering, source duration bounds, overlapping
 segments and non-finite numeric values. It does **not** establish musical
 accuracy or source/editor-time synchronization.
+
+## Rhythm regression fix
+
+The initial bounded-spectral implementation replaced the proven
+librosa Mel onset envelope with normalized positive spectral flux, causing
+large deviations on the 332-second Inferno fixture (89.103 BPM / 1195 onsets
+previously versus 123.047 BPM / 625 onsets afterward). The beat tracker now
+uses the original `librosa.onset.onset_strength(y=..., sr=..., hop_length=512)`
+method again. `normalized_spectral_flux` is still available in each sampled
+spectral point and is **not** passed to the beat tracker.
+
+`test_rhythm_regression.py` compares onset timestamps against the
+independent librosa reference call on a controlled click signal. The revised
+full-song results must still be checked with the user's local file; this
+fix does not certify beat-grid accuracy against annotated ground truth.
+The Mel onset computation continues to consume memory; spectral descriptor
+STFT batches remain bounded separately.
