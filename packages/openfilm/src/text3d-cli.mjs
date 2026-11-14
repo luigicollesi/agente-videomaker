@@ -103,7 +103,7 @@ export async function text3DCommand(args) {
   }
   if(action==='validate'&&rest[0]){
    const manifest=await validateText3D(rest[0]);
-   return {ok:true,lines:['Text3D structure validated: '+manifest.componentId,'Run register for packaged visual verification.']};
+   return {ok:true,lines:['Text3D structure validated: '+(manifest.componentId??manifest.id+'/'+manifest.version),'Run register for packaged visual verification.']};
   }
   if(action==='register'&&rest[0]){
    const source=resolve(rest[0]),manifest=await validateText3D(source);
