@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from music_analyzer import __version__
+from music_analyzer.analysis import analyze_music
 from music_analyzer.decoder import MediaError, decode_audio, inspect_audio
 
 
@@ -23,6 +24,10 @@ def main() -> int:
     decode.add_argument("--metadata-output", required=True)
     decode.add_argument("--audio-stream", type=int)
     decode.add_argument("--sample-rate", type=int, default=22050)
+    analyze = commands.add_parser("analyze", help="Compute rhythm, energy and spectral descriptors")
+    analyze.add_argument("audio_path")
+    analyze.add_argument("--output", required=True)
+    analyze.add_argument("--audio-stream", type=int)
     arguments = parser.parse_args()
     try:
         if arguments.command == "inspect":
@@ -31,6 +36,15 @@ def main() -> int:
                       "selection": data["selection"],
                       "codec": data["stream"].get("codec_name"),
                       "container_duration_seconds": data["duration"]}
+        elif arguments.command == "analyze":
+            result = analyze_music(arguments.audio_path, arguments.output, arguments.audio_stream)
+            output = {"status": "analyzed", "output_path": str(Path(arguments.output).resolve()),
+                      "duration_seconds": result["source"]["decoded_duration_seconds"],
+                      "bpm_estimate": result["rhythm"]["bpm_estimate"],
+                      "beat_count": len(result["rhythm"]["beats"]),
+                      "onset_count": len(result["events"]),
+                      "curve_points": len(result["curves"]["points"]),
+                      "warnings": result["warnings"]}
         else:
             info = decode_audio(arguments.audio_path, arguments.pcm_output,
                                 arguments.audio_stream, arguments.sample_rate)
