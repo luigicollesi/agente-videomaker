@@ -16,6 +16,7 @@ from music_analyzer.stereo import measure_stereo
 from music_analyzer.harmonic_structure import enrich_harmony_structure
 from music_analyzer.structure_v2 import detect_repeated_regions
 from music_analyzer.temporal_dynamics import enrich_temporal_dynamics
+from music_analyzer.rhythm_extensions import enrich_rhythm
 from music_analyzer.cache import PIPELINE_REVISION, sha256_file, cache_key, load_cached, write_cached
 
 
@@ -33,7 +34,7 @@ def analyze_music(audio_path: str, output_path: str,
         saved = load_cached(cache, key, digest)
         if saved is not None:
             output.parent.mkdir(parents=True, exist_ok=True)
-            output.write_text(json.dumps(saved, indent=2, sort_keys=True, allow_nan=False) + "\\n",
+            output.write_text(json.dumps(saved, indent=2, sort_keys=True, allow_nan=False) + "\n",
                               encoding="utf-8")
             return saved
     with tempfile.TemporaryDirectory(prefix="music-analyzer-") as temp:
@@ -60,6 +61,7 @@ def analyze_music(audio_path: str, output_path: str,
         result = enrich_harmony_structure(result)
         result["structure"].update(detect_repeated_regions(result))
         result = enrich_temporal_dynamics(result)
+        result = enrich_rhythm(result)
         result["cache_revision"] = PIPELINE_REVISION
         output.parent.mkdir(parents=True, exist_ok=True)
         temporary = output.with_suffix(output.suffix + ".tmp")
