@@ -14,6 +14,7 @@ from music_analyzer.signal_metrics import measure_signal
 from music_analyzer.loudness import measure_loudness
 from music_analyzer.stereo import measure_stereo
 from music_analyzer.harmonic_structure import enrich_harmony_structure
+from music_analyzer.structure_v2 import detect_repeated_regions
 
 
 def analyze_music(audio_path: str, output_path: str,
@@ -44,6 +45,7 @@ def analyze_music(audio_path: str, output_path: str,
         result["loudness"] = measure_loudness(source, info.audio_stream_index)
         result["stereo"] = measure_stereo(source, info.audio_stream_index, info.source_channels)
         result = enrich_harmony_structure(result)
+        result["structure"].update(detect_repeated_regions(result))
         output.parent.mkdir(parents=True, exist_ok=True)
         temporary = output.with_suffix(output.suffix + ".tmp")
         temporary.write_text(json.dumps(result, sort_keys=True, indent=2, allow_nan=False) + "\n",
