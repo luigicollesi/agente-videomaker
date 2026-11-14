@@ -19,7 +19,7 @@ test('Text3D CLI validates, registers and retrieves an immutable Saved component
   };
   await writeFile(join(folder,'manifest.json'),JSON.stringify(manifest));
   await writeFile(join(folder,'index.html'),'<html><head><style>:root{--clip-length:8s}</style></head><body><script>window.film={frame(t){},frameReadsOverrides:true};</script></body></html>');
-  await writeFile(join(folder,'component.js'),'export function createText3D(){return {group:{},characters:[],frame(t){},dispose(){}}}');
+  await writeFile(join(folder,'component.js'),'export function createText3D(){const renderer=new THREE.WebGLRenderer();return {group:{},characters:[],frame(t){},dispose(){}}}');
   assert.equal((await text3DCommand(['validate',folder])).ok,true);
   // A structurally valid dummy is not a renderable Text3D: never publish it.
   const rejected=await text3DCommand(['register',folder]);
