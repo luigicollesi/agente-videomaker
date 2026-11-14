@@ -34,8 +34,12 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
     centroid = librosa.feature.spectral_centroid(S=spec, sr=sample_rate)[0]
     flatness = librosa.feature.spectral_flatness(S=spec)[0]
     rolloff = librosa.feature.spectral_rolloff(S=spec, sr=sample_rate)[0]
+    bandwidth = librosa.feature.spectral_bandwidth(S=spec, sr=sample_rate)[0]
+    contrast = librosa.feature.spectral_contrast(S=spec, sr=sample_rate)
+    zcr = librosa.feature.zero_crossing_rate(y=waveform, frame_length=FFT, hop_length=HOP)[0]
+    chroma = librosa.feature.chroma_stft(S=spec ** 2, sr=sample_rate, n_fft=FFT, hop_length=HOP)
     onset_envelope = librosa.onset.onset_strength(y=waveform, sr=sample_rate, hop_length=HOP)
-    count = min(len(rms), len(centroid), len(flatness), len(rolloff))
+    count = min(len(rms), len(centroid), len(flatness), len(rolloff), len(bandwidth), len(zcr), chroma.shape[1], contrast.shape[1])
     frame_times = librosa.frames_to_time(np.arange(count), sr=sample_rate, hop_length=HOP)
     points = []
     for t in np.arange(0, duration, CURVE_STEP_SECONDS):
@@ -50,7 +54,11 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
             "rms_dbfs": _round(20 * math.log10(level), 3) if level > 0 else None,
             "spectral_centroid_hz": _round(np.mean(centroid[lo:hi]), 2),
             "spectral_rolloff_hz": _round(np.mean(rolloff[lo:hi]), 2),
-            "spectral_flatness": _round(np.mean(flatness[lo:hi]))
+            "spectral_flatness": _round(np.mean(flatness[lo:hi])),
+            "spectral_bandwidth_hz": _round(np.mean(bandwidth[lo:hi]), 2),
+            "zero_crossing_rate": _round(np.mean(zcr[lo:hi])),
+            "spectral_contrast_mean_db": _round(np.mean(contrast[:,lo:hi]), 3),
+            "chroma_energy": [_round(v) for v in np.mean(chroma[:,lo:hi], axis=1)]
         })
     beats, onsets = [], []
     bpm = None
@@ -90,6 +98,11 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
             "n_fft": FFT, "rms_unit": "dBFS",
             "spectral_centroid_unit": "Hz", "spectral_rolloff_unit": "Hz",
             "spectral_flatness_unit": "unitless",
+            "spectral_bandwidth_unit": "Hz",
+            "zero_crossing_rate_unit": "fraction",
+            "spectral_contrast_unit": "dB",
+            "chroma_energy_unit": "relative_spectral_energy",
+            "chroma_representation": "STFT chroma; not key or chord estimates",
             "curve_window_seconds": CURVE_STEP_SECONDS,
             "time_reference": "decoded_pcm_unverified_source_mapping"
         },
