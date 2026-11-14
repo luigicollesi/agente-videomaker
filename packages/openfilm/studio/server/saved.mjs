@@ -351,7 +351,7 @@ export async function takeSaved(root, path) {
   /* its place in the project: the library's, made a name a page's address takes as it is */
   /* OpenFilm's things one folder each under saved/openfilm/ (`effects-snow`), so their pages are no deeper than a
      project's pages are looked for (files.mjs listFiles) */
-  const base = `saved/${placeName(builtIn ? `${BUILT_IN}/${rel.replaceAll('/', '-')}` : rel)}`;
+  const base = `saved/${placeName(builtIn ? `${BUILT_IN}/${rel.replaceAll('/', '-')}` : rel.startsWith('text3d/') ? `text3d-${rel.replaceAll('/', '-')}` : rel)}`;
   const from = join(at, 'files');
   const files = [];
   for (const entry of await readdir(from, { recursive: true, withFileTypes: true }).catch(() => [])) {
