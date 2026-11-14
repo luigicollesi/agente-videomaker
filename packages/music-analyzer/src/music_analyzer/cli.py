@@ -10,6 +10,7 @@ from pathlib import Path
 from music_analyzer import __version__
 from music_analyzer.analysis import analyze_music
 from music_analyzer.context import get_music_context
+from music_analyzer.validation import validate_analysis
 from music_analyzer.decoder import MediaError, decode_audio, inspect_audio
 
 
@@ -33,6 +34,8 @@ def main() -> int:
     context.add_argument("analysis_path")
     context.add_argument("--start", type=float, required=True)
     context.add_argument("--end", type=float, required=True)
+    validate = commands.add_parser("validate", help="Check analysis JSON timestamps and structural integrity")
+    validate.add_argument("analysis_path")
     arguments = parser.parse_args()
     try:
         if arguments.command == "inspect":
@@ -41,6 +44,10 @@ def main() -> int:
                       "selection": data["selection"],
                       "codec": data["stream"].get("codec_name"),
                       "container_duration_seconds": data["duration"]}
+        elif arguments.command == "validate":
+            output = validate_analysis(arguments.analysis_path)
+            print(json.dumps(output, sort_keys=True))
+            return 0 if output["valid"] else 2
         elif arguments.command == "context":
             output = get_music_context(arguments.analysis_path, arguments.start, arguments.end)
         elif arguments.command == "analyze":
