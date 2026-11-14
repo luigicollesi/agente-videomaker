@@ -30,6 +30,7 @@ test('v2 core composes native and external motion with deterministic seeks',asyn
  assert.equal(component.appearance.materials[0].color.r,firstColor);
  assert.equal(calls.filter(x=>x==='render').length,3);
  const originalRenderer=component.renderer;
+ assert.throws(()=>createText3DCore({THREE:adapter,canvas:{width:960,height:540},font,text:'A',native:[{channels:['material.color'],evaluate(){}}],appearance:[{channels:['material.color'],evaluate(){}}]}),/Conflicting Text3D channel/);
  component.setText('ABC');
  assert.equal(component.renderer,originalRenderer);
  assert.equal(component.model.meshes.length,3);
