@@ -47,5 +47,11 @@ def get_music_context(analysis_path: str, start_seconds: float, end_seconds: flo
             if start_seconds <= r["first_start_seconds"] < end_seconds
             or start_seconds <= r["second_start_seconds"] < end_seconds
         ][:24],
+        "repeated_regions": [
+            r for r in data.get("structure", {}).get("repeated_regions", [])
+            if (r["first_start_seconds"] < end_seconds and r["first_end_seconds"] > start_seconds)
+            or (r["second_start_seconds"] < end_seconds and r["second_end_seconds"] > start_seconds)
+        ][:24],
+        "structure_method": data.get("structure", {}).get("method"),
         "warnings": data.get("warnings", [])
     }
