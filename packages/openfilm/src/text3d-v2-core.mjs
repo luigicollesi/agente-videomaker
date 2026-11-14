@@ -44,7 +44,7 @@ export function createText3DCore(options){
  }
  const motion=createText3DMotion({group:outer,characters:[]});
  const baseline=characters.map(c=>({position:c.position.clone(),rotation:c.rotation.clone(),scale:c.scale.clone()}));
- const baseFront=front.color.clone(),baseSide=side.color.clone();
+ let baseFront=front.color.clone(),baseSide=side.color.clone();
  const run=async(t)=>{
   if(!Number.isFinite(t)||t<0)throw new Error('Invalid frame time');
   await motion.frame(t);
@@ -63,7 +63,7 @@ export function createText3DCore(options){
   contractVersion:2,renderer,scene,camera,
   model:{root,characters,meshes},
   appearance:{materials:[front,side],lights:[ambient,key]},
-  animations,frame:async t=>{if(disposed)throw new Error('Text3D disposed');await run(t)},
+  animations,setBaseColor(color){front.color.set(color);side.color.copy(front.color).multiplyScalar(.48);baseFront=front.color.clone();baseSide=side.color.clone()},frame:async t=>{if(disposed)throw new Error('Text3D disposed');await run(t)},
   dispose(){
    if(disposed)return;disposed=true;
    for(const kind of ['native','motion','appearance','vfx'])for(const module of animations[kind])module.dispose?.();
