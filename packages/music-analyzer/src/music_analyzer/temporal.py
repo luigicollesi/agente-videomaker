@@ -80,18 +80,16 @@ def characterize(result: dict) -> dict:
         local_energy = energy[left:right]
         if t1 <= t0:
             continue
-        if np.max(local_energy) < -65:
-            character = ["quiet"]
-        else:
-            character = ["dense" if float(np.median(local_energy)) >= -15 else "soft"]
-            if float(np.median(matrix[left:right,1])) > 0.5:
-                character.append("bright")
-            if float(np.median(matrix[left:right,2])) > 0.5:
-                character.append("noisy")
-        segments.append({"start_seconds": round(t0,3), "end_seconds": round(t1,3),
-                         "acoustic_character": character,
-                         "evidence": ["rms_dbfs", "spectral_centroid_hz", "spectral_flatness"],
-                         "interpretation_status": "heuristic"})
+        segments.append({"start_seconds": round(t0, 3), "end_seconds": round(t1, 3),
+                         "acoustic_character": [],
+                         "evidence": {
+                             "median_rms_dbfs": round(float(np.median(local_energy)), 3),
+                             "median_spectral_centroid_hz": round(float(np.median(
+                                 [p["spectral_centroid_hz"] for p in points[left:right]])), 3),
+                             "median_spectral_flatness": round(float(np.median(
+                                 [p["spectral_flatness"] for p in points[left:right]])), 6)
+                         },
+                         "interpretation_status": "unclassified"})
     result["segments"] = segments
     result["events"] = sorted(events, key=lambda e: (e["time_seconds"], e["type"]))
     return result
