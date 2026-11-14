@@ -4,7 +4,7 @@ description: "Use for time-varying, transcription-free music analysis for video 
 license: MIT
 ---
 
-# Music Analyzer — system skill (design contract)
+# Music Analyzer — system skill (implemented CLI and evolving analysis contract)
 
 ## Purpose
 Provide **measured acoustic evidence** for music-video editing. Analyze the *entire original music timeline*, then allow the editing agent to query any interval for local tempo, activity, dynamics, texture, rhythmic events, changes, and limited interpretive estimates. Run deterministically on CPU without API credentials or neural models.
@@ -46,3 +46,35 @@ This skill defines the **integration and technical specification**. The Python p
 - [WAV/MP3/MP4 input pipeline, timestamp mapping and DSP algorithms](references/input-formats-and-algorithms.md)
 - [Machine-readable output contract](references/analysis-contract.md)
 - [Evaluation and phased implementation](references/validation-plan.md)
+
+## Current agent-facing workflow (implemented)
+
+The system skill can use the executable `music-analyzer` from the locally
+installed `packages/music-analyzer` Python package:
+
+```bash
+music-analyzer inspect /path/to/audio.wav
+music-analyzer analyze /path/to/audio.wav --output /path/to/music-analysis.json
+music-analyzer validate /path/to/music-analysis.json
+music-analyzer context /path/to/music-analysis.json --start 80 --end 105
+```
+
+The current analyzer additionally includes `harmony` (pitch-class profile,
+chroma entropy, local chroma novelty) and `structure` (bounded chroma
+similarity candidates), calculated from the current sampled chroma curve.
+These are **objective/heuristic acoustic descriptors**, not chords, detected
+keys, genres, emotions, or chorus/verse annotations.
+
+Agent procedure:
+1. Never claim analysis executed unless a locally available runtime returns a result.
+2. Validate the JSON before requesting interval context.
+3. Verify the JSON source SHA-256 matches the selected audio before use.
+4. Do not use its decoded-PCM-relative timestamps as verified editor clip
+   timestamps; establish editor offset/priming mapping first.
+5. Use `get_music_context` only for the selected source and interval.
+6. The rhythm tracker remains the previously validated Mel onset implementation;
+   alternate flux is a separate descriptor and must not silently replace it.
+7. Keep source media private; commands above are local and require no API keys.
+
+The skill metadata is a guide for the local editing agent; no native
+desktop skill-tool registration is implied merely by adding this document.
