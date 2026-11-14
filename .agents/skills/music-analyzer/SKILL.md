@@ -28,7 +28,7 @@ This skill defines the **integration and technical specification**. The Python a
 6. If optional lyrics timing JSON is supplied by the user, join on the **source audio timeline** without modifying or generating lyric timestamps.
 
 ## Processing pipeline (planned)
-- FFmpeg/ffprobe input decode, durations and normalization policies; mono analysis signal; keep original sample offsets.
+- WAV, MP3 and MP4 supported: FFprobe stream inspection and FFmpeg audio decoding, explicit audio-stream selection, timing/codec-delay mapping; mono analysis signal; keep original sample offsets.
 - DSP features: RMS/loudness proxy, spectral centroid, bandwidth, rolloff, contrast, flatness, ZCR, onset strength, tempo candidates, beat positions, beat strength, chroma/tonal stability, harmonic-percussive *feature decomposition* (no source separation outputs).
 - Multi-resolution: 10–50ms event-level extraction (STFT-dependent), 3s / 0.5s hop local profile, 10–20s / 2s hop contextual profile; defaults adjustable and documented.
 - Segmentation: normalized feature matrix, robust smoothing, change-point detection with configurable penalties and minimum duration, preserving important high-salience transients as events.
@@ -43,5 +43,6 @@ This skill defines the **integration and technical specification**. The Python a
 
 ## References
 - [Feasibility and method selections](references/technical-feasibility.md)
+- [WAV/MP3/MP4 input pipeline, timestamp mapping and DSP algorithms](references/input-formats-and-algorithms.md)
 - [Machine-readable output contract](references/analysis-contract.md)
 - [Evaluation and phased implementation](references/validation-plan.md)
