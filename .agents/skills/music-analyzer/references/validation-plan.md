@@ -3,7 +3,7 @@
 Status: design only, no executable analyzer yet.
 
 ## Phased implementation
-1. **Skeleton / contracts**: Python package, CLI, JSON Schema, FFprobe decoding, SHA-256 cache key, tests on empty/silent and synthetic audio.
+1. **Skeleton / contracts**: Python package, CLI, JSON Schema, FFprobe + FFmpeg WAV/MP3/MP4 stream-selection and decoding with timestamp mapping, SHA-256 cache key, tests on empty/silent and synthetic audio.
 2. **Deterministic DSP**: librosa/SciPy rhythms, onset and beat timestamps, energy, spectral descriptors, robust normalized local curves. Reproducible feature metadata.
 3. **Temporal context**: multi-resolution windows, smoothing, change-point segmentation (ruptures optional), event de-duplication, per-interval query API.
 4. **Expressive heuristics**: transparent activation and tension indicators; abstain from fixed genre and confident valence claims; visual suggestions only in agent layer.
@@ -13,6 +13,7 @@ Status: design only, no executable analyzer yet.
 ## Tests required
 - Silence / non-musical audio: refrain from manufacturing BPM, beats or emotion.
 - Click track tempo known and changing BPM: report ambiguity in half/double-time and local variation.
+- WAV (PCM16/float), MP3 (VBR, delay/priming), MP4 (AAC, multi-stream, start timestamps and edit lists), video-only and malformed media: correct stream selection, rejection, timing alignment and decoded-reference consistency.
 - Stereo and non-44.1kHz sources: consistent timestamps after resampling.
 - Gradual crescendos vs isolated transients: separate `energy_rise` from `transient_peak`.
 - Ambiguous harmony, distorted timbre and major/minor edge cases: avoid emotion certainty.
