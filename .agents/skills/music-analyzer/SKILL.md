@@ -78,3 +78,23 @@ Agent procedure:
 
 The skill metadata is a guide for the local editing agent; no native
 desktop skill-tool registration is implied merely by adding this document.
+
+## Structural Analysis V2 (experimental)
+
+`music-analyzer analyze` includes `structure.repeated_regions` from
+`structure_v2.detect_repeated_regions`: a conservative diagonal sequence
+matcher using chroma, RMS, spectral centroid and normalized spectral flux.
+Each candidate includes two continuous intervals, duration, score, evidence,
+and an explicit acoustic-only interpretation status.
+
+Use `structure.repeated_regions` for proposed structural correspondence.
+The old `structure.repetitions` field contains legacy two-second chroma-only
+similarity pairs and MUST NOT be interpreted as musical sections.
+`music-analyzer context` returns repeated regions overlapping the requested
+interval. Scores are similarity measures, not calibrated probabilities.
+Neither method labels chorus, verse, emotion, or genre.
+
+Do not treat any candidate as proven until synthetic tests and real recording
+evaluation have passed. The sequence matcher is fixed-tempo (diagonal),
+cannot yet accommodate tempo-warped repetitions, and uses current sampled
+chroma rather than true CENS. No editor-native tool registration is claimed.
