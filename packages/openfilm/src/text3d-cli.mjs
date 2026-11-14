@@ -79,6 +79,8 @@ export async function text3DCommand(args) {
    replacementEdits(clip,{...manifest.clip,src:'text3d-placeholder.html'},entry.parameterMap);
    const taken=await takeSaved(project,entry.bundlePath);
    if(!('clip' in taken))throw new Error('Cannot import the saved Text3D component');
+   // Confirm the imported page and bundled assets render at the project's actual path.
+   await verifyText3D(join(project,dirname(taken.clip.src)),Number(clip.time?.[1]??10));
    const edits=replacementEdits(clip,taken.clip,entry.parameterMap);
    await editProjectFilm(project,rev,[{op:'props',edits}]);
    return {ok:true,lines:['Applied '+entry.componentId+' to clip '+clipId]};
