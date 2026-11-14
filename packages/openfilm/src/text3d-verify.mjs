@@ -31,7 +31,9 @@ export async function verifyText3D(directory,duration=10) {
   const page=await browser.newPage({viewport:{width:960,height:540}});
   const errors=[];
   page.on('pageerror',e=>errors.push(e.message));
-  const url='http://127.0.0.1:'+server.address().port+'/index.html';
+  const address=server.address();
+  if(!address||typeof address==='string')throw new Text3DVisualError('SERVER_ERROR','Unable to resolve local test server');
+  const url='http://127.0.0.1:'+address.port+'/index.html';
   await page.goto(url,{waitUntil:'load',timeout:20000});
   // Distinguish a broken graphics environment from a broken Text3D component.
   const capability=await page.evaluate(()=>{
@@ -41,7 +43,7 @@ export async function verifyText3D(directory,duration=10) {
    return gl.isContextLost()?'CONTEXT_LOST_WEBGL':'ready';
   });
   if(capability!=='ready')throw new Text3DVisualError(capability,'Chromium cannot render a basic WebGL2 canvas');
-  try{await page.waitForFunction(()=>!!window.film&&!!window.film.ready,{timeout:15000});await page.evaluate(()=>window.film.ready)}catch(e){throw new Text3DVisualError('PAGE_INIT_FAILED',String(e))}
+  try{await page.waitForFunction(()=>!!window.film&&!!window.film.ready,null,{timeout:15000});await page.evaluate(()=>window.film.ready)}catch(e){throw new Text3DVisualError('PAGE_INIT_FAILED',String(e))}
   const times=[Math.min(.5,duration*.15),duration*.5,Math.max(.5,duration*.85)].filter(t=>t<duration);
   let visible=0;
   for(const t of times){
@@ -60,7 +62,7 @@ export async function verifyText3D(directory,duration=10) {
     return {count};
    },t).catch(e=>({error:'FRAME_EXCEPTION',detail:String(e)}));
    if('error' in result)throw new Text3DVisualError(result.error,result.detail??'Frame '+t);
-   visible=Math.max(visible,result.count);
+   visible=Math.max(visible,result.count??0);
   }
   if(errors.length)throw new Text3DVisualError('PAGE_ERROR',errors.join('; '));
   if(visible<100)throw new Text3DVisualError('BLANK_FRAME','No sufficiently visible pixels at sampled times');
