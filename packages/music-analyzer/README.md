@@ -177,3 +177,28 @@ This is an incremental milestone, **not** a completed V1.0 release. Verified
 source/editor time mapping, full loudness-over-time measurement, harmonic CQT,
 spatial time series, structural tempo warping, native editor registration, and
 real-audio benchmarks remain outstanding.
+
+## Agent CLI evidence tools (incremental milestone)
+
+```bash
+music-analyzer overview analysis.json
+music-analyzer context analysis.json --start 90 --end 108
+music-analyzer compare analysis.json --start-a 90 --end-a 108 --start-b 178 --end-b 196
+music-analyzer cues analysis.json --start 90 --end 108 --limit 30
+```
+
+`compare` uses aggregate CENS and MFCC cosine similarity; the two metrics
+are explicitly **not** calibrated probabilities, and interval aggregation
+does not establish sequential matching. `cues` returns measured acoustic
+events and RMS trend candidates, not mandatory cuts or named formal sections.
+`overview` returns a compact global report without the full per-frame data.
+
+The standard rhythm tracker is unchanged. `rhythm.alternatives` includes
+half/standard/double tempo grid interpretations and 8-second median beat
+interval estimates. These are *derived from the existing beat grid*, not
+independent tempo trackers.
+
+These changes do **not** constitute a completed V1.0 release: local EBU
+loudness, verified source/editor mapping, CQT/Tonnetz, spectral HPSS,
+stereo-local curves, tempo-warped structural matching, native editor tool
+registration, and full real-audio benchmark validation remain to be done.
