@@ -9,7 +9,7 @@ license: MIT
 ## Purpose
 Provide **measured acoustic evidence** for music-video editing. Analyze the *entire original music timeline*, then allow the editing agent to query any interval for local tempo, activity, dynamics, texture, rhythmic events, changes, and limited interpretive estimates. Run deterministically on CPU without API credentials or neural models.
 
-This skill defines the **integration and technical specification**. The Python package under `packages/music-analyzer/` provides CLI `inspect`, `decode`, and an **experimental** `analyze` command computing beats, onset events, RMS, centroid, rolloff, and flatness, writing a partial `music-analysis.json`. Verified source/editor-time mapping, downbeats, temporal segments, expressive heuristics, strict schema validation, caching and agent runtime tool registration remain **unimplemented**. Do not treat unverified decoded-time events as source-aligned timestamps.
+This skill defines the **integration and technical specification**. The Python package under `packages/music-analyzer/` provides CLI `inspect`, `decode`, and an **experimental** `analyze` command computing beats, onset events, RMS, centroid, rolloff, and flatness, writing a partial `music-analysis.json`. Verified source/editor-time mapping, downbeats, calibrated expressive heuristics, strict schema validation, caching and agent runtime tool registration remain **unimplemented**. Experimental acoustic segmentation and CLI `context` interval queries have now been added. Do not treat unverified decoded-time events as source-aligned timestamps.
 
 ## Mandatory boundaries
 - NEVER transcribe, infer lyrics, align words, detect named instruments, separate sources, or label formal verse/chorus sections.
