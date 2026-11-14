@@ -53,5 +53,17 @@ def get_music_context(analysis_path: str, start_seconds: float, end_seconds: flo
             or (r["second_start_seconds"] < end_seconds and r["second_end_seconds"] > start_seconds)
         ][:24],
         "structure_method": data.get("structure", {}).get("method"),
+        "local_timbre": {
+            "mean_mfcc": [
+                round(sum(p["mfcc"][k] for p in points if len(p.get("mfcc", [])) == 13) /
+                      sum(len(p.get("mfcc", [])) == 13 for p in points), 4)
+                for k in range(13)
+            ] if any(len(p.get("mfcc", [])) == 13 for p in points) else None,
+            "mean_chroma_cens": [
+                round(sum(p["chroma_cens"][k] for p in points if len(p.get("chroma_cens", [])) == 12) /
+                      sum(len(p.get("chroma_cens", [])) == 12 for p in points), 6)
+                for k in range(12)
+            ] if any(len(p.get("chroma_cens", [])) == 12 for p in points) else None
+        },
         "warnings": data.get("warnings", [])
     }
