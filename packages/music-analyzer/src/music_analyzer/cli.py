@@ -10,6 +10,7 @@ from pathlib import Path
 from music_analyzer import __version__
 from music_analyzer.analysis import analyze_music
 from music_analyzer.context import get_music_context
+from music_analyzer.agent_tools import get_music_overview, compare_music_intervals, get_music_editing_cues
 from music_analyzer.validation import validate_analysis
 from music_analyzer.decoder import MediaError, decode_audio, inspect_audio
 
@@ -35,6 +36,17 @@ def main() -> int:
     context.add_argument("analysis_path")
     context.add_argument("--start", type=float, required=True)
     context.add_argument("--end", type=float, required=True)
+    overview = commands.add_parser("overview", help="Concise overview for an editing agent")
+    overview.add_argument("analysis_path")
+    compare = commands.add_parser("compare", help="Compare acoustic characteristics of two intervals")
+    compare.add_argument("analysis_path")
+    for flag in ("start-a", "end-a", "start-b", "end-b"):
+        compare.add_argument("--" + flag, type=float, required=True)
+    cues = commands.add_parser("cues", help="Candidate acoustic editing cues")
+    cues.add_argument("analysis_path")
+    cues.add_argument("--start", type=float, required=True)
+    cues.add_argument("--end", type=float, required=True)
+    cues.add_argument("--limit", type=int, default=30)
     validate = commands.add_parser("validate", help="Check analysis JSON timestamps and structural integrity")
     validate.add_argument("analysis_path")
     arguments = parser.parse_args()
@@ -49,6 +61,14 @@ def main() -> int:
             output = validate_analysis(arguments.analysis_path)
             print(json.dumps(output, sort_keys=True))
             return 0 if output["valid"] else 2
+        elif arguments.command == "overview":
+            output = get_music_overview(arguments.analysis_path)
+        elif arguments.command == "compare":
+            output = compare_music_intervals(arguments.analysis_path, arguments.start_a,
+                                             arguments.end_a, arguments.start_b, arguments.end_b)
+        elif arguments.command == "cues":
+            output = get_music_editing_cues(arguments.analysis_path, arguments.start,
+                                            arguments.end, arguments.limit)
         elif arguments.command == "context":
             output = get_music_context(arguments.analysis_path, arguments.start, arguments.end)
         elif arguments.command == "analyze":
