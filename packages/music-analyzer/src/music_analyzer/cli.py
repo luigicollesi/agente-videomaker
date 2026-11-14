@@ -9,6 +9,7 @@ from pathlib import Path
 
 from music_analyzer import __version__
 from music_analyzer.analysis import analyze_music
+from music_analyzer.context import get_music_context
 from music_analyzer.decoder import MediaError, decode_audio, inspect_audio
 
 
@@ -28,6 +29,10 @@ def main() -> int:
     analyze.add_argument("audio_path")
     analyze.add_argument("--output", required=True)
     analyze.add_argument("--audio-stream", type=int)
+    context = commands.add_parser("context", help="Query analyzed acoustic context in a time range")
+    context.add_argument("analysis_path")
+    context.add_argument("--start", type=float, required=True)
+    context.add_argument("--end", type=float, required=True)
     arguments = parser.parse_args()
     try:
         if arguments.command == "inspect":
@@ -36,6 +41,8 @@ def main() -> int:
                       "selection": data["selection"],
                       "codec": data["stream"].get("codec_name"),
                       "container_duration_seconds": data["duration"]}
+        elif arguments.command == "context":
+            output = get_music_context(arguments.analysis_path, arguments.start, arguments.end)
         elif arguments.command == "analyze":
             result = analyze_music(arguments.audio_path, arguments.output, arguments.audio_stream)
             output = {"status": "analyzed", "output_path": str(Path(arguments.output).resolve()),
