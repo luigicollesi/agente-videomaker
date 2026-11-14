@@ -49,7 +49,9 @@ def main() -> int:
                       "duration_seconds": result["source"]["decoded_duration_seconds"],
                       "bpm_estimate": result["rhythm"]["bpm_estimate"],
                       "beat_count": len(result["rhythm"]["beats"]),
-                      "onset_count": len(result["events"]),
+                      "onset_count": sum(e["type"] == "onset" for e in result["events"]),
+                      "change_point_count": sum(e["type"] == "change_point" for e in result["events"]),
+                      "energy_event_count": sum(e["type"] in ("energy_rise", "energy_drop") for e in result["events"]),
                       "curve_points": len(result["curves"]["points"]),
                       "warnings": result["warnings"]}
         else:
