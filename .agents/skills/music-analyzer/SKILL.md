@@ -117,3 +117,19 @@ Remaining V1.0 requirements: CQT, local LUFS, downbeats and local
 tempo hypotheses, robust sequence alignments with tempo variation,
 feature cache/store, native agent tool registration, source/editor
 timebase verification, full real-audio regression and benchmark suite.
+
+## Incremental dynamics and reusable analyses
+
+The standard `analyze` result now contains `temporal_dynamics`, with
+smoothed RMS dBFS and acoustic swell/fall candidates. The context tool
+returns those curves and events restricted to the requested time range.
+
+When the user has approved on-disk caching, invoke:
+`music-analyzer analyze <audio> --output <json> --cache-dir <private-cache-path>`.
+The same source SHA, selected audio stream, analyzer and pipeline revision
+are required for cache reuse. The cache is not a trusted provenance
+attestation and should not be shared among untrusted users. Do not claim
+rms_dBFS measurements are LUFS, and never describe energy changes as proven
+chorus entries or drops.
+
+This milestone does not establish exact source/editor timestamp alignment.
