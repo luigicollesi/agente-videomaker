@@ -9,6 +9,8 @@ import {createText3DMotion,text3DGraphemes} from './text3d-runtime.mjs';
  */
 export function createText3DCore(options){
  const {THREE,canvas,font}=options;
+ const makeGeometry=THREE.TextGeometry;
+ if(!makeGeometry)throw new Error('THREE.TextGeometry addon required in core options');
  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,preserveDrawingBuffer:true});
  renderer.setSize(canvas.width,canvas.height,false);
  renderer.setClearColor(0,0);
@@ -24,8 +26,6 @@ export function createText3DCore(options){
  let cursor=0;
  const text=String(options.text??'');
  // Geometry construction is injected to avoid hard-coding optional Three addons in the core.
- const makeGeometry=options.THREE.TextGeometry;
- if(!makeGeometry)throw new Error('THREE.TextGeometry addon required in core options');
  for(const glyph of text3DGraphemes(text)){
   const wrapper=new THREE.Group();
   const geometry=new makeGeometry(glyph,{font,size:options.size??.43,depth:options.depth??.14,curveSegments:12,bevelEnabled:true,bevelThickness:.018,bevelSize:.012,bevelSegments:3});
@@ -43,9 +43,13 @@ export function createText3DCore(options){
    throw new Error('Invalid Text3D '+key+' animation modules');
  }
  const motion=createText3DMotion({group:outer,characters:[]});
+ const baseline=characters.map(c=>({position:c.position.clone(),rotation:c.rotation.clone(),scale:c.scale.clone()}));
+ const baseFront=front.color.clone(),baseSide=side.color.clone();
  const run=async(t)=>{
   if(!Number.isFinite(t)||t<0)throw new Error('Invalid frame time');
   await motion.frame(t);
+  characters.forEach((c,i)=>{c.position.copy(baseline[i].position);c.rotation.copy(baseline[i].rotation);c.scale.copy(baseline[i].scale)});
+  front.color.copy(baseFront);side.color.copy(baseSide);
   for(const kind of ['native','motion','appearance','vfx']){
    for(const module of animations[kind]){
     if(module.enabled===false)continue;
