@@ -16,18 +16,20 @@ test('v2 core composes native and external motion with deterministic seeks',asyn
   setSize(){} setClearColor(){} render(){calls.push('render')} dispose(){calls.push('dispose')}
  }
  const adapter={...THREE,TextGeometry,WebGLRenderer:FakeRenderer};
- let disposed=0;
+ let disposed=0,ownedDisposed=0;
  const component=createText3DCore({THREE:adapter,canvas:{width:960,height:540},font,text:'A',
   native:[{evaluate(time,{model}){model.characters[0].position.y+=time}}], 
-  appearance:[{evaluate(time,{materials}){materials[0].color.setRGB(time/10,0,0)},dispose(){disposed++}}]});
+  appearance:[{evaluate(time,{materials,scene,resources}){materials[0].color.setRGB(time/10,0,0);materials[0].emissiveIntensity=time;scene.children.find(x=>x.isDirectionalLight).intensity=time;resources.track(this.resource??=( {dispose(){ownedDisposed++}} ));},dispose(){disposed++}}]});
  assert.deepEqual(validateText3DInstance(component),[]);
  await component.frame(2);
  const first=component.model.characters[0].position.y;
  const firstColor=component.appearance.materials[0].color.r;
+ const firstEmissive=component.appearance.materials[0].emissiveIntensity;
  await component.frame(1);
  await component.frame(2);
  assert.equal(component.model.characters[0].position.y,first);
  assert.equal(component.appearance.materials[0].color.r,firstColor);
+ assert.equal(component.appearance.materials[0].emissiveIntensity,firstEmissive);
  assert.equal(calls.filter(x=>x==='render').length,3);
  const originalRenderer=component.renderer;
  assert.throws(()=>createText3DCore({THREE:adapter,canvas:{width:960,height:540},font,text:'A',native:[{channels:['material.color'],evaluate(){}}],appearance:[{channels:['material.color'],evaluate(){}}]}),/Conflicting Text3D channel/);
@@ -41,6 +43,7 @@ test('v2 core composes native and external motion with deterministic seeks',asyn
  assert.equal(component.model.root.position.x,newBaseline);
  component.dispose();component.dispose();
  assert.equal(disposed,1);
+ assert.equal(ownedDisposed,1);
  assert.equal(calls.filter(x=>x==='dispose').length,1);
  await assert.rejects(component.frame(2),/disposed/);
 });
