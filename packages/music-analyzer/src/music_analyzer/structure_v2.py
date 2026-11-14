@@ -18,7 +18,8 @@ def detect_repeated_regions(data: dict, step_seconds: float = 2.0,
     if not points or duration < 2 * min_duration_seconds:
         return {"status": "insufficient_data", "repeated_regions": [], "method": "sequence_multifeature_v1"}
     times = np.asarray([p["time_seconds"] for p in points], dtype=float)
-    chroma = np.asarray([p["chroma_energy"] for p in points], dtype=float)
+    has_cens = all(len(p.get("chroma_cens", [])) == 12 for p in points)
+    chroma = np.asarray([p["chroma_cens"] if has_cens else p["chroma_energy"] for p in points], dtype=float)
     rms = np.asarray([p["rms_dbfs"] if p.get("rms_dbfs") is not None else -100 for p in points], dtype=float)
     centroid = np.asarray([p["spectral_centroid_hz"] for p in points], dtype=float)
     flux = np.asarray([p.get("normalized_spectral_flux", 0.0) for p in points], dtype=float)
@@ -96,7 +97,7 @@ def detect_repeated_regions(data: dict, step_seconds: float = 2.0,
                             "second_end_seconds": round(second + length_seconds, 3),
                             "duration_seconds": round(length_seconds, 3),
                             "similarity_score": round(avg, 5),
-                            "evidence": ["chroma", "rms_dbfs", "spectral_centroid_hz", "spectral_flux"] + (["mfcc"] if has_mfcc else []),
+                            "evidence": ["chroma_cens" if has_cens else "chroma_stft", "rms_dbfs", "spectral_centroid_hz", "spectral_flux"] + (["mfcc"] if has_mfcc else []),
                             "interpretation_status": "acoustic_repetition_candidate"
                         })
                 begin = None
