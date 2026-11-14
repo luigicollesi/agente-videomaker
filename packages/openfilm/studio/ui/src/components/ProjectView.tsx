@@ -3523,7 +3523,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
       ] : [
         'Convert '+source2DId+' to real Text3D on '+(block.clipId??'')+'.',
         'Inspect and recreate the 2D source animations/VFX in 3D; preserve timing, text and mapped params. Never copy sample motions.',
-        'Reuse a match or create Text3D v1 with real geometry, group/character motion and parameterMap.',
+        'Reuse a compatible version or create a Text3D v2 draft via videomaker text3d create, preserving native/model animation, effects and parameterMap.',
         'Run videomaker text3d inspect, validate, register and apply. Verify before apply.'
       ]).join('\n')
     });
