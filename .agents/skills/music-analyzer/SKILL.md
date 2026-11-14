@@ -98,3 +98,22 @@ Do not treat any candidate as proven until synthetic tests and real recording
 evaluation have passed. The sequence matcher is fixed-tempo (diagonal),
 cannot yet accommodate tempo-warped repetitions, and uses current sampled
 chroma rather than true CENS. No editor-native tool registration is claimed.
+
+## Structural/timbre extraction milestone
+
+`music-analyzer analyze` now adds 13 MFCC coefficients (log-Mel DCT)
+per curve point using the existing bounded STFT batches and computes
+librosa CENS on the time series of sampled chroma. Structural V2 matching
+prefers CENS and includes MFCC as independent timbre evidence; if the
+features are absent, it uses the previous data fields. Interval
+`music-analyzer context` output reports average MFCC/CENS vectors.
+
+These are fixed-rate, heuristic descriptors; the implementation is not
+a source of calibrated musical repetition probabilities. Do not present
+repeat candidates as confirmed chorus, verse, lyrics, chords, or emotions.
+The existing Mel-onset beat tracker MUST remain unchanged.
+
+Remaining V1.0 requirements: CQT, local LUFS, downbeats and local
+tempo hypotheses, robust sequence alignments with tempo variation,
+feature cache/store, native agent tool registration, source/editor
+timebase verification, full real-audio regression and benchmark suite.
