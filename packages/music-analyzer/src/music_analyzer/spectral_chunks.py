@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import numpy as np
 import librosa
+from scipy.fft import dct
 
 
 def chunked_spectral_features(y, sr: int, n_fft: int = 2048,
@@ -18,7 +19,7 @@ def chunked_spectral_features(y, sr: int, n_fft: int = 2048,
         raise ValueError("Empty audio")
     n_frames = 1 + n // hop
     names = ("rms", "centroid", "rolloff", "flatness", "bandwidth", "zcr",
-             "contrast", "chroma", "spectral_flux")
+             "contrast", "chroma", "spectral_flux", "mfcc")
     outputs = {k: [] for k in names}
     prior = None
     for first in range(0, n_frames, batch_frames):
@@ -39,6 +40,9 @@ def chunked_spectral_features(y, sr: int, n_fft: int = 2048,
         outputs["flatness"].append(librosa.feature.spectral_flatness(S=mag)[0])
         outputs["bandwidth"].append(librosa.feature.spectral_bandwidth(S=mag, sr=sr)[0])
         outputs["contrast"].append(librosa.feature.spectral_contrast(S=mag, sr=sr))
+        mel = librosa.feature.melspectrogram(S=energy, sr=sr, n_fft=n_fft, n_mels=40)
+        log_mel = 10.0 * np.log10(np.maximum(mel, 1e-10))
+        outputs["mfcc"].append(dct(log_mel, type=2, axis=0, norm="ortho")[:13])
         outputs["chroma"].append(librosa.feature.chroma_stft(S=energy, sr=sr, n_fft=n_fft, hop_length=hop, tuning=0.0))
         frames = librosa.util.frame(block, frame_length=n_fft, hop_length=hop)
         outputs["zcr"].append(np.mean(np.diff(np.signbit(frames[:, :size]), axis=0), axis=0))
@@ -48,5 +52,5 @@ def chunked_spectral_features(y, sr: int, n_fft: int = 2048,
         flux = np.maximum(np.diff(adjacent, axis=1), 0.0).sum(axis=0)
         outputs["spectral_flux"].append(flux)
         prior = norm[:, -1:]
-    return {key: np.concatenate(value, axis=1 if key in ("contrast", "chroma") else 0)
+    return {key: np.concatenate(value, axis=1 if key in ("contrast", "chroma", "mfcc") else 0)
             for key, value in outputs.items()}
