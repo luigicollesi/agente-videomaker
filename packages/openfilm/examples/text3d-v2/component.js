@@ -7,22 +7,25 @@ import manifest from './manifest.json' with {type:'json'};
 const kinds=['native','motion','appearance','vfx'];
 export async function createText3D({canvas,element,root}){
  const font=await new FontLoader().loadAsync(manifest.model.font);
- const modules={};
+ const factories={};
  for(const kind of kinds){
-  modules[kind]=[];
+  factories[kind]=[];
   for(const path of manifest.modules[kind]){
    const module=await import(path);
    if(typeof module.createEffect!=='function')throw new Error('Missing createEffect: '+path);
-   modules[kind].push(await module.createEffect());
+   factories[kind].push(module.createEffect);
   }
  }
  const adapter={...THREE,TextGeometry};
  let core,previousText='',previousColor='';
  async function rebuild(text){
   core?.dispose();
+  const modules={};
+  for(const kind of kinds)modules[kind]=await Promise.all(factories[kind].map(create=>create()));
   core=createText3DCore({THREE:adapter,canvas,font,text,depth:manifest.model.depth,
    ...modules});
   previousText=text;
+  previousColor='';
  }
  await rebuild(element.textContent||' ');
  return {
