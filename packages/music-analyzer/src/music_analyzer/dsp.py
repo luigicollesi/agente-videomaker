@@ -10,7 +10,6 @@ from pathlib import Path
 
 import librosa
 import numpy as np
-from scipy.ndimage import gaussian_filter1d
 from music_analyzer.spectral_chunks import chunked_spectral_features
 
 HOP = 512
@@ -40,9 +39,10 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
     chroma = spectral["chroma"]
     zcr = spectral["zcr"]
     duration = min(float(duration_seconds), waveform.size / sample_rate)
-    # Flux is extracted from consecutive normalized STFT frames. This replaces
-    # the prior librosa Mel onset strength; beat estimates may change.
-    onset_envelope = gaussian_filter1d(spectral["spectral_flux"], sigma=1.0)
+    # Preserve the validated V0.3 Mel onset envelope for beat tracking.
+    # The normalized spectral flux remains an independent descriptor.
+    onset_envelope = librosa.onset.onset_strength(y=waveform, sr=sample_rate,
+                                                  hop_length=HOP)
     count = min(len(rms), len(centroid), len(flatness), len(rolloff), len(bandwidth), len(zcr), chroma.shape[1], contrast.shape[1])
     frame_times = librosa.frames_to_time(np.arange(count), sr=sample_rate, hop_length=HOP)
     points = []
@@ -62,7 +62,8 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
             "spectral_bandwidth_hz": _round(np.mean(bandwidth[lo:hi]), 2),
             "zero_crossing_rate": _round(np.mean(zcr[lo:hi])),
             "spectral_contrast_mean_db": _round(np.mean(contrast[:,lo:hi]), 3),
-            "chroma_energy": [_round(v) for v in np.mean(chroma[:,lo:hi], axis=1)]
+            "chroma_energy": [_round(v) for v in np.mean(chroma[:,lo:hi], axis=1)],
+            "normalized_spectral_flux": _round(np.mean(spectral["spectral_flux"][lo:hi]))
         })
     beats, onsets = [], []
     bpm = None
@@ -85,7 +86,7 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
                 if t < duration:
                     strength = float(onset_envelope[min(int(frame), len(onset_envelope) - 1)] / scale)
                     beats.append({"time_seconds": _round(t), "strength": _round(strength),
-                                  "reliability_flag": "estimated", "source_method": "librosa.beat.beat_track"})
+                                  "reliability_flag": "estimated", "source_method": "librosa.beat.beat_track + mel_onset_strength"})
     return {
         "rhythm": {
             "bpm_estimate": bpm, "tempo_candidates": [bpm] if bpm is not None else [],
@@ -94,7 +95,7 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
         "curves": {"hop_seconds": CURVE_STEP_SECONDS, "points": points},
         "events": [
             {"type": "onset", "time_seconds": item["time_seconds"],
-             "strength": item["strength"], "source_method": "librosa.onset.onset_detect + normalized_spectral_flux"}
+             "strength": item["strength"], "source_method": "librosa.onset.onset_detect + mel_onset_strength"}
             for item in onsets
         ],
         "features": {
@@ -108,7 +109,8 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
             "chroma_energy_unit": "relative_spectral_energy",
             "chroma_representation": "STFT chroma with fixed tuning; not key or chord estimates",
             "spectral_processing": "bounded_512_frame_batches",
-            "onset_method": "normalized_positive_spectral_flux",
+            "onset_method": "librosa_mel_onset_strength",
+            "spectral_flux_method": "normalized_positive_spectral_flux_independent",
             "curve_window_seconds": CURVE_STEP_SECONDS,
             "time_reference": "decoded_pcm_unverified_source_mapping"
         },
