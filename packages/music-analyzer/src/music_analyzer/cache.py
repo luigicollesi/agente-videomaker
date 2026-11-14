@@ -10,7 +10,7 @@ import json
 import os
 from pathlib import Path
 
-PIPELINE_REVISION = "dynamics-structure-cens-mfcc-2026-11"
+PIPELINE_REVISION = "rhythm-alternatives-agent-tools-2026-11-v2"
 
 
 def sha256_file(path: Path) -> str:
