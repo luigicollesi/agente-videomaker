@@ -153,3 +153,27 @@ full-song results must still be checked with the user's local file; this
 fix does not certify beat-grid accuracy against annotated ground truth.
 The Mel onset computation continues to consume memory; spectral descriptor
 STFT batches remain bounded separately.
+
+## Incremental integration milestone: temporal dynamics and cache
+
+Analysis now includes `temporal_dynamics.curve` (3-second robust RMS profile,
+change relative to the preceding 3-second window) and acoustic trend events.
+These are **RMS dBFS**, not LUFS or musical drops. The interval `context`
+operation includes the same features.
+
+To avoid repeating expensive calculations on unchanged audio, enable the
+optional content-addressed cache:
+
+```bash
+music-analyzer analyze song.wav --output analysis.json --cache-dir ~/.cache/agente-music-analyzer
+```
+
+The cache keys include the SHA-256 of the source bytes, selected stream,
+analyzer version and pipeline revision. Do not share the cache between
+untrusted users; a cached JSON must not be treated as independently
+authenticated ground truth. The default remains **no cache**.
+
+This is an incremental milestone, **not** a completed V1.0 release. Verified
+source/editor time mapping, full loudness-over-time measurement, harmonic CQT,
+spatial time series, structural tempo warping, native editor registration, and
+real-audio benchmarks remain outstanding.
