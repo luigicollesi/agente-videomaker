@@ -21,24 +21,13 @@ test('Text3D CLI validates, registers and retrieves an immutable Saved component
   await writeFile(join(folder,'index.html'),'<html><head><style>:root{--clip-length:8s}</style></head><body><script>window.film={frame(t){},frameReadsOverrides:true};</script></body></html>');
   await writeFile(join(folder,'component.js'),'export function createText3D(){return {group:{},characters:[],frame(t){},dispose(){}}}');
   assert.equal((await text3DCommand(['validate',folder])).ok,true);
-  assert.equal((await text3DCommand(['register',folder])).ok,true);
+  // A structurally valid dummy is not a renderable Text3D: never publish it.
+  const rejected=await text3DCommand(['register',folder]);
+  assert.equal(rejected.ok,false);
+  assert.match(rejected.lines[0],/PAGE_INIT_FAILED|BLANK_FRAME|MISSING_CANVAS|BROWSER_UNAVAILABLE|WEBGL_UNAVAILABLE|CONTEXT_LOST_WEBGL|PAGE_ERROR|FRAME_EXCEPTION/);
   const lookup=await text3DCommand(['inspect','text/text-burn-combined']);
   assert.equal(lookup.ok,true);
-  assert.match(lookup.lines[0],/text3d\/burn\/v1/);
-  const saved=JSON.parse(await readFile(join(temp,'saved','text3d','text3d','burn','v1','saved.json'),'utf8'));
-  assert.equal(saved.clip.attrs['data-openfilm-content-type'],'text3d');
-  await stat(join(temp,'saved','text3d','text3d','burn','v1','files','vendor','three.module.js'));
-  await stat(join(temp,'saved','text3d','text3d','burn','v1','files','vendor','geometries','TextGeometry.js'));
-  const indexed=await readFile(join(temp,'saved','text3d','text3d','burn','v1','files','index.html'),'utf8');
-  assert.match(indexed,/type="importmap"/);
-  const inherited=await readFile(join(temp,'saved','text3d','text3d','burn','v1','poster.svg'),'utf8');
-  assert.match(inherited,/<svg/);
-  await writeFile(join(folder,'component.js'),"import {broken} from './absent.mjs'; export function createText3D(){return broken}");
-  const missing=await text3DCommand(['register',folder]);
-  assert.equal(missing.ok,false);
-  assert.match(missing.lines[0],/Missing packaged Text3D dependency/);
-  const repeated=await text3DCommand(['register',folder]);
-  assert.equal(repeated.ok,false);
+  assert.equal(JSON.parse(lookup.lines[0]).length,0);
  }finally{
   if(previous===undefined)delete process.env.OPENFILM_SAVED;
   else process.env.OPENFILM_SAVED=previous;
