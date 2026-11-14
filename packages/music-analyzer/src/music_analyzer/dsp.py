@@ -36,6 +36,7 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
     rolloff = spectral["rolloff"]
     bandwidth = spectral["bandwidth"]
     contrast = spectral["contrast"]
+    mfcc = spectral["mfcc"]
     chroma = spectral["chroma"]
     zcr = spectral["zcr"]
     duration = min(float(duration_seconds), waveform.size / sample_rate)
@@ -43,7 +44,7 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
     # The normalized spectral flux remains an independent descriptor.
     onset_envelope = librosa.onset.onset_strength(y=waveform, sr=sample_rate,
                                                   hop_length=HOP)
-    count = min(len(rms), len(centroid), len(flatness), len(rolloff), len(bandwidth), len(zcr), chroma.shape[1], contrast.shape[1])
+    count = min(len(rms), len(centroid), len(flatness), len(rolloff), len(bandwidth), len(zcr), chroma.shape[1], contrast.shape[1], mfcc.shape[1])
     frame_times = librosa.frames_to_time(np.arange(count), sr=sample_rate, hop_length=HOP)
     points = []
     for t in np.arange(0, duration, CURVE_STEP_SECONDS):
@@ -63,6 +64,7 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
             "zero_crossing_rate": _round(np.mean(zcr[lo:hi])),
             "spectral_contrast_mean_db": _round(np.mean(contrast[:,lo:hi]), 3),
             "chroma_energy": [_round(v) for v in np.mean(chroma[:,lo:hi], axis=1)],
+            "mfcc": [_round(v, 4) for v in np.mean(mfcc[:,lo:hi], axis=1)],
             "normalized_spectral_flux": _round(np.mean(spectral["spectral_flux"][lo:hi]))
         })
     beats, onsets = [], []
@@ -107,6 +109,7 @@ def measure_pcm(pcm_path: str | Path, sample_rate: int, duration_seconds: float)
             "zero_crossing_rate_unit": "fraction",
             "spectral_contrast_unit": "dB",
             "chroma_energy_unit": "relative_spectral_energy",
+            "mfcc_description": "13 DCT-II coefficients of fixed-floor log-Mel powers",
             "chroma_representation": "STFT chroma with fixed tuning; not key or chord estimates",
             "spectral_processing": "bounded_512_frame_batches",
             "onset_method": "librosa_mel_onset_strength",
