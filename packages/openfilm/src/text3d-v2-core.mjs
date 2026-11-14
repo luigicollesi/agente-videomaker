@@ -23,20 +23,32 @@ export function createText3DCore(options){
  const front=new THREE.MeshStandardMaterial({color:0xdae9ff,metalness:.28,roughness:.35});
  const side=new THREE.MeshStandardMaterial({color:0x577eae,metalness:.4,roughness:.5});
  const characters=[],meshes=[];
- let cursor=0;
- const text=String(options.text??'');
- // Geometry construction is injected to avoid hard-coding optional Three addons in the core.
- for(const glyph of text3DGraphemes(text)){
-  const wrapper=new THREE.Group();
-  const geometry=new makeGeometry(glyph,{font,size:options.size??.43,depth:options.depth??.14,curveSegments:12,bevelEnabled:true,bevelThickness:.018,bevelSize:.012,bevelSegments:3});
-  geometry.computeBoundingBox();
-  const width=geometry.boundingBox?geometry.boundingBox.max.x-geometry.boundingBox.min.x:.22;
-  const mesh=new THREE.Mesh(geometry,[front,side]);
-  mesh.position.set(-(geometry.boundingBox?.min.x??0),-.14,0);
-  wrapper.add(mesh);wrapper.position.x=cursor;root.add(wrapper);
-  characters.push(wrapper);meshes.push(mesh);cursor+=Math.max(.15,width)+.055;
- }
- root.position.x=-cursor/2;
+ let modelText='';
+ let modelVersion=0;
+ const rebuildGeometry=(text)=>{
+  const nextChars=[],nextMeshes=[];
+  let cursor=0;
+  try{
+   for(const glyph of text3DGraphemes(text)){
+    const wrapper=new THREE.Group();
+    const geometry=new makeGeometry(glyph,{font,size:options.size??.43,depth:options.depth??.14,curveSegments:12,bevelEnabled:true,bevelThickness:.018,bevelSize:.012,bevelSegments:3});
+    geometry.computeBoundingBox();
+    const width=geometry.boundingBox?geometry.boundingBox.max.x-geometry.boundingBox.min.x:.22;
+    const mesh=new THREE.Mesh(geometry,[front,side]);
+    mesh.position.set(-(geometry.boundingBox?.min.x??0),-.14,0);
+    wrapper.add(mesh);wrapper.position.x=cursor;nextChars.push(wrapper);nextMeshes.push(mesh);
+    cursor+=Math.max(.15,width)+.055;
+   }
+  }catch(e){for(const mesh of nextMeshes)mesh.geometry.dispose();throw e}
+  for(const mesh of meshes)mesh.geometry.dispose();
+  for(const old of characters)root.remove(old);
+  characters.splice(0,characters.length,...nextChars);
+  meshes.splice(0,meshes.length,...nextMeshes);
+  for(const child of characters)root.add(child);
+  root.position.x=-cursor/2;
+  modelText=text;modelVersion++;
+ };
+ rebuildGeometry(String(options.text??''));
  const animations={native:options.native??[],motion:options.motion??[],appearance:options.appearance??[],vfx:options.vfx??[]};
  for(const key of ['native','motion','appearance','vfx']){
   if(!Array.isArray(animations[key])||animations[key].some(a=>typeof a?.evaluate!=='function'))
@@ -46,7 +58,7 @@ export function createText3DCore(options){
  const snapshot=o=>({position:o.position.clone(),rotation:o.rotation.clone(),scale:o.scale.clone()});
  const restore=(o,b)=>{o.position.copy(b.position);o.rotation.copy(b.rotation);o.scale.copy(b.scale)};
  const rootBaseline=snapshot(root),cameraBaseline=snapshot(camera),outerBaseline=snapshot(outer);
- const baseline=characters.map(snapshot);
+ let baseline=characters.map(snapshot);
  let baseFront=front.color.clone(),baseSide=side.color.clone();
  const run=async(t)=>{
   if(!Number.isFinite(t)||t<0)throw new Error('Invalid frame time');
