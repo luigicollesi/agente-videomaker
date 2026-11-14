@@ -9,6 +9,7 @@ from music_analyzer import __version__
 from music_analyzer.decoder import decode_audio
 from music_analyzer.dsp import measure_pcm
 from music_analyzer.temporal import characterize
+from music_analyzer.advanced import add_advanced_features
 
 
 def analyze_music(audio_path: str, output_path: str,
@@ -34,7 +35,7 @@ def analyze_music(audio_path: str, output_path: str,
             "segments": [],
             "global_style_descriptors": []
         }
-        result = characterize(result)
+        result = add_advanced_features(characterize(result))
         output.parent.mkdir(parents=True, exist_ok=True)
         temporary = output.with_suffix(output.suffix + ".tmp")
         temporary.write_text(json.dumps(result, sort_keys=True, indent=2, allow_nan=False) + "\n",
