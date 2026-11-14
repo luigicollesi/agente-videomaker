@@ -29,6 +29,15 @@ test('v2 core composes native and external motion with deterministic seeks',asyn
  assert.equal(component.model.characters[0].position.y,first);
  assert.equal(component.appearance.materials[0].color.r,firstColor);
  assert.equal(calls.filter(x=>x==='render').length,3);
+ const originalRenderer=component.renderer;
+ component.setText('ABC');
+ assert.equal(component.renderer,originalRenderer);
+ assert.equal(component.model.meshes.length,3);
+ await component.frame(2);
+ const newBaseline=component.model.root.position.x;
+ await component.frame(1);
+ await component.frame(2);
+ assert.equal(component.model.root.position.x,newBaseline);
  component.dispose();component.dispose();
  assert.equal(disposed,1);
  assert.equal(calls.filter(x=>x==='dispose').length,1);
