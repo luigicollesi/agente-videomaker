@@ -44,6 +44,17 @@ export async function verifyText3D(directory,duration=10) {
   });
   if(capability!=='ready')throw new Text3DVisualError(capability,'Chromium cannot render a basic WebGL2 canvas');
   try{await page.waitForFunction(()=>!!window.film&&!!window.film.ready,null,{timeout:15000});await page.evaluate(()=>window.film.ready)}catch(e){throw new Text3DVisualError('PAGE_INIT_FAILED',String(e))}
+  const component=await page.evaluate(async()=>{
+   if(!window.__text3dComponent)return {legacy:true};
+   const c=await window.__text3dComponent;
+   const meshes=c?.model?.meshes;
+   const canvas=document.querySelector('canvas');
+   return {legacy:false,version:c?.contractVersion,webgl:c?.renderer?.isWebGLRenderer===true,
+    canvasMatches:c?.renderer?.domElement===canvas,scene:c?.scene?.isScene===true,
+    camera:c?.camera?.isCamera===true,meshes:Array.isArray(meshes)?meshes.filter(m=>m?.isMesh&&m.geometry?.isBufferGeometry&&m.geometry?.attributes?.position?.count>0).length:0};
+  });
+  if(!component.legacy&&(!component.webgl||!component.canvasMatches||!component.scene||!component.camera||component.meshes<1||component.version!==2))
+   throw new Text3DVisualError('INVALID_3D_GEOMETRY',JSON.stringify(component));
   const times=[Math.min(.5,duration*.15),duration*.5,Math.max(.5,duration*.85)].filter(t=>t<duration);
   let visible=0;
   for(const t of times){
