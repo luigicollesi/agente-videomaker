@@ -6,6 +6,7 @@ Downsampled self-similarity limits quadratic memory use on long tracks.
 from __future__ import annotations
 
 import numpy as np
+import librosa
 
 
 def enrich_harmony_structure(data: dict, recurrence_step_seconds: float = 2.0) -> dict:
@@ -30,13 +31,20 @@ def enrich_harmony_structure(data: dict, recurrence_step_seconds: float = 2.0) -
     for i, point in enumerate(points):
         point["chroma_entropy_bits"] = round(float(entropy[i]), 5) if valid[i] else None
         point["chroma_novelty"] = round(float(novelty[i]), 6) if valid[i] else None
+    # CENS is computed on the 0.5s chroma trajectory, not per FFT batch.
+    # It is a smoothed/quantized representation for structural comparison.
+    cens = librosa.feature.chroma_cens(
+        C=amp.T, sr=22050, hop_length=11025, win_len_smooth=9)
+    for i, point in enumerate(points):
+        point["chroma_cens"] = [round(float(v), 6) for v in cens[:, i]]
     global_chroma = np.mean(norm[valid], axis=0) if np.any(valid) else np.zeros(12)
     data["harmony"] = {
         "status": "estimated" if np.any(valid) else "insufficient_data",
         "global_pitch_class_profile": [round(float(x), 6) for x in global_chroma],
         "mean_chroma_entropy_bits": round(float(np.mean(entropy[valid])), 5) if np.any(valid) else None,
         "mean_pitch_class_concentration": round(float(np.mean(concentration[valid])), 5) if np.any(valid) else None,
-        "method": "normalized STFT chroma, pitch-class entropy and successive Euclidean distance",
+        "method": "normalized STFT chroma, librosa CENS smoothing, entropy and pitch-class distance",
+        "cens_hop_seconds": 0.5,
         "limitations": ["Not a key or chord estimator", "Mixtures can contain multiple simultaneous pitches"]
     }
     # One vector per ~2 seconds; <= 5400x5400 for the supported 3h limit.
