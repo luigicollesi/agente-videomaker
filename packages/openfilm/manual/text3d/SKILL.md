@@ -54,3 +54,12 @@ Only local **Three.js typeface JSON** fonts enumerated in `manifest.typography.f
 ## Installed TrueType font conversion
 
 The Text3D authoring CLI supports `videomaker text3d font-add <draft> "<installed-font-family>"`. It uses the existing Studio installed-font catalog to find a local *.ttf face, converts it offline through the Three.js TTFLoader + locally installed opentype.js dependency, and writes a Three.js typeface JSON into the draft assets and `manifest.typography.fonts`. Set `--text3d-font` to the returned canonical family. Run `validate`, `preview`, and `register` after conversion. Never load a font over a CDN. Only import a font if its license permits the required embedding/redistribution. This command selects the catalog's default face, NOT a requested bold/italic/variable axis; do not claim those variants or OTF/WOFF/project-local font support without implementing and validating them.
+
+
+## Stage selection and universal 3D transforms
+
+Newly registered Text3D Saved components opt into `data-text3d-full-stage: true`. The timeline positions their transparent WebGL canvas across the entire composition while passing the source clip's position and bounds into a separate content viewport (`--text3d-viewport-x/y/w/h`). Do not manually resize or select the canvas: the Studio stage hit test checks visible alpha pixels to allow clicks through transparent areas to underlying clips.
+
+The universal **3D Transform** section contains Depth, Rotation X and Rotation Y, separate from the component's text/color/effect properties. The component reads `--text3d-rotation-x/y` as degrees; the Text3D core keeps user rotation in a separate group from animation transforms and renders deterministically at absolute clip times.
+
+When a Text3D object is selected, right-button dragging on its visible pixels rotates X/Y; left-button dragging retains the existing Studio movement behavior. Release commits a single clip override edit; Escape cancels. Old Saved bundles are immutable and must not be claimed to support these controls without re-registration and capability verification. Verify pass-through selection, overlapping clips, left movement, rotation, Undo/Redo, and export before publishing a production clip.
