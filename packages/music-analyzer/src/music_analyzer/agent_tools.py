@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import numpy as np
 from music_analyzer.context import get_music_context
+from music_analyzer.cues_v2 import extract_cues
+from music_analyzer.sequence_compare import compare_sequences
 
 
 def _load(path: str) -> dict:
@@ -54,26 +56,13 @@ def compare_music_intervals(path: str, start_a: float, end_a: float,
                       b["summary_features"]["average_rms_dbfs"], 3)
                 if a["summary_features"]["average_rms_dbfs"] is not None and
                 b["summary_features"]["average_rms_dbfs"] is not None else None),
+            "sequence_comparison": compare_sequences(d["curves"]["points"], (start_a, end_a), (start_b, end_b)),
             "limitations": ["Similarity is not a calibrated probability",
                             "Interval aggregation loses temporal order"]}
 
 
-def get_music_editing_cues(path: str, start: float, end: float, limit: int = 30) -> dict:
-    if not 1 <= limit <= 200:
-        raise ValueError("limit must be 1..200")
-    context = get_music_context(path, start, end)
-    d = _load(path)
-    change_events = [e for e in d.get("events", [])
-                     if start <= e["time_seconds"] < end and e.get("type") != "onset"]
-    dynamics = [e for e in d.get("temporal_dynamics", {}).get("events", [])
-                if start <= e["time_seconds"] < end]
-    cues = [{"time_seconds": e["time_seconds"], "kind": e["type"],
-             "evidence": e.get("source_method", "measured_acoustic_event")}
-            for e in change_events]
-    cues.extend({"time_seconds": e["time_seconds"], "kind": e["type"],
-                 "evidence": e.get("method")} for e in dynamics)
-    cues.sort(key=lambda x: (x["time_seconds"], x["kind"]))
-    return {"start_seconds": start, "end_seconds": end, "cues": cues[:limit],
-            "count": len(cues), "truncated": len(cues) > limit,
-            "time_reference": context["time_reference"],
-            "warning": "Candidates for creative decisions, not mandatory edits"}
+def get_music_editing_cues(path: str, start: float, end: float, limit: int = 30,
+                           categories=None, selection: str = "representative",
+                           min_relative_strength: float = 0.0) -> dict:
+    return extract_cues(_load(path), start, end, categories=categories, limit=limit,
+                        selection=selection, min_relative_strength=min_relative_strength)
