@@ -86,6 +86,8 @@ export async function listLibrary() {
       if (entry.name.startsWith('.')) continue;
       const at = rel ? `${rel}/${entry.name}` : entry.name;
       if (entry.isDirectory()) {
+        // Dedicated Text3D registry storage is not user media.
+        if (at === 'text3d') continue;
         const bundle = await readBundle(join(root, at));
         if (bundle) {
           // Registered Text3D components live exclusively in the Text 3D library.
