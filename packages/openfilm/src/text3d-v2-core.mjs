@@ -13,6 +13,21 @@ export function createText3DCore(options){
  const {THREE,canvas,font}=options;
  const makeGeometry=THREE.TextGeometry;
  if(!makeGeometry)throw new Error('THREE.TextGeometry addon required in core options');
+ const animations={native:options.native??[],motion:options.motion??[],appearance:options.appearance??[],vfx:options.vfx??[]};
+ for(const key of ['native','motion','appearance','vfx']){
+  if(!Array.isArray(animations[key])||animations[key].some(a=>typeof a?.evaluate!=='function'))
+   throw new Error('Invalid Text3D '+key+' animation modules');
+ }
+ // Effects may declare exclusive channel claims; reject ambiguous ownership.
+ const channels=new Map();
+ for(const kind of ['native','motion','appearance','vfx'])for(const [index,effect] of animations[kind].entries()){
+  const owner=kind+':'+index;
+  for(const channel of effect.channels??[]){
+   if(typeof channel!=='string'||!channel)throw new Error('Invalid effect channel');
+   if(channels.has(channel))throw new Error('Conflicting Text3D channel '+channel+' ('+channels.get(channel)+' / '+owner+')');
+   channels.set(channel,owner);
+  }
+ }
  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,preserveDrawingBuffer:true});
  renderer.setSize(canvas.width,canvas.height,false);
  renderer.setClearColor(0,0);
@@ -50,22 +65,7 @@ export function createText3DCore(options){
   modelText=text;
  };
  rebuildGeometry(String(options.text??''));
- const animations={native:options.native??[],motion:options.motion??[],appearance:options.appearance??[],vfx:options.vfx??[]};
- for(const key of ['native','motion','appearance','vfx']){
-  if(!Array.isArray(animations[key])||animations[key].some(a=>typeof a?.evaluate!=='function'))
-   throw new Error('Invalid Text3D '+key+' animation modules');
- }
  const resources=new Text3DResourceManager();
- // Effects may declare exclusive channel claims; reject ambiguous ownership.
- const channels=new Map();
- for(const kind of ['native','motion','appearance','vfx'])for(const [index,effect] of animations[kind].entries()){
-  const owner=kind+':'+index;
-  for(const channel of effect.channels??[]){
-   if(typeof channel!=='string'||!channel)throw new Error('Invalid effect channel');
-   if(channels.has(channel))throw new Error('Conflicting Text3D channel '+channel+' ('+channels.get(channel)+' / '+owner+')');
-   channels.set(channel,owner);
-  }
- }
  const motion=createText3DMotion({group:outer,characters:[]});
  const snapshot=o=>({position:o.position.clone(),rotation:o.rotation.clone(),scale:o.scale.clone()});
  const restore=(o,b)=>{o.position.copy(b.position);o.rotation.copy(b.rotation);o.scale.copy(b.scale)};
