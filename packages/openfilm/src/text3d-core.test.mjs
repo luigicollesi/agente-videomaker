@@ -44,10 +44,10 @@ test('v2 core composes native and external motion with deterministic seeks',asyn
  component.setText('TESTEEEEE');
  assert.equal(component.model.characters.length,9);
  assert.equal(component.renderer,originalRenderer);
- const fitScale=component.model.root.parent.scale.x;
+ const fitScale=component.model.root.parent.parent.scale.x;
  assert.ok(fitScale>0&&fitScale<=1,'auto-fit scale should remain positive and not enlarge');
  assert.ok(component.appearance.lights[0].intensity<=1,'ambient light should not wash out neon colors');
- assert.ok(component.appearance.lights[1].intensity<=1.5,'key light should preserve saturated color');
+ assert.equal(component.appearance.lights[1].intensity,2,'animated key light should follow the requested frame');
  component.setTypography({font,fontSize:.62,letterSpacing:.08,textAlign:'right'});
  assert.equal(component.renderer,originalRenderer);
  assert.equal(component.model.meshes[0].geometry.parameters.options.size,.62);
@@ -71,7 +71,7 @@ test('v2 core composes native and external motion with deterministic seeks',asyn
  assert.equal(component.renderer,originalRenderer);
  component.resize(584,291);
  await component.frame(2);
- assert.ok(component.model.root.parent.scale.x>0);
+ assert.ok(component.model.root.parent.parent.scale.x>0);
  component.dispose();component.dispose();
  assert.equal(disposed,1);
  assert.equal(ownedDisposed,1);
