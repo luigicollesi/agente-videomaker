@@ -3,6 +3,9 @@
 import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, relative, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
+import { installedFontFile } from '../studio/server/fonts.mjs';
+import { createHash } from 'node:crypto';
+import { TTFLoader } from 'three/addons/loaders/TTFLoader.js';
 import { verifyText3D } from './text3d-verify.mjs';
 import { validateText3D as validateText3DManifest } from './text3d-contract.mjs';
 import { builtInRoot } from '../studio/server/library.mjs';
@@ -74,7 +77,7 @@ async function validateText3D(dir) {
 /** @param {string[]} args */
 export async function text3DCommand(args) {
  const [action, ...rest]=args;
- const usage='videomaker text3d create <folder> | preview <folder> | list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
+ const usage='videomaker text3d create <folder> | font-add <folder> <family> | preview <folder> | list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
  try {
   if(action==='create'&&rest.length===1){
    const target=resolve(rest[0]);
@@ -82,6 +85,26 @@ export async function text3DCommand(args) {
    await mkdir(join(target,'assets'),{recursive:true});
    await copyFile(new URL(import.meta.resolve('three/examples/fonts/helvetiker_regular.typeface.json')),join(target,'assets/font.json'));
    return {ok:true,lines:['Text3D draft created: '+target]};
+  }
+  if(action==='font-add'&&rest.length===2){
+   const folder=resolve(rest[0]),requested=rest[1].trim();
+   if(!requested||requested.length>100)throw Error('Invalid font family');
+   const manifest=await validateText3D(folder);
+   const found=await installedFontFile([requested]);
+   if(!found)throw Error('Font is not installed: '+requested);
+   if(!found.path.toLowerCase().endsWith('.ttf'))throw Error('Only TrueType .ttf fonts are supported by font-add');
+   const data=await readFile(found.path);
+   if(data.length>8*1024*1024)throw Error('Font exceeds 8 MB limit');
+   const json=new TTFLoader().parse(data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength));
+   if(!json?.glyphs||!Object.keys(json.glyphs).length)throw Error('Font conversion produced no glyphs');
+   const name='font-'+createHash('sha256').update(data).digest('hex').slice(0,16)+'.json';
+   await mkdir(join(folder,'assets'),{recursive:true});
+   await writeFile(join(folder,'assets',name),JSON.stringify(json));
+   manifest.typography??={defaultFamily:'default',fonts:{}};
+   manifest.typography.fonts??={};
+   manifest.typography.fonts[found.name]='./assets/'+name;
+   await writeFile(join(folder,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
+   return {ok:true,lines:['Converted installed TTF to bundled JSON: '+found.name,'Font: '+manifest.typography.fonts[found.name]]};
   }
   if(action==='list'||action==='inspect'){
    const entries=action==='inspect'?[await activeText3D(rest[0]??'')].filter(Boolean):await listText3D(rest[0]??null);
