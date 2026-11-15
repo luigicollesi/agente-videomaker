@@ -3387,7 +3387,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     const yProp = {name:'Rotation Y',type:'var',var:'--text3d-rotation-y'} as const;
     const first = withPropValue(clip.overrides as FilmOverride[] | undefined,xProp,x);
     const next = withPropValue(first??[],yProp,y);
-    void editBlocks([{loc,prop:'overrides',value:next??[]}]).then(failure=>{
+    void editBlocks([{loc,prop:'overrides',value:(next??[]) as never}]).then(failure=>{
       if(failure)toast.show(failure);
       void askStage('release',{clip:clip.id});
     });
