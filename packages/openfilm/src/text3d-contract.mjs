@@ -15,6 +15,15 @@ export function validateText3D(value){
  if(typeof m.source2DId!=='string'||!id.test(m.source2DId))issues.push('invalid source2DId');
  if(m.model?.type!=='extruded-text')issues.push('model.type must be extruded-text');
  if(typeof m.model?.font!=='string'||!local.test(m.model.font))issues.push('model.font must be a bundled relative path');
+ if(m.typography!==undefined){
+  if(!m.typography||typeof m.typography!=='object'||Array.isArray(m.typography))issues.push('typography must be an object');
+  else {
+   const fonts=m.typography.fonts??{};
+   if(!fonts||typeof fonts!=='object'||Array.isArray(fonts))issues.push('typography.fonts must be an object');
+   else for(const [family,path] of Object.entries(fonts))
+    if(!family||typeof path!=='string'||!local.test(path)||!path.endsWith('.json'))issues.push('invalid typography font: '+family);
+  }
+ }
  if(!m.timeline||m.timeline.durationSource!=='clip'||m.timeline.deterministic!==true)issues.push('timeline must follow deterministic clip time');
  for(const kind of kinds){
   if(!Array.isArray(m.modules?.[kind])){issues.push('modules.'+kind+' must be an array');continue}
