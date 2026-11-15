@@ -3,7 +3,6 @@
 import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, relative, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
-import { installedFontFile } from '../studio/server/fonts.mjs';
 import { verifyText3D } from './text3d-verify.mjs';
 import { validateText3D as validateText3DManifest } from './text3d-contract.mjs';
 import { builtInRoot } from '../studio/server/library.mjs';
@@ -75,7 +74,7 @@ async function validateText3D(dir) {
 /** @param {string[]} args */
 export async function text3DCommand(args) {
  const [action, ...rest]=args;
- const usage='videomaker text3d create <folder> | font-add <folder> <family> | preview <folder> | list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
+ const usage='videomaker text3d create <folder> | preview <folder> | list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
  try {
   if(action==='create'&&rest.length===1){
    const target=resolve(rest[0]);
@@ -83,21 +82,6 @@ export async function text3DCommand(args) {
    await mkdir(join(target,'assets'),{recursive:true});
    await copyFile(new URL(import.meta.resolve('three/examples/fonts/helvetiker_regular.typeface.json')),join(target,'assets/font.json'));
    return {ok:true,lines:['Text3D draft created: '+target]};
-  }
-  if(action==='font-add'&&rest.length===2){
-   const folder=resolve(rest[0]),family=rest[1].trim();
-   if(!family||family.length>100)throw Error('Invalid font family');
-   const source=await installedFontFile([family]);
-   if(!source||!source.path.toLowerCase().endsWith('.ttf'))throw Error('No installed TrueType face available for '+family);
-   const manifest=await validateText3D(folder);
-   const target=join(folder,'assets','system-font-'+(await import('node:crypto')).createHash('sha256').update(source.path).digest('hex').slice(0,16)+'.ttf');
-   await mkdir(dirname(target),{recursive:true});
-   await copyFile(source.path,target);
-   manifest.typography??={defaultFamily:'default',fonts:{}};
-   manifest.typography.fonts??={};
-   manifest.typography.fonts[source.name]='./assets/'+target.split(sep).at(-1);
-   await writeFile(join(folder,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
-   return {ok:true,lines:['Bundled installed TrueType font: '+source.name,'Face: '+manifest.typography.fonts[source.name]]};
   }
   if(action==='list'||action==='inspect'){
    const entries=action==='inspect'?[await activeText3D(rest[0]??'')].filter(Boolean):await listText3D(rest[0]??null);
@@ -159,8 +143,6 @@ export async function text3DCommand(args) {
       [new URL('./three.core.js',moduleMain),'three.core.js'],
       [new URL(import.meta.resolve('three/addons/geometries/TextGeometry.js')),'geometries/TextGeometry.js'],
       [new URL(import.meta.resolve('three/addons/loaders/FontLoader.js')),'loaders/FontLoader.js'],
-      [new URL(import.meta.resolve('three/addons/loaders/TTFLoader.js')),'loaders/TTFLoader.js'],
-      [new URL(import.meta.resolve('three/addons/libs/opentype.module.js')),'libs/opentype.module.js'],
       [new URL(import.meta.resolve('three/examples/fonts/helvetiker_regular.typeface.json')),'fonts/helvetiker_regular.typeface.json'],
       [new URL('../LICENSE',moduleMain),'LICENSE.txt']
     ];
