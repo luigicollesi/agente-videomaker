@@ -41,6 +41,17 @@ test('v2 core composes native and external motion with deterministic seeks',asyn
  await component.frame(1);
  await component.frame(2);
  assert.equal(component.model.root.position.x,newBaseline);
+ component.setText('TESTEEEEE');
+ assert.equal(component.model.characters.length,9);
+ assert.equal(component.renderer,originalRenderer);
+ const fitScale=component.model.root.parent.scale.x;
+ assert.ok(fitScale>0&&fitScale<=1,'auto-fit scale should remain positive and not enlarge');
+ component.setDepth(0.9);
+ assert.ok(component.model.meshes[0].geometry.parameters.options.depth===0.9);
+ assert.equal(component.renderer,originalRenderer);
+ component.resize(584,291);
+ await component.frame(2);
+ assert.ok(component.model.root.parent.scale.x>0);
  component.dispose();component.dispose();
  assert.equal(disposed,1);
  assert.equal(ownedDisposed,1);
