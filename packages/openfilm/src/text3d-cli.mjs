@@ -5,7 +5,6 @@ import { dirname, join, resolve, relative, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
 import { installedFontFile } from '../studio/server/fonts.mjs';
 import { createHash } from 'node:crypto';
-import { TTFLoader } from 'three/addons/loaders/TTFLoader.js';
 import { verifyText3D } from './text3d-verify.mjs';
 import { validateText3D as validateText3DManifest } from './text3d-contract.mjs';
 import { builtInRoot } from '../studio/server/library.mjs';
@@ -74,6 +73,33 @@ async function validateText3D(dir) {
  await walk(base,0);
  return manifest;
 }
+/** Convert a TTF through the locally installed opentype.js package (no URL imports).
+ * Produces the Three.js typeface JSON shape required by FontLoader.
+ * @param {Buffer} data
+ */
+async function convertTrueTypeToTypeface(data){
+ const module=await import('opentype.js');
+ const opentype=module.default??module;
+ const font=opentype.parse(data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength));
+ const glyphs={};
+ const scale=1000/font.unitsPerEm;
+ for(let code=32;code<=0xffff;code++){
+  const char=String.fromCharCode(code);
+  const glyph=font.charToGlyph(char);
+  if(!glyph||glyph.index===0)continue;
+  const commands=glyph.getPath(0,0,font.unitsPerEm).commands;
+  let outline='';
+  let x=0,y=0;
+  for(const c of commands){
+   if(c.type==='M'){outline+='m '+Math.round(c.x*scale)+' '+Math.round(-c.y*scale)+' ';x=c.x;y=c.y}
+   else if(c.type==='L'){outline+='l '+Math.round(c.x*scale)+' '+Math.round(-c.y*scale)+' ';x=c.x;y=c.y}
+   else if(c.type==='Q')outline+='q '+Math.round(c.x1*scale)+' '+Math.round(-c.y1*scale)+' '+Math.round(c.x*scale)+' '+Math.round(-c.y*scale)+' ';
+   else if(c.type==='C')outline+='b '+Math.round(c.x1*scale)+' '+Math.round(-c.y1*scale)+' '+Math.round(c.x2*scale)+' '+Math.round(-c.y2*scale)+' '+Math.round(c.x*scale)+' '+Math.round(-c.y*scale)+' ';
+  }
+  glyphs[char]={ha:Math.round(glyph.advanceWidth*scale),x_min:0,x_max:0,o:outline.trim()};
+ }
+ return {glyphs,familyName:font.names.fontFamily?.en??'Local Font',ascender:Math.round(font.ascender*scale),descender:Math.round(font.descender*scale),underlinePosition:0,underlineThickness:0,boundingBox:{yMin:-200,xMin:0,yMax:800,xMax:1000},resolution:1000,original_font_information:{}};
+}
 /** @param {string[]} args */
 export async function text3DCommand(args) {
  const [action, ...rest]=args;
@@ -95,7 +121,7 @@ export async function text3DCommand(args) {
    if(!found.path.toLowerCase().endsWith('.ttf'))throw Error('Only TrueType .ttf fonts are supported by font-add');
    const data=await readFile(found.path);
    if(data.length>8*1024*1024)throw Error('Font exceeds 8 MB limit');
-   const json=new TTFLoader().parse(data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength));
+   const json=await convertTrueTypeToTypeface(data);
    if(!json?.glyphs||!Object.keys(json.glyphs).length)throw Error('Font conversion produced no glyphs');
    const name='font-'+createHash('sha256').update(data).digest('hex').slice(0,16)+'.json';
    await mkdir(join(folder,'assets'),{recursive:true});
