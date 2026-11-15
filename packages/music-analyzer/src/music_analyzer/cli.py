@@ -47,6 +47,9 @@ def main() -> int:
     cues.add_argument("--start", type=float, required=True)
     cues.add_argument("--end", type=float, required=True)
     cues.add_argument("--limit", type=int, default=30)
+    cues.add_argument("--categories", nargs="+", help="beat strong_onset energy harmonic_change structure_boundary")
+    cues.add_argument("--selection", choices=("representative", "chronological"), default="representative")
+    cues.add_argument("--min-relative-strength", type=float, default=0.0)
     validate = commands.add_parser("validate", help="Check analysis JSON timestamps and structural integrity")
     validate.add_argument("analysis_path")
     arguments = parser.parse_args()
@@ -68,7 +71,8 @@ def main() -> int:
                                              arguments.end_a, arguments.start_b, arguments.end_b)
         elif arguments.command == "cues":
             output = get_music_editing_cues(arguments.analysis_path, arguments.start,
-                                            arguments.end, arguments.limit)
+                                            arguments.end, arguments.limit, arguments.categories,
+                                            arguments.selection, arguments.min_relative_strength)
         elif arguments.command == "context":
             output = get_music_context(arguments.analysis_path, arguments.start, arguments.end)
         elif arguments.command == "analyze":
