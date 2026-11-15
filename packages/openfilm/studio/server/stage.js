@@ -1724,6 +1724,17 @@
       const c = pageAt(x, y, Boolean(includeLocked), nodeOf(cycleFrom) ?? nodeOf(from));
       if (!c || c.kind !== 'page' || !c.win) return null;
       const p = matrixOf(c).inverse().transformPoint(new DOMPoint(x, y));
+      if (c.win.__text3dComponent) {
+        // The actual glyph is selectable as a whole Text3D clip; never expose
+        // the full-screen canvas as an editable HTML layer.
+        if (text3DPixel(c, p) !== true) return null;
+        if (!detail) {
+          const rect = mapRect(matrixOf(c), {left:0,top:0,width:c.w,height:c.h});
+          return {handle:0,clip:c.id,rect};
+        }
+        const canvas = c.win.document.querySelector('canvas');
+        return canvas ? describe(c,canvas,'image') : null;
+      }
       const all = layersAt(c, p.x, p.y, Boolean(includeLocked));
       let current = nodeOf(from);
       if (enter && current) current = current.firstElementChild;
