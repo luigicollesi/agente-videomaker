@@ -232,3 +232,27 @@ alignment.
 **Release gate:** This milestone is not a certified stable V1.0. Test it on
 real media, compare with annotated boundaries, run a complete regression
 suite, and confirm editor tool registration before releasing.
+
+## Minimal stabilization: default V2, experimental V3 opt-in
+
+```bash
+music-analyzer analyze song.wav --output analysis.json
+music-analyzer analyze song.wav --output experiment.json --experimental-structure-v3
+```
+
+The default standard analysis preserves Structure V2 and writes a
+`structure_v3` object with `status: not_requested`. Use the experimental
+flag only for benchmarking. The cache key includes this flag and the pipeline
+revision, so V3 and default results cannot be confused.
+
+The cue reader uses the preexisting `events[].strength` (whole-track
+Mel-onset-envelope relative strength), rather than seeking an absent
+`relative_strength`. Onsets without measured strength remain unranked.
+A positive `--min-relative-strength` filter excludes unmeasured events.
+Representative selection reserves one slot for each present cue category
+where the result limit permits. These are interface improvements and do
+not modify the number or positions of measured onsets or beats.
+
+The DTW comparison preserves `normalized_alignment_cost` and adds
+`mean_alignment_cost`, `path_length_ratio`, and `feature_coverage`.
+No output is a calibrated musical similarity probability.
