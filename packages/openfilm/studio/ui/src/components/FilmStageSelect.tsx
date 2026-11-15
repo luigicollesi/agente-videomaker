@@ -396,6 +396,8 @@ interface FilmStageSelectProps {
   onSelectElement?: (element: StageElement | null, rowClipLocs?: readonly string[]) => void;
   /** A whole clip moved / scaled / turned on the stage: its box written. Refused: an error message. */
   onEditClip?: (edits: StageClipEdit[]) => Promise<string | null>;
+  /** Rotate a visible Text3D object with the right mouse button. */
+  onRotateText3D?: (clipLoc: string, dx: number, dy: number, phase: 'preview' | 'commit' | 'cancel') => void;
   /** The clips selected elsewhere (`film.html#<track>.<clip>`): one is in hand here, several are outlined. */
   linkedLocs?: readonly string[];
   /** Select these clips whole (a marquee around several): the timeline selects them, and they are outlined here. */
@@ -460,7 +462,7 @@ interface FilmStageSelectProps {
 }
 
 function FilmStageSelectImpl({
-  previewRef, stage, doc, spans, timeMs, playing, onPause, onSelectElement, onEditClip, linkedLocs, onSelectClips, selectRequest,
+  previewRef, stage, doc, spans, timeMs, playing, onPause, onSelectElement, onEditClip, onRotateText3D, linkedLocs, onSelectClips, selectRequest,
   clipPreviewRef, lookPreviewRef, controlRef, onTransformLayer, onTransformLayers, onEditTextInline, onGeometry, menuFor, recoveryMenu,
   onRegion, regionHint, flashBox, chat, onHoverLayer, onStartMask, pointLayer, arrowsMove = true, onDropPicture,
 }: FilmStageSelectProps) {
@@ -468,6 +470,9 @@ function FilmStageSelectImpl({
   arrowsMoveRef.current = arrowsMove;
   const flushPendingRef = React.useRef<() => void>(() => {});
   const host = React.useRef<HTMLDivElement | null>(null);
+  const rightRotate = React.useRef<{clipLoc:string,x:number,y:number,moved:boolean} | null>(null);
+  const rightPress = React.useRef(0);
+  const suppressRightMenu = React.useRef(0);
   const [picked, setPickedState] = React.useState<Hit | null>(null);
   const pickedRef = React.useRef<Hit | null>(null);
   /** Kept in step at once (a handler running right after a set must see it), drawn on the next render. */
@@ -2526,6 +2531,7 @@ function FilmStageSelectImpl({
   openMenuForRef.current = openMenuFor;
   const onStageContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (performance.now() < suppressRightMenu.current) return;
     if (!menuFor) return;
     const at = { x: e.clientX, y: e.clientY };
     const openMenu = (items: readonly ContextMenuEntry[]) => openMenuAt(at, items);
@@ -2974,6 +2980,46 @@ function FilmStageSelectImpl({
    * `outside`: in the dark, where nothing can be clicked, only a box drawn: the film plays on until the box is pulled
    * open (a click there only lets the selection go).
    */
+  const startRightRotation = (e: React.PointerEvent<HTMLDivElement>) => {
+    const held = pickedRef.current?.element;
+    const loc = held?.clipLoc;
+    if (!loc || !onRotateText3D || lockedClip(loc)) return;
+    const at = parseFilmDocLoc(loc);
+    const clip = at ? docRef.current.tracks[at.track]?.clips[at.clip] : null;
+    if (clip?.attrs?.['data-openfilm-content-type'] !== 'text3d') return;
+    const p = local(e), vs = viewScaleNow(), token = ++rightPress.current;
+    const pointerId = e.pointerId, x = e.clientX, y = e.clientY;
+    void ask<string>('clipAt', {x:p.x/vs,y:p.y/vs}).then(id => {
+      if (token !== rightPress.current || id !== clip.id || !host.current) return;
+      rightRotate.current = {clipLoc:loc,x,y,moved:false};
+      host.current.setPointerCapture(pointerId);
+      onPause?.();
+    });
+  };
+  const finishRightRotation = (e: React.PointerEvent<HTMLDivElement>, cancelled=false) => {
+    ++rightPress.current;
+    const d=rightRotate.current;
+    if(!d)return false;
+    rightRotate.current=null;
+    if(d.moved){
+      if(!cancelled && e.type==='pointerup')onRotateText3D?.(d.clipLoc,e.clientX-d.x,e.clientY-d.y,'commit');
+      else onRotateText3D?.(d.clipLoc,0,0,'cancel');
+      suppressRightMenu.current=performance.now()+500;
+    }
+    return true;
+  };
+  React.useEffect(()=>{
+    const escape=(event:KeyboardEvent)=>{
+      if(event.key!=='Escape'||!rightRotate.current)return;
+      const d=rightRotate.current;
+      rightRotate.current=null;++rightPress.current;
+      onRotateText3D?.(d.clipLoc,0,0,'cancel');
+      suppressRightMenu.current=performance.now()+500;
+      event.preventDefault();
+    };
+    window.addEventListener('keydown',escape);
+    return ()=>window.removeEventListener('keydown',escape);
+  },[onRotateText3D]);
   const pauseWhenOpen = React.useRef(false);
   const pressDown = (e: PressEvent, outside = false) => {
       if (e.button !== 0) return;
@@ -3288,8 +3334,16 @@ function FilmStageSelectImpl({
       onContextMenu={onStageContextMenu}
       {...pictureDrag}
       onClick={(e) => e.stopPropagation()}
-      onPointerDown={pressDown}
+      onPointerDown={(e)=>{if(e.button===2)startRightRotation(e);else pressDown(e)}}
       onPointerMove={(e) => {
+        const right=rightRotate.current;
+        if(right){
+          const dx=e.clientX-right.x,dy=e.clientY-right.y;
+          if(!right.moved && Math.hypot(dx,dy)<4)return;
+          right.moved=true;
+          onRotateText3D?.(right.clipLoc,dx,dy,'preview');
+          return;
+        }
         pointerAt.current = local(e);
         /* where the pointer is, through a drag too: once the drag is written, what is under it is asked again
            (rehoverRef), and the place it was pressed at would outline what the layer was dragged off */
@@ -3395,11 +3449,11 @@ function FilmStageSelectImpl({
         moveAt.current = null;
         setHover(null);
       }}
-      onPointerUp={endPointer}
+      onPointerUp={(e)=>{if(!finishRightRotation(e))endPointer(e)}}
       /* the system took the gesture (a pen cancelled, a dialog): released where it last was; the capture lost after a
          release finds nothing in hand and does nothing */
-      onPointerCancel={endPointer}
-      onLostPointerCapture={endPointer}
+      onPointerCancel={(e)=>{if(!finishRightRotation(e,true))endPointer(e)}}
+      onLostPointerCapture={(e)=>{if(!finishRightRotation(e,true))endPointer(e)}}
     >
       <div
         className="absolute overflow-visible"
