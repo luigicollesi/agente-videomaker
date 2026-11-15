@@ -72,6 +72,7 @@ export function createText3DCore(options){
  const restore=(o,b)=>{o.position.copy(b.position);o.rotation.copy(b.rotation);o.scale.copy(b.scale)};
  let rootBaseline=snapshot(root);const cameraBaseline=snapshot(camera),outerBaseline=snapshot(outer);
  let baseline=characters.map(snapshot);
+ let duration=Number.isFinite(options.duration)&&options.duration>0?options.duration:10;
  let baseFront=front.color.clone(),baseSide=side.color.clone();
  const snapshotMaterial=m=>({color:m.color.clone(),emissive:m.emissive.clone(),emissiveIntensity:m.emissiveIntensity,opacity:m.opacity,transparent:m.transparent,roughness:m.roughness,metalness:m.metalness,visible:m.visible});
  const baseMaterial=[snapshotMaterial(front),snapshotMaterial(side)];
@@ -86,7 +87,7 @@ export function createText3DCore(options){
   front.color.copy(baseFront);side.color.copy(baseSide);
   for(const [i,light] of [ambient,key].entries()){light.intensity=baseLight[i].intensity;light.color.copy(baseLight[i].color);light.position.copy(baseLight[i].position)}
   const commands=await evaluateText3DAnimations(animations,t,(kind,index)=>({
-   scene,camera,renderer,model:{root,characters,meshes},materials:[front,side],
+   scene,camera,renderer,duration,model:{root,characters,meshes},materials:[front,side],
    resources:{track:resource=>resources.track(kind+':'+index,resource)}
   }));
   applyText3DContributions(commands,{root,characters,materials:[front,side],lights:[ambient,key]});
@@ -97,7 +98,7 @@ export function createText3DCore(options){
   contractVersion:2,renderer,scene,camera,
   model:{root,characters,meshes},
   appearance:{materials:[front,side],lights:[ambient,key]},
-  animations,setBaseColor(color){front.color.set(color);side.color.copy(front.color).multiplyScalar(.48);baseFront=front.color.clone();baseSide=side.color.clone()},frame:async t=>{if(disposed)throw new Error('Text3D disposed');await run(t)},
+  animations,setDuration(value){if(!Number.isFinite(value)||value<=0)throw new Error('Invalid clip duration');duration=value},setBaseColor(color){front.color.set(color);side.color.copy(front.color).multiplyScalar(.48);baseFront=front.color.clone();baseSide=side.color.clone()},frame:async t=>{if(disposed)throw new Error('Text3D disposed');await run(t)},
   dispose(){
    if(disposed)return;disposed=true;
    const errors=[];
