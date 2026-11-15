@@ -23,14 +23,15 @@ from music_analyzer.cache import PIPELINE_REVISION, sha256_file, cache_key, load
 
 def analyze_music(audio_path: str, output_path: str,
                   audio_stream: int | None = None,
-                  cache_dir: str | None = None) -> dict:
+                  cache_dir: str | None = None,
+                  experimental_structure_v3: bool = False) -> dict:
     output = Path(output_path).expanduser().resolve()
     source = Path(audio_path).expanduser().resolve()
     if output == source:
         raise ValueError("Analysis JSON must not overwrite source media")
     digest = sha256_file(source) if cache_dir is not None else None
     cache = Path(cache_dir).expanduser().resolve() if cache_dir is not None else None
-    key = cache_key(digest, audio_stream, __version__) if digest is not None else None
+    key = cache_key(digest, audio_stream, __version__, experimental_structure_v3) if digest is not None else None
     if cache is not None and key is not None:
         saved = load_cached(cache, key, digest)
         if saved is not None:
@@ -63,7 +64,9 @@ def analyze_music(audio_path: str, output_path: str,
         result["structure"].update(detect_repeated_regions(result))
         result = enrich_temporal_dynamics(result)
         result = enrich_rhythm(result)
-        result["structure_v3"] = detect_repeats_v3(result)
+        result["structure_v3"] = (detect_repeats_v3(result) if experimental_structure_v3
+                                  else {"status": "not_requested", "method": "recurrence_path_enhance_v3",
+                                        "repeated_regions": []})
         result["quality"] = {"timebase_status": source_meta.get("timestamp_mapping", "unverified"),
                              "structure_v3_status": result["structure_v3"]["status"],
                              "cues_status": "available",
