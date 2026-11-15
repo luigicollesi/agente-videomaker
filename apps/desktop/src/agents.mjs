@@ -1344,7 +1344,7 @@ export class AgentSession {
         name: 'videomaker-media',
         command: nodeBinary(),
         args: [fileURLToPath(new URL('./media-mcp.mjs', import.meta.url))],
-        env: [{ name: 'VIDEOMAKER_PROJECT', value: this.opts.cwd }],
+        env: [{ name: 'VIDEOMAKER_PROJECT', value: this.opts.cwd }, { name: 'ELECTRON_RUN_AS_NODE', value: '1' }],
       }],
       ...(skills?.additionalDirectories ? { additionalDirectories: skills.additionalDirectories } : {}),
       ...(claude ? { _meta: { systemPrompt: { append: instructions }, ...(skills?.claude ? { claudeCode: { options: skills.claude } } : {}) } } : {}),
