@@ -25,6 +25,7 @@ import { EditError, editProjectFilm, pageClipLook, readProjectFilm, settleProjec
 import { compoundOuter, readPartFilm, writePartFilm } from './parts.mjs';
 import { PARTS, compoundFolder, srcInto } from './compound.mjs';
 import { readPage, writePage } from './page-text.mjs';
+import { activeText3D, listText3D } from './text3d/registry.mjs';
 import { FileError, bringIn, collect, extractAudio, freezeFrame, importFile, inside, listFiles, makeFolder, moveCheck, moveFile, readable, relink, trashFile } from './files.mjs';
 import { mediaReferences } from '../../src/media-links.mjs';
 import { ExportError, createExports, draftApps, exportCapabilities, exportsRoot, projectSizes } from './exports.mjs';
@@ -175,7 +176,7 @@ export async function startStudio({ port = 4747, key, openBrowser = systemBrowse
   /** The caller holds the key; a browser write must also come from the editor's own origin. */
   function authorize(/** @type {Req} */ req) {
     if (sameKey(/** @type {string | undefined} */ (req.headers['x-studio-key']))) return;
-    if (!sameKey(cookieKey(req))) throw new HttpError(401, 'open Studio from the address `openfilm open` prints');
+    if (!sameKey(cookieKey(req))) throw new HttpError(401, 'open Studio from the address `videomaker open` prints');
     if (req.method !== 'GET' && req.method !== 'HEAD' && req.headers.origin !== origin) throw new HttpError(403, 'not from Studio');
   }
 
@@ -219,7 +220,7 @@ export async function startStudio({ port = 4747, key, openBrowser = systemBrowse
       return at.pathname + at.search;
     };
     if (path === '/open') {
-      if (!sameKey(url.searchParams.get('key'))) throw new HttpError(403, 'this link is from another Studio launch; use the one `openfilm open` printed');
+      if (!sameKey(url.searchParams.get('key'))) throw new HttpError(403, 'this link is from another Studio launch; use the one `videomaker open` printed');
       const to = url.searchParams.get('to') ?? '/';
       res.writeHead(302, { location: keyed(/^\/(?!\/)[^\s\\]*$/.test(to) ? to : '/'), 'set-cookie': signIn, 'referrer-policy': 'no-referrer' });
       return res.end();
@@ -238,6 +239,17 @@ export async function startStudio({ port = 4747, key, openBrowser = systemBrowse
     authorize(req);
     const parts = path.slice('/api/'.length).split('/').map(decodeURIComponent);
 
+    /* Registered Text3D library entries. Publishing is handled by the validating CLI. */
+    if (parts[0] === 'text3d' && parts.length === 1 && req.method === 'GET') {
+      const source = url.searchParams.get('source');
+      if (source && !/^[a-z0-9][a-z0-9/_-]{0,159}$/i.test(source)) throw new HttpError(400, 'Invalid source component ID');
+      const lib = await savedLibrary();
+      return json(res, 200, {
+        entries: await listText3D(source || null),
+        active: source ? await activeText3D(source) : null,
+        pageBase: pages.folderUrl({ id: SAVED_ORIGIN_ID, path: lib }),
+      });
+    }
     /* stop: another app is taking over this machine's Studio, or `openfilm open` starts it afresh (`whenIdle`: not
        while an export runs or media is made — it would be lost). `pages`: how many were open, to come back */
     if (parts[0] === 'quit' && parts.length === 1 && req.method === 'POST') {
@@ -1415,7 +1427,7 @@ function sendEditor(/** @type {Res} */ res, /** @type {string} */ dir, /** @type
   const page = join(root, 'index.html');
   /* no referrer: the page's address holds the key, and a link it opens must not carry it to another site */
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', ...headers });
-  res.end(existsSync(page) ? readFileSync(page) : '<!doctype html><meta charset="utf-8"><title>OpenFilm Studio</title><p>The editor is not built: run <code>npm run build:ui</code>.</p>');
+  res.end(existsSync(page) ? readFileSync(page) : '<!doctype html><meta charset="utf-8"><title>Videomaker Studio</title><p>The editor is not built: run <code>npm run build:ui</code>.</p>');
 }
 
 /** A file in the system's file manager, selected. */

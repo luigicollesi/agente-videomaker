@@ -86,8 +86,17 @@ export async function listLibrary() {
       if (entry.name.startsWith('.')) continue;
       const at = rel ? `${rel}/${entry.name}` : entry.name;
       if (entry.isDirectory()) {
+        // Dedicated Text3D registry storage is not user media.
+        if (at === 'text3d') continue;
         const bundle = await readBundle(join(root, at));
-        if (bundle) { files.push(bundleEntry(at, bundle)); continue; }
+        if (bundle) {
+          // Registered Text3D components live exclusively in the Text 3D library.
+          // Preserve the bundle on disk: deleting it would break existing projects.
+          if (bundle.clip?.attrs?.['data-openfilm-content-type'] !== 'text3d') {
+            files.push(bundleEntry(at, bundle));
+          }
+          continue;
+        }
         folders.push(libraryPath(at));
         if (depth < 8) await walk(at, depth + 1);
         continue;
@@ -154,8 +163,12 @@ function bundleEntry(rel, item) {
 /** A bundle's picture, or null. */
 export async function bundlePoster(/** @type {unknown} */ path) {
   const root = await libraryRoot();
-  const file = join(inside(root, libraryRel(path)), 'poster.jpg');
-  return existsSync(file) ? file : null;
+  const folder=inside(root,libraryRel(path));
+  for (const ext of ['jpg','svg']) {
+    const file=join(folder,'poster.'+ext);
+    if (existsSync(file)) return file;
+  }
+  return null;
 }
 
 /** A name that is free in folder `dir`: `name`, else `name 2`, `name 3`… */
@@ -347,7 +360,7 @@ export async function takeSaved(root, path) {
   /* its place in the project: the library's, made a name a page's address takes as it is */
   /* OpenFilm's things one folder each under saved/openfilm/ (`effects-snow`), so their pages are no deeper than a
      project's pages are looked for (files.mjs listFiles) */
-  const base = `saved/${placeName(builtIn ? `${BUILT_IN}/${rel.replaceAll('/', '-')}` : rel)}`;
+  const base = `saved/${placeName(builtIn ? `${BUILT_IN}/${rel.replaceAll('/', '-')}` : rel.startsWith('text3d/') ? `text3d-${rel.replaceAll('/', '-')}` : rel)}`;
   const from = join(at, 'files');
   const files = [];
   for (const entry of await readdir(from, { recursive: true, withFileTypes: true }).catch(() => [])) {

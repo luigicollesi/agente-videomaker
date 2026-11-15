@@ -124,6 +124,30 @@ function hostFacts(href) {
  */
 function place(c, box) {
   const at = pictureRect(c.kind, { w: c.nw, h: c.nh }, stage, box);
+  // New Text3D bundles draw into a transparent full-stage iframe, retaining the
+  // original clip's placed rectangle only as a content viewport. Legacy bundles are untouched.
+  if (c.kind === 'page' && c.row?.attrs?.['data-text3d-full-stage'] === 'true') {
+    c.w = stage.w; c.h = stage.h;
+    Object.assign(c.el.style, {
+      position:'absolute',left:'0',top:'0',right:'auto',bottom:'auto',margin:'0',
+      translate:'none',rotate:'none',scale:'none',
+      width:stage.w+'px',height:stage.h+'px',
+      // Rotate around the actual text viewport, not the center of the full-stage canvas.
+      // This also works for previously registered Text3D bundles with an older core.
+      transformOrigin:`${at.x+at.w/2}px ${at.y+at.h/2}px`,
+      transform:`rotate(${at.r}deg)`,
+      pointerEvents:'none',
+    });
+    const root=c.win?.document?.documentElement;
+    if(root) {
+      for(const [key,value] of Object.entries({x:at.x,y:at.y,w:at.w,h:at.h}))
+        root.style.setProperty('--text3d-viewport-'+key,String(value));
+      // The standard Position & Size rotation is applied to the clip presentation,
+      // including legacy bundles. Avoid rotating the 3D mesh a second time.
+      root.style.setProperty('--text3d-rotation-z','0deg');
+    }
+    return;
+  }
   const page = c.kind === 'page';
   c.w = page ? c.nw : at.w; c.h = page ? c.nh : at.h;
   const k = page ? ` scale(${at.w / c.nw}, ${at.h / c.nh})` : '';
@@ -844,6 +868,7 @@ function wakePage(c) {
       if (c.own && (c.own.w !== c.nw || c.own.h !== c.nh)) { c.nw = c.own.w; c.nh = c.own.h; place(c, c.row.box); }
       window.__filmEditor.learned?.();
     }
+    if (c.row?.attrs?.['data-text3d-full-stage'] === 'true') place(c,c.row.box);
     window.__filmEditor.stage.woke?.();
   });
   pagesAwake.add(c);

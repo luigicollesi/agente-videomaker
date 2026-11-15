@@ -463,7 +463,7 @@ export function offeredSkills({ home, ...where } = {}) {
  * from its file says `openfilm`, which is the command on the PATH where OpenFilm is installed and in the desktop app.
  * @param {string} text @param {string} run
  */
-export const asRun = (text, run) => text.replaceAll('npx openfilm', run).replace(/`openfilm(?=[\s`])/g, `\`${run}`);
+export const asRun = (text, run) => text.replaceAll('npx openfilm', run).replaceAll('npx videomaker', run).replace(/`(?:videomaker|openfilm)(?=[\s`])/g, `\`${run}`);
 
 /**
  * A skill as an agent reads it: its name, where its files are (only read: what a film uses is copied into the

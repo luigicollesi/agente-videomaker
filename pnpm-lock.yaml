@@ -116,9 +116,15 @@ importers:
 
   packages/openfilm:
     dependencies:
+      opentype.js:
+        specifier: 2.0.0
+        version: 2.0.0
       playwright-core:
         specifier: 1.61.1
         version: 1.61.1
+      three:
+        specifier: 0.187.0
+        version: 0.187.0
     devDependencies:
       '@fontsource-variable/inter':
         specifier: ^5.3.0
@@ -2719,6 +2725,9 @@ packages:
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
 
+  opentype.js@2.0.0:
+    resolution: {tarball: https://registry.npmjs.org/opentype.js/-/opentype.js-2.0.0.tgz}
+
   open@11.0.4:
     resolution: {integrity: sha512-++Zlftm0kVLPmzC06t6epuWmcRMDbI4z5P3NNX979WA/k23+NtSOynEGzsVfZwguKw2mi5umVgnBlJQMwRz4Pg==}
     engines: {node: '>=20'}
@@ -3252,6 +3261,9 @@ packages:
   typebox@1.3.27:
     resolution: {integrity: sha512-zu+jc1pcy4UiNThxikUr36f0Rybk9PEeCg/NE6adeWr/SKsdNO4EzZHYRDlv2YCVAfj3Odq3dESSo/jNyoBXzA==}
 
+  three@0.187.0:
+    resolution: {integrity: sha512-Qiu7R+Cmh8CstZsY1uJOSWnVlfo7ZtNLV7mF8Jltk3LB3AtDu9cRZlcnRKkAk8Y4z6KKw35z7Y7Urd7jWY8etA==}
+
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
@@ -3487,6 +3499,8 @@ packages:
         optional: true
 
 snapshots:
+
+  opentype.js@2.0.0: {}
 
   '@agentclientprotocol/claude-agent-acp@0.81.2(@anthropic-ai/sdk@0.129.0(zod@4.6.6))(@modelcontextprotocol/sdk@1.32.1(zod@4.6.6))':
     dependencies:
@@ -6906,6 +6920,8 @@ snapshots:
       mime-types: 3.0.2
 
   typebox@1.3.27: {}
+
+  three@0.187.0: {}
 
   typescript@5.9.3: {}
 

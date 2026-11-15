@@ -48,6 +48,7 @@ const DRAWN: Record<string, Draw> = {
       <path d="M15.6 10.6h4.8M15.6 14.6h4.8M13.6 18.6h6.8" />
     </>
   ),
+  text3d: () => (<><path d="M4 6h11v3H4zM9.5 9v10M6 19h7"/><path d="m15 6 5 3v10l-5-3V6zM15 9l5 3"/></>),
   /* captions: a picture, two lines of words along its foot */
   captions: ({ fill, ink }) => (
     <>

@@ -101,7 +101,7 @@ export function App() {
 function LockedNotice() {
   const t = useT();
   const [copied, setCopied] = useState(false);
-  const COMMAND = 'openfilm open';
+  const COMMAND = 'videomaker open';
   return (
     <div role="alert" className="fixed inset-0 z-[10050] flex items-center justify-center bg-[var(--bg-app)] p-6">
       <div className="w-full max-w-[460px] rounded-2xl border border-[var(--border)] bg-[var(--bg-raised)] p-6 shadow-[var(--shadow-lg)]">
@@ -138,7 +138,7 @@ function ConnectionNotice() {
   if (state === 'up') return null;
   if (state === 'locked') return <LockedNotice />;
   const gone = state === 'gone';
-  const COMMAND = 'openfilm open';
+  const COMMAND = 'videomaker open';
   return (
     <>
       {gone ? <div aria-hidden className="fixed inset-0 z-[10049] bg-black/40 backdrop-blur-[1.5px]" /> : null}

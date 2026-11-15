@@ -14,12 +14,15 @@ import { gradeFilter, gradeOf, withGrade, type Grade } from './grade.ts';
 /** What a path names OpenFilm's library by, as `saved/` names Saved. */
 export const BUILT_IN = 'openfilm';
 
-export type LibraryCategory = 'transition' | 'effect' | 'filter' | 'text' | 'sticker' | 'sound' | 'music' | 'template';
+export type LibraryCategory = 'transition' | 'effect' | 'filter' | 'text' | 'text3d' | 'sticker' | 'sound' | 'music' | 'template';
 export type LibraryNames = Partial<Record<Language, string>> & { en: string };
 
 export interface LibraryItem {
   /** Its place in the library (`effects/snow`, `sounds/whoosh.m4a`). */
   id: string;
+  savedPath?: string;
+  source2DId?: string;
+  pageHref?: string;
   cat: LibraryCategory;
   group: string;
   name: LibraryNames;
@@ -155,7 +158,7 @@ export function defaultTextWords(): string {
 /* `v`: the pictures were drawn again in place (2026-10-31): a copy kept from before is not used */
 export const libraryUrl = (rel: string): string => `/api/library/file?path=${encodeURIComponent(rel)}&v=2`;
 /** A page of the library, served as a page (for a try over the viewer's picture). */
-export const pageUrl = (item: LibraryItem): string => `/api/library/pages/${`${item.id}/files/${item.src ?? ''}`.split('/').map(encodeURIComponent).join('/')}`;
+export const pageUrl = (item: LibraryItem): string => item.pageHref ?? `/api/library/pages/${`${item.id}/files/${item.src ?? ''}`.split('/').map(encodeURIComponent).join('/')}`;
 export const posterUrl = (item: LibraryItem): string => libraryUrl(item.poster ?? `${item.id}/poster.jpg`);
 export const previewUrl = (item: LibraryItem): string => libraryUrl(`${item.id}/preview.mp4`);
 /** A sound's waveform, beside it in waves/ (`sounds/whoosh.m4a` → `sounds/waves/whoosh.png`). */
@@ -167,7 +170,7 @@ export const waveUrl = (item: LibraryItem): string => libraryUrl(item.id.replace
  * on (`apply`: a clip, a cut), being no clip itself.
  */
 export function libraryDragItem(item: LibraryItem, name: string): ResourceDragItem | null {
-  const saved = `${BUILT_IN}/${item.id}`;
+  const saved = item.savedPath ?? `${BUILT_IN}/${item.id}`;
   if (item.kind === 'look' || item.kind === 'fade') return { path: saved, name, kind: 'other', saved, apply: item.kind };
   /* a transition that moves the two shots: onto a cut, as a fade goes */
   if (item.kind === 'motion' && item.place === 'cut') return { path: saved, name, kind: 'other', saved, apply: 'fade' };

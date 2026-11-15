@@ -23,7 +23,8 @@ test('the installed command names itself by its whole path in all it prints (OPE
     writeFileSync(node, '#!/bin/sh\nprintf %s "$OPENFILM_RUN"\n');
     chmodSync(node, 0o755);
     const bin = installOpenfilmCommand(dir, { node });
-    assert.equal(execFileSync(join(bin, 'openfilm'), { encoding: 'utf8' }), openfilmCommand(bin));
+    assert.equal(execFileSync(join(bin, 'videomaker'), { encoding: 'utf8' }), openfilmCommand(bin));
+    assert.equal(execFileSync(join(bin, 'openfilm'), { encoding: 'utf8' }), openfilmCommand(bin), 'legacy alias remains operational');
     assert.equal(execFileSync('/bin/sh', ['-c', `${openfilmCommand(bin)} --version`], { encoding: 'utf8' }), openfilmCommand(bin), 'runs as the agent types it');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
@@ -36,5 +37,15 @@ test('a script run after as-node.mjs is the main module, with its arguments, and
     const asNode = new URL('./as-node.mjs', import.meta.url).href;
     const out = JSON.parse(execFileSync(process.execPath, ['--import', asNode, script, '--flag', 'x'], { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, encoding: 'utf8' }));
     assert.deepEqual(out, { main: true, argv: [script, '--flag', 'x'], runAsNode: null });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('Windows installs Videomaker and legacy OpenFilm commands with the same bundled CLI', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'videomaker-win-test-'));
+  try {
+    const bin = installOpenfilmCommand(dir, { node: 'C:\\videomaker\\node.exe', platform: 'win32' });
+    const { readFileSync, existsSync } = await import('node:fs');
+    assert.equal(existsSync(join(bin, 'videomaker.cmd')), true);
+    assert.equal(readFileSync(join(bin, 'videomaker.cmd'), 'utf8'), readFileSync(join(bin, 'openfilm.cmd'), 'utf8'));
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

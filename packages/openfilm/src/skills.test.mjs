@@ -386,10 +386,16 @@ test("OpenFilm's own skills: in order, each named by the manual, printed with th
   assert.match(text('edit'), /The one rule: the picture depends only on t/);
   assert.match(text('media'), /--take <id>/);
   assert.match(text('canvas'), /canvas apply/);
+  for (const name of ['edit','media','canvas']) {
+    const body = text(name);
+    assert.match(body, /videomaker/);
+    assert.doesNotMatch(body, /`openfilm (?:look|get|canvas|text3d)/);
+  }
   /* read from their files, they say the command on the PATH (the app's own, or the one installed) */
   for (const s of core) assert.ok(!readFileSync(s.file, 'utf8').includes('npx openfilm'), `${s.name} says \`openfilm\``);
   assert.equal(asRun('`openfilm-edit`: `openfilm look`, and `openfilm skill <name>`', 'npx -y openfilm@latest'),
     '`openfilm-edit`: `npx -y openfilm@latest look`, and `npx -y openfilm@latest skill <name>`', 'a skill\'s name stays');
+  assert.equal(asRun('`videomaker text3d inspect foo`', '/app/bin/videomaker'), '`/app/bin/videomaker text3d inspect foo`');
   const printed = await skillCommand(['openfilm/edit'], 'npx -y openfilm@latest', { cwd: tmpdir() });
   assert.ok(printed.ok);
   assert.ok(printed.lines[0].includes('`npx -y openfilm@latest look`') && !/npx openfilm /.test(printed.lines[0]));

@@ -330,6 +330,18 @@
      "es": "Ambiente"
     }
    }
+  ],
+  "text3d": [
+   {
+    "id": "motion",
+    "name": {
+     "en": "Motion",
+     "es": "Movimientos",
+     "ja": "モーション",
+     "ko": "모션",
+     "zh-CN": "动态"
+    }
+   }
   ]
  },
  "items": [
@@ -4154,6 +4166,33 @@
     "hold",
     "exit",
     "webgl2"
+   ]
+  },
+  {
+   "id": "text3d/text3d-motion",
+   "cat": "text3d",
+   "group": "motion",
+   "name": {
+    "en": "3D Text — Motion Stack",
+    "es": "Texto 3D — Movimientos",
+    "ja": "3Dテキスト — 動き",
+    "ko": "3D 텍스트 — 모션",
+    "zh-CN": "3D 文字 — 动作"
+   },
+   "kind": "page",
+   "durationMs": 10500,
+   "src": "text3d-motion.html",
+   "poster": "text3d/text3d-motion/poster.svg",
+   "about": "A self-contained, deterministic 3D-depth text title with independently scheduled rotate, scale and translate events, timeline-driven entrance/exit and editable colors. This first version does not convert arbitrary HTML pages.",
+   "tags": [
+    "3d",
+    "text",
+    "typography",
+    "motion",
+    "rotation",
+    "extrusion",
+    "timeline",
+    "editable"
    ]
   }
  ]
