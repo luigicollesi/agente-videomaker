@@ -1,10 +1,10 @@
 // @ts-check
-/** Publish reusable Text3D components from a folder into Saved and the immutable-version registry. */
+/** Publish reusable Text3D components from a folder into Saved and the single active registry. */
 import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve, relative, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
 import { verifyText3D } from './text3d-verify.mjs';
-import { validateText3D } from './text3d-contract.mjs';
+import { validateText3D as validateText3DManifest } from './text3d-contract.mjs';
 import { builtInRoot } from '../studio/server/library.mjs';
 import { replacementEdits } from './text3d-replace.mjs';
 import { readProjectFilm, editProjectFilm } from '../studio/server/film.mjs';
@@ -27,7 +27,7 @@ async function validateText3D(dir) {
  const base=resolve(dir);
  const manifest=JSON.parse(await readFile(join(base,'manifest.json'),'utf8'));
  if(manifest?.contractVersion===2){
-  const issues=validateText3D(manifest);
+  const issues=validateText3DManifest(manifest);
   if(issues.length)throw new Error('Text3D contract: '+issues.join('; '));
   for(const kind of ['native','motion','appearance','vfx'])for(const file of manifest.modules[kind])await safeAsset(base,file);
   await safeAsset(base,manifest.model.font);
