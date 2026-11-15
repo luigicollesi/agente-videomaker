@@ -59,6 +59,13 @@ test('v2 core composes native and external motion with deterministic seeks',asyn
  await component.frame(2);await component.frame(1);
  assert.equal(component.model.root.parent.rotation.y,angle);
  assert.throws(()=>component.setRotation(NaN,0),/rotation/);
+ component.setViewport({x:120,y:80,width:360,height:190});
+ assert.equal(component.renderer,originalRenderer);
+ await component.frame(1);
+ const fullStageCenter=component.model.root.parent.parent.position.clone();
+ assert.ok(Math.abs(fullStageCenter.x)>0.001||Math.abs(fullStageCenter.y)>0.001);
+ assert.throws(()=>component.setViewport({x:0,y:0,width:-1,height:10}),/viewport/);
+ component.setViewport(null);
  component.setDepth(0.9);
  assert.ok(component.model.meshes[0].geometry.parameters.options.depth===0.9);
  assert.equal(component.renderer,originalRenderer);
