@@ -4,7 +4,7 @@ import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writ
 import { basename, dirname, join, resolve, relative, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
 import { verifyText3D } from './text3d-verify.mjs';
-import { validateText3DV2 } from './text3d-v2-contract.mjs';
+import { validateText3D } from './text3d-contract.mjs';
 import { builtInRoot } from '../studio/server/library.mjs';
 import { replacementEdits } from './text3d-replace.mjs';
 import { readProjectFilm, editProjectFilm } from '../studio/server/film.mjs';
@@ -27,22 +27,20 @@ async function validateText3D(dir) {
  const base=resolve(dir);
  const manifest=JSON.parse(await readFile(join(base,'manifest.json'),'utf8'));
  if(manifest?.contractVersion===2){
-  const issues=validateText3DV2(manifest);
-  if(issues.length)throw new Error('Text3D v2 contract: '+issues.join('; '));
+  const issues=validateText3D(manifest);
+  if(issues.length)throw new Error('Text3D contract: '+issues.join('; '));
   for(const kind of ['native','motion','appearance','vfx'])for(const file of manifest.modules[kind])await safeAsset(base,file);
   await safeAsset(base,manifest.model.font);
  }
- else if(!record(manifest)||manifest.formatVersion!==1||manifest.runtimeVersion!==1)
-  throw new Error('Text3D requires the current Three.js component contract');
- const fields=manifest.contractVersion===2?['id','source2DId']:['componentId','source2DId','sourceRevision','displayName','version'];
+ else throw new Error('Legacy Text3D formats are not supported');
+ const fields=['id','source2DId'];
  for(const field of fields)if(typeof manifest[field]!=='string'||!manifest[field])
   throw new Error('Text3D manifest is missing '+field);
  if(!record(manifest.parameterMap))throw new Error('Text3D requires parameterMap');
  if(!Array.isArray(manifest.props))throw new Error('Text3D requires editable props');
  if(!manifest.props.some(p=>record(p)&&p.type==='text'))
   throw new Error('Text3D must expose editable text');
- if(manifest.contractVersion!==2&&(!record(manifest.capabilities)||manifest.capabilities.characters!==true||manifest.capabilities.group!==true))
-  throw new Error('Text3D must support per-character and group motion');
+ 
  const html=await readFile(join(base,'index.html'),'utf8');
  const code=await readFile(join(base,'component.js'),'utf8');
  if(!/window\.film\s*=/.test(html)||!/frameReadsOverrides\s*:\s*true/.test(html))
@@ -53,7 +51,7 @@ async function validateText3D(dir) {
  if(/<iframe\b/i.test(html)||/https?:\/\//i.test(html+code))
   throw new Error('Text3D pages cannot embed frames or fetch external network resources');
  if(!/createText3D/.test(code))throw new Error('component.js must export createText3D');
- if((manifest.contractVersion!==2&&!/\b(?:THREE\.)?WebGLRenderer\s*\(/.test(code))||/\bSVGRenderer\b/.test(code))
+ if(/\bSVGRenderer\b/.test(code))
   throw new Error('Text3D requires Three.js WebGLRenderer; SVGRenderer fallback is not allowed');
  let count=0,total=0;
  /** @param {string} dir @param {number} depth */
@@ -79,7 +77,7 @@ export async function text3DCommand(args) {
  try {
   if(action==='create'&&rest.length===1){
    const target=resolve(rest[0]);
-   await cp(new URL('../examples/text3d-v2/',import.meta.url),target,{recursive:true,errorOnExist:true,force:false});
+   await cp(new URL('../examples/text3d/',import.meta.url),target,{recursive:true,errorOnExist:true,force:false});
    await mkdir(join(target,'assets'),{recursive:true});
    await copyFile(new URL(import.meta.resolve('three/examples/fonts/helvetiker_regular.typeface.json')),join(target,'assets/font.json'));
    return {ok:true,lines:['Text3D draft created: '+target]};
@@ -112,7 +110,7 @@ export async function text3DCommand(args) {
   }
   if(action==='validate'&&rest[0]){
    const manifest=await validateText3D(rest[0]);
-   return {ok:true,lines:['Text3D structure validated: '+(manifest.componentId??manifest.id),'Run register for packaged visual verification.']};
+   return {ok:true,lines:['Text3D structure validated: '+(manifest.id),'Run register for packaged visual verification.']};
   }
   if(action==='register'&&rest[0]){
    const source=resolve(rest[0]),manifest=await validateText3D(source);
@@ -132,8 +130,8 @@ export async function text3DCommand(args) {
     const files=join(staging,'files');
     await cp(source,files,{recursive:true,errorOnExist:true,force:false});
     await copyFile(new URL('./text3d-runtime.mjs',import.meta.url),join(files,'openfilm-text3d-runtime.mjs'));
-    if(manifest.contractVersion===2){
-     await copyFile(new URL('./text3d-v2-core.mjs',import.meta.url),join(files,'openfilm-text3d-v2-core.mjs'));
+    {
+     await copyFile(new URL('./text3d-core.mjs',import.meta.url),join(files,'openfilm-text3d-core.mjs'));
      await copyFile(new URL('./text3d-resource-manager.mjs',import.meta.url),join(files,'text3d-resource-manager.mjs'));
      await copyFile(new URL('./text3d-animation-composer.mjs',import.meta.url),join(files,'text3d-animation-composer.mjs'));
      await copyFile(new URL('./text3d-runtime.mjs',import.meta.url),join(files,'text3d-runtime.mjs'));
