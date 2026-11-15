@@ -13,7 +13,7 @@ Use `THREE.WebGLRenderer` and genuine meshes; SVGRenderer, CSS/pixel extrusion o
 
 Keep the draft in a persistent folder. Run `videomaker text3d validate <folder>`, fix all errors, then verify visual rendering, asset loading, source-specific animation frames and fonts. Registration is permitted only after verification of the **packed copy**. Register into Saved, confirm it can be imported and rendered, and only then apply to the timeline. If blocked, report the preserved draft's actual path and failure; never claim success or modify the original clip.
 
-## Text3D v2 animation contributions
+## Text3D animation contributions
 
 Prefer returning declarative contributions from `evaluate(time, context)` over mutating shared scene state. The shared runtime composes these commands after evaluating all enabled effects. Supported contribution arrays: `transforms` (targets `root` or `character:N`, properties `position`, `rotation`, `scale`, 3-number vectors), `materials` (target `material:0` or `material:1`, numeric `opacity`, `emissiveIntensity`, `roughness`, `metalness`), `lights` (target `light:0` or `light:1`, numeric `intensity`). Supported operations: `set`, `add`, `multiply`; conflicting `set` contributions to the same channel are rejected. Unsupported channels and malformed values fail validation rather than being ignored.
 
@@ -38,6 +38,6 @@ Temporary legacy effects may mutate the scene through context for compatibility,
 
 ## Editable extrusion depth and automatic layout
 
-Every v2 extruded-text component MUST expose `Depth` as a CSS variable property `--text3d-depth` (positive world units) with an entry in `parameterMap`. The sample template implements this: read the variable on each frame and call `core.setDepth(value)`, which rebuilds **only glyph geometry**. Never fake thickness using CSS shadows or a flat SVG. Preserve the separate mesh face and side materials.
+Every current extruded-text component MUST expose `Depth` as a CSS variable property `--text3d-depth` (positive world units) with an entry in `parameterMap`. The sample template implements this: read the variable on each frame and call `core.setDepth(value)`, which rebuilds **only glyph geometry**. Never fake thickness using CSS shadows or a flat SVG. Preserve the separate mesh face and side materials.
 
 After text changes, call `core.setText(text)`, never `core.dispose()` followed by `createText3DCore()`. The shared core automatically fits its actual glyph bounds inside the canvas and centers the text. Keep `core.resize(canvas.clientWidth, canvas.clientHeight)` so editing `OPEN` into `TESTEEEEE` does not crop glyphs. The default slightly oblique 3D viewpoint reveals the letter sidewalls; do not replace it with CSS transforms. Do not hardcode layout around the original word.
