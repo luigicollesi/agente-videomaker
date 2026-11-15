@@ -83,11 +83,18 @@ export function PropertiesSection({ host, commit }: {
   /* a clip's length is Studio's to keep (studio/server/ops.mjs), not the person's to set: not shown */
   const shown = props.filter((p) => !(p.type === 'var' && p.var === '--clip-length'));
   const is3D = (host.page.includes('text3d-motion.html') || host.page.includes('/text3d/'));
-  const visual3D = new Set(['--text3d-depth','--text3d-color','--text3d-side','--text3d-shadow','--text3d-light']);
+  const transform3D = new Set(['--text3d-depth','--text3d-rotation-x','--text3d-rotation-y']);
+  const visual3D = new Set(['--text3d-color','--text3d-side','--text3d-shadow','--text3d-light']);
   const motion3D = new Set(['--text3d-events']);
+  const builtIn3D: ComponentProp[] = is3D && host.page.includes('/text3d/') ? [
+    {name:'Depth',type:'var',var:'--text3d-depth'},
+    {name:'Rotation X',type:'var',var:'--text3d-rotation-x'},
+    {name:'Rotation Y',type:'var',var:'--text3d-rotation-y'}
+  ] : [];
+  const transformProps = is3D ? builtIn3D.map(base=>shown.find(p=>p.type==='var'&&p.var===base.var)??base) : [];
   const appearance3D = is3D ? shown.filter(p => p.type === 'var' && visual3D.has(p.var)) : [];
   const movement3D = is3D ? shown.filter(p => p.type === 'var' && motion3D.has(p.var)) : [];
-  const standard = shown.filter(p => !is3D || p.type !== 'var' || (!visual3D.has(p.var) && !motion3D.has(p.var)));
+  const standard = shown.filter(p => !is3D || p.type !== 'var' || (!visual3D.has(p.var) && !motion3D.has(p.var) && !transform3D.has(p.var)));
   const advanced = standard.filter((p) => p.type === 'var' && p.advanced);
   const ordinary = standard.filter((p) => !(p.type === 'var' && p.advanced));
   const kept = JSON.stringify(overrides ?? []);
@@ -192,10 +199,10 @@ export function PropertiesSection({ host, commit }: {
      telling how to make a property of a layer of it */
   if (!shown.length && isLibraryClip(host.page)) return null;
 
-  const section = (list: ComponentProp[], isAdvanced: boolean, special?: 'appearance' | 'motion') => (
+  const section = (list: ComponentProp[], isAdvanced: boolean, special?: 'appearance' | 'motion' | 'transform') => (
     <Section
       id={special ? `text3d-${special}` : isAdvanced ? 'advanced-properties' : 'properties'}
-      title={special === 'appearance' ? '3D Properties' : special === 'motion' ? '3D Motion' : t(isAdvanced ? 'inspector.advancedProperties' : 'inspector.props')}
+      title={special === 'transform' ? '3D Transform' : special === 'appearance' ? '3D Properties' : special === 'motion' ? '3D Motion' : t(isAdvanced ? 'inspector.advancedProperties' : 'inspector.props')}
       aside={(
         <span className="flex items-center">
           {list.some((p) => propValue(overrides, p) != null) ? (
@@ -238,6 +245,7 @@ export function PropertiesSection({ host, commit }: {
   );
   return <>
     {ordinary.length || !isLibraryClip(host.page) ? section(ordinary, false) : null}
+    {transformProps.length ? section(transformProps, true, 'transform') : null}
     {appearance3D.length ? section(appearance3D, true, 'appearance') : null}
     {movement3D.length ? section(movement3D, true, 'motion') : null}
     {advanced.length ? section(advanced, true) : null}
