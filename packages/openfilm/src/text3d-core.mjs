@@ -37,8 +37,9 @@ export function createText3DCore(options){
  renderer.setClearColor(0,0);
  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(36,canvas.width/canvas.height,.1,100);
  camera.position.set(0,0,5.2);
- const ambient=new THREE.AmbientLight(0xffffff,1.1);
- const key=new THREE.DirectionalLight(0xffffff,2.8);
+ // Use restrained studio lighting to preserve saturated typography colors.
+ const ambient=new THREE.AmbientLight(0xffffff,.55);
+ const key=new THREE.DirectionalLight(0xffffff,1.2);
  key.position.set(-2,4,6);scene.add(ambient,key);
  const outer=new THREE.Group(),root=new THREE.Group();outer.add(root);scene.add(outer);
  root.rotation.y=-.22;
@@ -54,9 +55,12 @@ export function createText3DCore(options){
   const box=new THREE.Box3().setFromObject(root);
   if(box.isEmpty())return;
   const width=Math.max(.01,box.max.x-box.min.x),height=Math.max(.01,box.max.y-box.min.y);
-  const visibleHeight=2*camera.position.z*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
+  // Perspective sizing must use the nearest glyph surface, not just camera-to-origin.
+ const nearestZ=Math.max(box.max.z,0);
+ const distance=Math.max(camera.near+.01,camera.position.z-nearestZ);
+ const visibleHeight=2*distance*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
   const visibleWidth=visibleHeight*camera.aspect;
-  const factor=Math.min(1,(visibleWidth*.84)/width,(visibleHeight*.78)/height);
+  const factor=Math.min(1,(visibleWidth*.72)/width,(visibleHeight*.68)/height);
   outer.scale.setScalar(factor);
   const center=box.getCenter(new THREE.Vector3());
   outer.position.set(-center.x*factor,-center.y*factor,0);
