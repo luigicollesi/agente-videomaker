@@ -3374,8 +3374,8 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     if (phase === 'cancel') { void askStage('release', {clip:clip.id}); return; }
     const root = (clip.overrides as FilmOverride[] | undefined)?.find(o=>o.at===':root');
     const style = root?.style ?? {};
-    const x0 = parseFloat(style['--text3d-rotation-x'] ?? '0') || 0;
-    const y0 = parseFloat(style['--text3d-rotation-y'] ?? '0') || 0;
+    const x0 = parseFloat(String(style['--text3d-rotation-x'] ?? '0')) || 0;
+    const y0 = parseFloat(String(style['--text3d-rotation-y'] ?? '0')) || 0;
     const x = (x0 + dy * 0.45).toFixed(2)+'deg';
     const y = (y0 + dx * 0.45).toFixed(2)+'deg';
     const patch = {'--text3d-rotation-x':x,'--text3d-rotation-y':y};
@@ -3387,7 +3387,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     const yProp = {name:'Rotation Y',type:'var',var:'--text3d-rotation-y'} as const;
     const first = withPropValue(clip.overrides as FilmOverride[] | undefined,xProp,x);
     const next = withPropValue(first??[],yProp,y);
-    void editBlocks([{loc,prop:'overrides',value:next}]).then(failure=>{
+    void editBlocks([{loc,prop:'overrides',value:next??[]}]).then(failure=>{
       if(failure)toast.show(failure);
       void askStage('release',{clip:clip.id});
     });
@@ -4841,6 +4841,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
                                 onPause={pause}
                                 onSelectElement={selectStageElement}
                                 onEditClip={editClipsFromStage}
+                                onRotateText3D={rotateText3D}
                                 linkedLocs={selectedLocs}
                                 onSelectClips={selectStageClips}
                                 selectRequest={stageSelectRequest}
