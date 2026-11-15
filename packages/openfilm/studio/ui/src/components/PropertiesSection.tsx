@@ -82,17 +82,23 @@ export function PropertiesSection({ host, commit }: {
   const props = host.props();
   /* a clip's length is Studio's to keep (studio/server/ops.mjs), not the person's to set: not shown */
   const shown = props.filter((p) => !(p.type === 'var' && p.var === '--clip-length'));
-  const is3D = (host.page.includes('text3d-motion.html') || host.page.includes('/text3d/'));
+  // Saved Text3D bundles may live under versioned paths; detect the 3D contract
+  // from its standard properties as well as the original built-in path.
+  const is3D = host.page.includes('text3d-motion.html') || host.page.includes('/text3d/') ||
+    shown.some(p => p.type === 'var' && p.var === '--text3d-depth');
   const transform3D = new Set(['--text3d-depth','--text3d-rotation-x','--text3d-rotation-y']);
   const visual3D = new Set(['--text3d-color','--text3d-side','--text3d-shadow','--text3d-light']);
   const motion3D = new Set(['--text3d-events']);
   const supports3DRotation = is3D && (shown.some(p=>p.type==='var'&&p.var==='--text3d-rotation-x') || controls?.vars.some(v=>v.name==='--text3d-rotation-x'));
-  const builtIn3D: ComponentProp[] = supports3DRotation ? [
-    {name:'Depth',type:'var',var:'--text3d-depth'},
-    {name:'Rotation X',type:'var',var:'--text3d-rotation-x'},
-    {name:'Rotation Y',type:'var',var:'--text3d-rotation-y'}
-  ] : [];
-  const transformProps = is3D ? (supports3DRotation ? builtIn3D.map(base=>shown.find(p=>p.type==='var'&&base.type==='var'&&p.var===base.var)??base) : shown.filter(p=>p.type==='var'&&transform3D.has(p.var))) : [];
+  const supports3DDepth = is3D && (shown.some(p=>p.type==='var'&&p.var==='--text3d-depth') || controls?.vars.some(v=>v.name==='--text3d-depth'));
+  const builtIn3D: ComponentProp[] = [
+    ...(supports3DDepth ? [{name:'Depth',type:'var' as const,var:'--text3d-depth'}] : []),
+    ...(supports3DRotation ? [
+      {name:'Rotation X',type:'var' as const,var:'--text3d-rotation-x'},
+      {name:'Rotation Y',type:'var' as const,var:'--text3d-rotation-y'}
+    ] : [])
+  ];
+  const transformProps = is3D ? (builtIn3D.length ? builtIn3D.map(base=>shown.find(p=>p.type==='var'&&p.var===base.var)??base) : shown.filter(p=>p.type==='var'&&transform3D.has(p.var))) : [];
   const appearance3D = is3D ? shown.filter(p => p.type === 'var' && visual3D.has(p.var)) : [];
   const movement3D = is3D ? shown.filter(p => p.type === 'var' && motion3D.has(p.var)) : [];
   const standard = shown.filter(p => !is3D || p.type !== 'var' || (!visual3D.has(p.var) && !motion3D.has(p.var) && !transform3D.has(p.var)));
