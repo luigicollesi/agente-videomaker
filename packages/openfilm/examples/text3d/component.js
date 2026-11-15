@@ -33,6 +33,7 @@ export async function createText3D({canvas,element,root}){
  const modules={};
  for(const kind of kinds)modules[kind]=await Promise.all(factories[kind].map(create=>create()));
  const core=createText3DCore({THREE:adapter,canvas,font,text:element.textContent||' ',depth:manifest.model.depth,...modules});
+ const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
  let previousColor='';
  let lastFamily='',lastSize='',lastSpacing='',lastAlign='';
  return {
@@ -42,6 +43,14 @@ export async function createText3D({canvas,element,root}){
   get camera(){return core.camera},
   get model(){return core.model},
   get animations(){return core.animations},
+  hitTest(x,y){
+   if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>1||y<0||y>1)return false;
+   if(!core.appearance.materials.some(m=>m.visible&&m.opacity>.05))return false;
+   pointer.set(x*2-1,1-y*2);
+   core.scene.updateMatrixWorld(true);
+   raycaster.setFromCamera(pointer,core.camera);
+   return raycaster.intersectObjects(core.model.meshes.filter(m=>m.visible),false).length>0;
+  },
   async frame(t){
    const text=element.textContent||' ';
    core.setText(text);
