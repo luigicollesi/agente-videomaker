@@ -31,7 +31,10 @@ export async function createText3D({canvas,element,root}){
   async frame(t){
    const text=element.textContent||' ';
    core.setText(text);
-   const color=getComputedStyle(root).getPropertyValue('--text3d-color').trim()||'#dae9ff';
+   const css=getComputedStyle(root);
+   const length=parseFloat(css.getPropertyValue('--clip-length'));
+   if(Number.isFinite(length)&&length>0)core.setDuration(length);
+   const color=css.getPropertyValue('--text3d-color').trim()||'#dae9ff';
    if(color!==previousColor){core.setBaseColor(color);previousColor=color}
    await core.frame(t);
   },
