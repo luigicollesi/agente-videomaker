@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { text3DCommand } from './text3d-cli.mjs';
 
-test('Text3D CLI validates, registers and retrieves an immutable Saved component', async()=>{
+test('Text3D CLI rejects experimental versioned manifests', async()=>{
  const temp=await mkdtemp(join(tmpdir(),'openfilm-text3d-cli-'));
  const previous=process.env.OPENFILM_SAVED;
  process.env.OPENFILM_SAVED=join(temp,'saved');
@@ -20,11 +20,11 @@ test('Text3D CLI validates, registers and retrieves an immutable Saved component
   await writeFile(join(folder,'manifest.json'),JSON.stringify(manifest));
   await writeFile(join(folder,'index.html'),'<html><head><style>:root{--clip-length:8s}</style></head><body><script>window.film={frame(t){},frameReadsOverrides:true};</script></body></html>');
   await writeFile(join(folder,'component.js'),'export function createText3D(){const renderer=new THREE.WebGLRenderer();return {group:{},characters:[],frame(t){},dispose(){}}}');
-  assert.equal((await text3DCommand(['validate',folder])).ok,true);
+  assert.equal((await text3DCommand(['validate',folder])).ok,false);
   // A structurally valid dummy is not a renderable Text3D: never publish it.
   const rejected=await text3DCommand(['register',folder]);
   assert.equal(rejected.ok,false);
-  assert.match(rejected.lines[0],/PAGE_INIT_FAILED|BLANK_FRAME|MISSING_CANVAS|BROWSER_UNAVAILABLE|WEBGL_UNAVAILABLE|CONTEXT_LOST_WEBGL|PAGE_ERROR|FRAME_EXCEPTION/);
+  assert.match(rejected.lines[0],/Legacy Text3D formats are not supported/);
   const lookup=await text3DCommand(['inspect','text/text-burn-combined']);
   assert.equal(lookup.ok,true);
   assert.equal(JSON.parse(lookup.lines[0]).length,0);
