@@ -124,6 +124,21 @@ function hostFacts(href) {
  */
 function place(c, box) {
   const at = pictureRect(c.kind, { w: c.nw, h: c.nh }, stage, box);
+  // New Text3D bundles draw into a transparent full-stage iframe, retaining the
+  // original clip's placed rectangle only as a content viewport. Legacy bundles are untouched.
+  if (c.kind === 'page' && c.row?.attrs?.['data-text3d-full-stage'] === 'true') {
+    c.w = stage.w; c.h = stage.h;
+    Object.assign(c.el.style, {
+      position:'absolute',left:'0',top:'0',right:'auto',bottom:'auto',margin:'0',
+      translate:'none',rotate:'none',scale:'none',
+      width:stage.w+'px',height:stage.h+'px',transformOrigin:'0 0',transform:'none',
+      pointerEvents:'none',
+    });
+    const root=c.win?.document?.documentElement;
+    if(root)for(const [key,value] of Object.entries({x:at.x,y:at.y,w:at.w,h:at.h}))
+      root.style.setProperty('--text3d-viewport-'+key,String(value));
+    return;
+  }
   const page = c.kind === 'page';
   c.w = page ? c.nw : at.w; c.h = page ? c.nh : at.h;
   const k = page ? ` scale(${at.w / c.nw}, ${at.h / c.nh})` : '';
