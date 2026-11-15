@@ -1,15 +1,13 @@
 import * as THREE from 'three';
 import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
 import {FontLoader} from 'three/addons/loaders/FontLoader.js';
-import {TTFLoader} from 'three/addons/loaders/TTFLoader.js';
 import {createText3DCore} from './openfilm-text3d-core.mjs';
 import manifest from './manifest.json' with {type:'json'};
 
 const kinds=['native','motion','appearance','vfx'];
 export async function createText3D({canvas,element,root}){
  const loader=new FontLoader();
- const ttfLoader=new TTFLoader();
- const loadFont=async file=>file.toLowerCase().endsWith('.ttf')?loader.parse(await ttfLoader.loadAsync(file)):loader.loadAsync(file);
+ const loadFont=file=>loader.loadAsync(file);
  const font=await loadFont(manifest.model.font);
  const fonts=new Map([['default',font]]);
  const faces=manifest.typography?.fonts??{};
@@ -18,7 +16,7 @@ export async function createText3D({canvas,element,root}){
   if(name==='default'||name===manifest.typography?.defaultFamily)return font;
   if(!Object.hasOwn(faces,name))throw Error('Text3D font is not bundled: '+name);
   const file=faces[name];
-  if(typeof file!=='string'||!/^\.\/assets\/[a-z0-9_./-]+\.(json|ttf)$/i.test(file)||file.split('/').includes('..'))throw Error('Invalid bundled Text3D font path');
+  if(typeof file!=='string'||!/^\.\/assets\/[a-z0-9_./-]+\.json$/i.test(file)||file.split('/').includes('..'))throw Error('Invalid bundled Text3D font path');
   if(!fonts.has(name))fonts.set(name,await loadFont(file));
   return fonts.get(name);
  };
