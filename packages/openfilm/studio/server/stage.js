@@ -109,6 +109,28 @@
   const shown = () => clips()
     .filter((c) => c.el && c.kind !== 'sound' && c.el.style.visibility === 'visible' && !(Number(c.el.style.opacity || 1) <= 0))
     .sort((a, b) => a.ti - b.ti);
+  /** Text3D uses a transparent full-frame canvas. Its visible pixels, not its page box,
+   * determine whether it receives a stage click; other page types retain their original hit rules.
+   * WebGL drawing buffers are preserved by Text3D's renderer.
+   */
+  const text3DPixel = (c, p) => {
+    if (!c.win?.__text3dComponent) return null;
+    try {
+      const canvas = c.win.document.querySelector('canvas');
+      if (!canvas || !canvas.clientWidth || !canvas.clientHeight) return null;
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      if (!gl || gl.isContextLost() || !gl.drawingBufferWidth || !gl.drawingBufferHeight) return null;
+      const bounds = canvas.getBoundingClientRect();
+      const x = Math.floor((p.x - bounds.left) / bounds.width * gl.drawingBufferWidth);
+      const y = Math.floor((1 - (p.y - bounds.top) / bounds.height) * gl.drawingBufferHeight);
+      if (x < 0 || y < 0 || x >= gl.drawingBufferWidth || y >= gl.drawingBufferHeight) return false;
+      const rgba = new Uint8Array(4);
+      gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
+      return rgba[3] > 32;
+    } catch {
+      return null; // WebGL unavailable: leave legacy selection behavior intact.
+    }
+  };
   /** The top clip under a stage point, by its placed box (a full-frame video draws nothing a point test could find). */
   const clipAt = (x, y, pictures = false) => {
     for (const c of shown()) {
