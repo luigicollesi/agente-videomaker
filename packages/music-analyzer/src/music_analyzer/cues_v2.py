@@ -19,7 +19,7 @@ def extract_cues(d, start, end, *, categories=None, limit=30, min_relative_stren
     events = []
     def add(t, kind, category, method, strength=None):
         t = float(t)
-        if start <= t < end and (strength is None or strength >= min_relative_strength):
+        if start <= t < end and (min_relative_strength == 0 or (strength is not None and strength >= min_relative_strength)):
             events.append({"time_seconds": round(t, 5), "kind": kind, "category": category,
                            "relative_strength": strength, "evidence": method,
                            "time_reference": "decoded_pcm"})
@@ -27,14 +27,17 @@ def extract_cues(d, start, end, *, categories=None, limit=30, min_relative_stren
         for b in d.get("rhythm", {}).get("beats", []):
             add(b["time_seconds"], "beat", "beat", "beat_grid")
     if "strong_onset" in selected:
-        onsets = [e for e in d.get("events", []) if e.get("type") == "onset"]
-        strengths = [e.get("relative_strength") for e in onsets]
-        available = any(s is not None for s in strengths)
-        for e in onsets:
-            if available and e.get("relative_strength") is not None:
-                add(e["time_seconds"], "strong_onset", "strong_onset", "onset_strength", e["relative_strength"])
-            elif not available:
-                add(e["time_seconds"], "onset_unranked", "strong_onset", "onset_detect_no_strength")
+        for e in d.get("events", []):
+            if e.get("type") != "onset":
+                continue
+            strength = e.get("strength", e.get("relative_strength"))
+            if strength is None:
+                add(e["time_seconds"], "onset_unranked", "strong_onset",
+                    "onset_detect_no_strength")
+            else:
+                strength = float(strength)
+                add(e["time_seconds"], "strong_onset" if strength >= 0.65 else "onset",
+                    "strong_onset", "librosa_mel_onset_strength", strength)
     if "energy" in selected:
         for e in d.get("events", []):
             if e.get("type") in {"energy_rise", "energy_drop"}:
@@ -65,11 +68,21 @@ def extract_cues(d, start, end, *, categories=None, limit=30, min_relative_stren
     events.sort(key=lambda x:(x["time_seconds"], x["category"], x["kind"]))
     total = len(events)
     if selection == "representative" and total > limit:
-        # Uniform coverage by non-overlapping temporal bins; retain diverse categories.
+        # Reserve one slot per available category when capacity allows.
         bins = np.linspace(start, end, limit + 1)
         chosen = []
         used = set()
+        for category in sorted({e["category"] for e in events}):
+            if len(chosen) >= limit:
+                break
+            pool = [(i, e) for i, e in enumerate(events) if e["category"] == category]
+            if pool:
+                i, e = min(pool, key=lambda pair: abs(pair[1]["time_seconds"] - (start + end)/2))
+                chosen.append(e)
+                used.add(i)
         for j in range(limit):
+            if len(chosen) >= limit:
+                break
             pool = [(i, e) for i,e in enumerate(events) if i not in used and
                     bins[j] <= e["time_seconds"] < bins[j+1]]
             if pool:
