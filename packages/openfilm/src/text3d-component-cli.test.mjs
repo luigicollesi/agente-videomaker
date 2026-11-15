@@ -28,6 +28,12 @@ test('Text3D end-to-end register packages real WebGL component before registry a
   const draft=join(folder,'draft');
   const created=await text3DCommand(['create',draft]);
   assert.equal(created.ok,true,created.lines.join(' '));
+  const preview=await text3DCommand(['preview',draft]);
+  assert.equal(preview.ok,true,preview.lines.join(' '));
+  assert.match(preview.lines[0],/files[/\\\\]index\\.html/);
+  assert.ok((await readFile(join(draft+'-preview','files','vendor','three.module.js'))).length>100);
+  const before=await text3DCommand(['inspect','text/example']);
+  assert.equal(JSON.parse(before.lines[0]).length,0,'preview must not register');
   const registered=await text3DCommand(['register',draft]);
   assert.equal(registered.ok,true,registered.lines.join(' '));
   const lookup=await text3DCommand(['inspect','text/example']);
