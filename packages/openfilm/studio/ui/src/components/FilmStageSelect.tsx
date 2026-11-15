@@ -3074,12 +3074,6 @@ function FilmStageSelectImpl({
       ++pressSeq.current;
       pressGo.current = Promise.resolve(true);
       const startGesture = (g: Omit<NonNullable<typeof gestureRef.current>, 'snapTargets'>) => {
-        // The WebGL page is a fixed full-stage render surface. Move/rotate/resize
-        // the actual 3D model via its properties, never by transforming the page.
-        const at = parseFilmDocLoc(g.clipLoc);
-        const clip = at ? docRef.current.tracks[at.track]?.clips[at.clip] : null;
-        if (clip?.attrs?.['data-openfilm-content-type'] === 'text3d' &&
-            clip.attrs?.['data-text3d-full-stage'] === 'true') return;
         if (clipNudge.current) flushClipNudge();
         const gesture = { ...g, snapTargets: [{ x: 0, y: 0, w: stage.w, h: stage.h }] };
         gestureRef.current = gesture;
