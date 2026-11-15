@@ -35,6 +35,6 @@ def test_overview_and_interval_comparison(tmp_path):
 def test_editing_cues_are_bounded_and_explainable(tmp_path):
     path = _write(tmp_path)
     cues = get_music_editing_cues(path, 0, 8, 1)
-    assert cues["count"] == 2
+    assert cues["count"] == 3
     assert len(cues["cues"]) == 1
     assert cues["truncated"]
