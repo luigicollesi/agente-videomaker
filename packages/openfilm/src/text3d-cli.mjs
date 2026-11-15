@@ -75,7 +75,7 @@ async function validateText3D(dir) {
 /** @param {string[]} args */
 export async function text3DCommand(args) {
  const [action, ...rest]=args;
- const usage='videomaker text3d create <folder> | verify <folder> | list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
+ const usage='videomaker text3d create <folder> | list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
  try {
   if(action==='create'&&rest.length===1){
    const target=resolve(rest[0]);
@@ -83,12 +83,6 @@ export async function text3DCommand(args) {
    await mkdir(join(target,'assets'),{recursive:true});
    await copyFile(new URL(import.meta.resolve('three/examples/fonts/helvetiker_regular.typeface.json')),join(target,'assets/font.json'));
    return {ok:true,lines:['Text3D v2 draft created: '+target]};
-  }
-  if(action==='verify'&&rest.length===1){
-   const manifest=await validateText3D(rest[0]);
-   const duration=Number(manifest.durationSeconds);
-   const report=await verifyText3D(resolve(rest[0]),Number.isFinite(duration)&&duration>0?duration:10);
-   return {ok:true,lines:['Text3D visual verification passed: '+(manifest.componentId??manifest.id+'/'+manifest.version),JSON.stringify(report)]};
   }
   if(action==='list'||action==='inspect'){
    const entries=action==='inspect'?[await activeText3D(rest[0]??'')].filter(Boolean):await listText3D(rest[0]??null);
