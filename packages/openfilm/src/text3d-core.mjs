@@ -137,6 +137,9 @@ export function createText3DCore(options){
   applyText3DContributions(commands,{root,characters,materials:[front,side],lights:[ambient,key]});
   renderer.render(scene,camera);
  };
+ // Serialize overlapping frame requests: each render must finish before the next
+ // request mutates shared scene, material or renderer state.
+ let pending=Promise.resolve();
  let disposed=false;
  return {
   contractVersion:2,renderer,scene,camera,
@@ -165,7 +168,15 @@ export function createText3DCore(options){
    activeFont=nextFont;fontSize=nextSize;letterSpacing=nextSpacing;textAlign=nextAlign;
    try{rebuildGeometry(modelText);baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}
    catch(e){[activeFont,fontSize,letterSpacing,textAlign]=old;throw e}
-  },resize: (w,h)=>{resize(w,h);outerBaseline=snapshot(outer)},setText(text){if(disposed)throw Error('Text3D disposed');if(String(text)!==modelText){rebuildGeometry(String(text));baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}},setDepth(value){if(disposed)throw Error('Text3D disposed');if(!Number.isFinite(value)||value<=0||value>10)throw Error('Invalid depth');if(value!==depth){depth=value;rebuildGeometry(modelText);baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}},setDuration(value){if(!Number.isFinite(value)||value<=0)throw new Error('Invalid clip duration');duration=value},setBaseColor(color){front.color.set(color);side.color.copy(front.color).multiplyScalar(.48);baseFront=front.color.clone();baseSide=side.color.clone()},frame:async t=>{if(disposed)throw new Error('Text3D disposed');await run(t)},
+  },resize: (w,h)=>{resize(w,h);outerBaseline=snapshot(outer)},setText(text){if(disposed)throw Error('Text3D disposed');if(String(text)!==modelText){rebuildGeometry(String(text));baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}},setDepth(value){if(disposed)throw Error('Text3D disposed');if(!Number.isFinite(value)||value<=0||value>10)throw Error('Invalid depth');if(value!==depth){depth=value;rebuildGeometry(modelText);baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}},setDuration(value){if(!Number.isFinite(value)||value<=0)throw new Error('Invalid clip duration');duration=value},setBaseColor(color){front.color.set(color);side.color.copy(front.color).multiplyScalar(.48);baseFront=front.color.clone();baseSide=side.color.clone()},frame:t=>{
+   if(disposed)return Promise.reject(new Error('Text3D disposed'));
+   const next=pending.catch(()=>{}).then(()=>{
+    if(disposed)throw new Error('Text3D disposed');
+    return run(t);
+   });
+   pending=next;
+   return next;
+  },
   dispose(){
    if(disposed)return;disposed=true;
    const errors=[];
