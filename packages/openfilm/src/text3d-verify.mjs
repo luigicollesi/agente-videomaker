@@ -63,6 +63,7 @@ export async function verifyText3D(directory,duration=10) {
    throw new Text3DVisualError('INVALID_3D_GEOMETRY',JSON.stringify(component));
   const times=[Math.min(.5,duration*.15),duration*.5,Math.max(.5,duration*.85)].filter(t=>t<duration);
   let visible=0;
+  const samples=[];
   for(const t of times){
    const result=await page.evaluate(async time=>{
     await window.film.frame(time);
@@ -79,10 +80,11 @@ export async function verifyText3D(directory,duration=10) {
     return {count};
    },t).catch(e=>({error:'FRAME_EXCEPTION',detail:String(e)}));
    if('error' in result)throw new Text3DVisualError(result.error,result.detail??'Frame '+t);
+   samples.push({time:t,count:result.count??0});
    visible=Math.max(visible,result.count??0);
   }
   if(errors.length)throw new Text3DVisualError('PAGE_ERROR',errors.join('; '));
-  if(visible<100)throw new Text3DVisualError('BLANK_FRAME','No sufficiently visible pixels at sampled times');
+  if(visible<100)throw new Text3DVisualError('BLANK_FRAME','No sufficiently visible pixels at sampled times: '+JSON.stringify(samples)+'; meshes='+component.meshes+'. Check font glyph contours, opacity, and animation timing.');
   return {ok:true,visiblePixels:visible,times};
  }finally{await browser?.close();await new Promise(ok=>server.close(()=>ok(null)))}
 }
