@@ -3366,6 +3366,32 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     list: (element) => clipPropsOf(element.clipId),
     save: (element, next) => writeClipProps(element.clipId, next),
   }), [clipPropsOf, writeClipProps]);
+  /** Text3D rotation in the picture: preview CSS overrides, commit one undoable edit on release. */
+  const rotateText3D = React.useCallback((loc: string, dx: number, dy: number, phase: 'preview' | 'commit' | 'cancel') => {
+    const at = parseFilmDocLoc(loc);
+    const clip = at ? filmRef.current?.tracks[at.track]?.clips[at.clip] : undefined;
+    if (!clip || clip.attrs?.['data-openfilm-content-type'] !== 'text3d') return;
+    if (phase === 'cancel') { void askStage('release', {clip:clip.id}); return; }
+    const root = (clip.overrides as FilmOverride[] | undefined)?.find(o=>o.at===':root');
+    const style = root?.style ?? {};
+    const x0 = parseFloat(style['--text3d-rotation-x'] ?? '0') || 0;
+    const y0 = parseFloat(style['--text3d-rotation-y'] ?? '0') || 0;
+    const x = (x0 + dy * 0.45).toFixed(2)+'deg';
+    const y = (y0 + dx * 0.45).toFixed(2)+'deg';
+    const patch = {'--text3d-rotation-x':x,'--text3d-rotation-y':y};
+    if (phase === 'preview') {
+      void askStage('tweak',{clip:clip.id,at:':root',patch:{style:patch}});
+      return;
+    }
+    const xProp = {name:'Rotation X',type:'var',var:'--text3d-rotation-x'} as const;
+    const yProp = {name:'Rotation Y',type:'var',var:'--text3d-rotation-y'} as const;
+    const first = withPropValue(clip.overrides as FilmOverride[] | undefined,xProp,x);
+    const next = withPropValue(first??[],yProp,y);
+    void editBlocks([{loc,prop:'overrides',value:next}]).then(failure=>{
+      if(failure)toast.show(failure);
+      void askStage('release',{clip:clip.id});
+    });
+  },[askStage,editBlocks]);
   /* a page clip's Properties (components/PropertiesSection): what its page shows read on the picture, previewed there,
      filled in as its overrides by the inspector */
   const propsHostOf = React.useCallback((block: TimelineBlock): PropsHost | null => {
