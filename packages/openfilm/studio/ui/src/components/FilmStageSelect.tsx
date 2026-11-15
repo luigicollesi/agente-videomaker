@@ -672,7 +672,8 @@ function FilmStageSelectImpl({
   /** Whether clip `id` is a thing of the library (lib/library isLibraryClip): a sticker, an effect, a title, words. */
   const isWholeClipId = (id: string) => {
     const at = parseFilmDocLoc(clipLocOf(docRef.current, id) ?? '');
-    return Boolean(at && isLibraryClip(docRef.current.tracks[at.track]?.clips[at.clip]?.src ?? ''));
+    return Boolean(at && (isLibraryClip(docRef.current.tracks[at.track]?.clips[at.clip]?.src ?? '') ||
+      docRef.current.tracks[at.track]?.clips[at.clip]?.attrs?.['data-openfilm-content-type'] === 'text3d'));
   };
   /** A layer as the picture holds it. */
   const layerHit = React.useCallback((layer: StageLayer): Hit => ({ rect: layer.rect, label: layer.label, element: elementOf(layer), layer }), [elementOf]);
