@@ -5,7 +5,6 @@ import librosa
 
 
 def compare_sequences(points: list, a: tuple, b: tuple, max_frames: int = 500) -> dict:
-    required = ("chroma_cens", "mfcc")
     def extract(bounds):
         rows = [p for p in points if bounds[0] <= p["time_seconds"] < bounds[1]
                 and len(p.get("chroma_cens", [])) == 12 and len(p.get("mfcc", [])) == 13
@@ -39,6 +38,10 @@ def compare_sequences(points: list, a: tuple, b: tuple, max_frames: int = 500) -
                                 global_constraints=True,band_rad=.30)
     cost = float(D[-1,-1])/max(len(wp),1)
     return {"status":"estimated", "method":"constrained_multifeature_dtw_v1",
+            "mean_alignment_cost":round(cost,6),
+            "path_length_ratio":round(len(wp)/max(len(left),len(right)),6),
+            "feature_coverage": {"first":round(len(x)/max(1,sum(a[0] <= p["time_seconds"] < a[1] for p in points)),6),
+                                 "second":round(len(y)/max(1,sum(b[0] <= p["time_seconds"] < b[1] for p in points)),6)},
             "normalized_alignment_cost":round(cost,6),
             "path_length_frames":len(wp), "matched_frames_a":len(left),
             "matched_frames_b":len(right),
