@@ -37,6 +37,7 @@ export function createText3DCore(options){
  const key=new THREE.DirectionalLight(0xffffff,2.8);
  key.position.set(-2,4,6);scene.add(ambient,key);
  const outer=new THREE.Group(),root=new THREE.Group();outer.add(root);scene.add(outer);
+ root.rotation.y=-.22;
  const front=new THREE.MeshStandardMaterial({color:0xdae9ff,metalness:.28,roughness:.35});
  const side=new THREE.MeshStandardMaterial({color:0x577eae,metalness:.4,roughness:.5});
  const characters=[],meshes=[];
@@ -115,7 +116,7 @@ export function createText3DCore(options){
   contractVersion:2,renderer,scene,camera,
   model:{root,characters,meshes},
   appearance:{materials:[front,side],lights:[ambient,key]},
-  animations,resize,setDepth(value){if(disposed)throw Error('Text3D disposed');if(!Number.isFinite(value)||value<=0||value>10)throw Error('Invalid depth');if(value!==depth){depth=value;rebuildGeometry(modelText);baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}},setDuration(value){if(!Number.isFinite(value)||value<=0)throw new Error('Invalid clip duration');duration=value},setBaseColor(color){front.color.set(color);side.color.copy(front.color).multiplyScalar(.48);baseFront=front.color.clone();baseSide=side.color.clone()},frame:async t=>{if(disposed)throw new Error('Text3D disposed');await run(t)},
+  animations,resize: (w,h)=>{resize(w,h);outerBaseline=snapshot(outer)},setText(text){if(disposed)throw Error('Text3D disposed');if(String(text)!==modelText){rebuildGeometry(String(text));baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}},setDepth(value){if(disposed)throw Error('Text3D disposed');if(!Number.isFinite(value)||value<=0||value>10)throw Error('Invalid depth');if(value!==depth){depth=value;rebuildGeometry(modelText);baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}},setDuration(value){if(!Number.isFinite(value)||value<=0)throw new Error('Invalid clip duration');duration=value},setBaseColor(color){front.color.set(color);side.color.copy(front.color).multiplyScalar(.48);baseFront=front.color.clone();baseSide=side.color.clone()},frame:async t=>{if(disposed)throw new Error('Text3D disposed');await run(t)},
   dispose(){
    if(disposed)return;disposed=true;
    const errors=[];
