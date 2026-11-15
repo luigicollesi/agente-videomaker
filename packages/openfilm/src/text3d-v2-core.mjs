@@ -64,7 +64,8 @@ export function createText3DCore(options){
   root.position.x=-cursor/2;
   modelText=text;
  };
- rebuildGeometry(String(options.text??''));
+ try{rebuildGeometry(String(options.text??''))}
+ catch(error){front.dispose();side.dispose();renderer.dispose();throw error}
  const resources=new Text3DResourceManager();
  const motion=createText3DMotion({group:outer,characters:[]});
  const snapshot=o=>({position:o.position.clone(),rotation:o.rotation.clone(),scale:o.scale.clone()});
