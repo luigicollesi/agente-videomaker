@@ -34,11 +34,39 @@
       "name": "Front Color",
       "type": "var",
       "var": "--text3d-color"
+    },
+    {
+      "name": "Font",
+      "type": "var",
+      "var": "--text3d-font"
+    },
+    {
+      "name": "Font Size",
+      "type": "var",
+      "var": "--text3d-size"
+    },
+    {
+      "name": "Letter Spacing",
+      "type": "var",
+      "var": "--text3d-spacing"
+    },
+    {
+      "name": "Text Align",
+      "type": "var",
+      "var": "--text3d-align"
     }
   ],
   "parameterMap": {
     "Text": "Text",
     "Depth": "Depth",
-    "Front Color": "Front Color"
+    "Front Color": "Front Color",
+    "Font": "Font",
+    "Font Size": "Font Size",
+    "Letter Spacing": "Letter Spacing",
+    "Text Align": "Text Align"
+  },
+  "typography": {
+    "defaultFamily": "default",
+    "fonts": {}
   }
 }
