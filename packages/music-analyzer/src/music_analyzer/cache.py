@@ -10,7 +10,7 @@ import json
 import os
 from pathlib import Path
 
-PIPELINE_REVISION = "rhythm-alternatives-agent-tools-2026-11-v2"
+PIPELINE_REVISION = "minimal-fixes-structure-opt-in-2026-11-v3"
 
 
 def sha256_file(path: Path) -> str:
@@ -21,8 +21,8 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def cache_key(source_sha256: str, stream: int | None, version: str) -> str:
-    payload = json.dumps([source_sha256, stream, version, PIPELINE_REVISION],
+def cache_key(source_sha256: str, stream: int | None, version: str, experimental_structure_v3: bool = False) -> str:
+    payload = json.dumps([source_sha256, stream, version, PIPELINE_REVISION, experimental_structure_v3],
                          separators=(",", ":"))
     return hashlib.sha256(payload.encode()).hexdigest()
 
