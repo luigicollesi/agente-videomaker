@@ -43,14 +43,16 @@ function installedFaces() {
 }
 
 /** The installed file for the first named family the destination editor can open. @param {readonly string[]} families */
-export async function installedFontFile(families, weight = 400) {
-  if (!families.length || !Number.isInteger(weight) || weight < 1 || weight > 1000) return;
+export async function installedFontFile(families, weight) {
+  if (!families.length || (weight !== undefined && (!Number.isInteger(weight) || weight < 1 || weight > 1000))) return;
   const found = await installedFaces();
   for (const family of families) {
     const name = family.toLowerCase();
     const matches = found.filter((face) => [face.family, ...face.aliases].some((alias) => alias.toLowerCase() === name));
     // Never silently substitute a regular or italic face for a requested weight.
-    const face = matches.find((face) => !face.italic && face.weight === weight);
+    const face = weight === undefined
+      ? matches.find((face) => !face.italic && face.weight === 400) ?? matches[0]
+      : matches.find((face) => !face.italic && face.weight === weight);
     if (face) return { name: face.family, path: face.file, weight: face.weight };
   }
 }
