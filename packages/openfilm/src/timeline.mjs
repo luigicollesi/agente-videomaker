@@ -859,6 +859,7 @@ function wakePage(c) {
       if (c.own && (c.own.w !== c.nw || c.own.h !== c.nh)) { c.nw = c.own.w; c.nh = c.own.h; place(c, c.row.box); }
       window.__filmEditor.learned?.();
     }
+    if (c.row?.attrs?.['data-text3d-full-stage'] === 'true') place(c,c.row.box);
     window.__filmEditor.stage.woke?.();
   });
   pagesAwake.add(c);
