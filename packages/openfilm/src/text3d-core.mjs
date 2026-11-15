@@ -42,8 +42,8 @@ export function createText3DCore(options){
  key.position.set(-2,4,6);scene.add(ambient,key);
  const outer=new THREE.Group(),root=new THREE.Group();outer.add(root);scene.add(outer);
  root.rotation.y=-.22;
- const front=new THREE.MeshStandardMaterial({color:0xdae9ff,metalness:.28,roughness:.35});
- const side=new THREE.MeshStandardMaterial({color:0x577eae,metalness:.4,roughness:.5});
+ const front=new THREE.MeshStandardMaterial({color:0xdae9ff,metalness:.28,roughness:.35,transparent:true});
+ const side=new THREE.MeshStandardMaterial({color:0x577eae,metalness:.4,roughness:.5,transparent:true});
  const characters=[],meshes=[];
  let modelText='',depth=Number.isFinite(options.depth)&&options.depth>0?options.depth:.15;
  let viewportWidth=canvas.width,viewportHeight=canvas.height;
