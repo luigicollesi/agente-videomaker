@@ -126,12 +126,12 @@ export function createText3DCore(options){
  };
  const run=async(t)=>{
   if(!Number.isFinite(t)||t<0)throw new Error('Invalid frame time');
-  await motion.frame(t);
   restore(root,rootBaseline);restore(camera,cameraBaseline);restore(outer,outerBaseline);
   characters.forEach((c,i)=>restore(c,baseline[i]));
   restoreMaterial(front,baseMaterial[0]);restoreMaterial(side,baseMaterial[1]);
   front.color.copy(baseFront);side.color.copy(baseSide);
   for(const [i,light] of [ambient,key].entries()){light.intensity=baseLight[i].intensity;light.color.copy(baseLight[i].color);light.position.copy(baseLight[i].position)}
+  await motion.frame(t);
   const commands=await evaluateText3DAnimations(animations,t,(kind,index)=>({
    scene,camera,renderer,duration,model:{root,characters,meshes},materials:[front,side],
    resources:{track:resource=>resources.track(kind+':'+index,resource)}
