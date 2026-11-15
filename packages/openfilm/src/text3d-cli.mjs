@@ -214,6 +214,7 @@ export async function text3DCommand(args) {
     const seconds=Number.isFinite(duration)&&duration>0&&duration<=3600?duration:10.5;
     const clip={src:'index.html',time:[0,seconds],attrs:{
       'data-openfilm-content-type':'text3d','data-text3d-source-id':sourceId,
+      'data-text3d-full-stage':'true',
       'data-props':JSON.stringify(manifest.props)
     }};
     await writeFile(join(staging,'saved.json'),JSON.stringify({version:2,kind:'clip',clip,durationMs:seconds*1000},null,2));
