@@ -70,7 +70,9 @@ export async function createText3D({canvas,element,root}){
    }
    const x=parseFloat(css.getPropertyValue('--text3d-rotation-x'))||0;
    const y=parseFloat(css.getPropertyValue('--text3d-rotation-y'))||0;
-   core.setRotation(x,y);
+   // The editor's ordinary 2D Rotate maps to the model's Z axis, not the canvas.
+   const z=parseFloat(css.getPropertyValue('--text3d-rotation-z'))||0;
+   core.setRotation(x,y,z);
    const desiredDepth=parseFloat(css.getPropertyValue('--text3d-depth'));
    if(Number.isFinite(desiredDepth)&&desiredDepth>0)core.setDepth(desiredDepth);
    const length=parseFloat(css.getPropertyValue('--clip-length'));
