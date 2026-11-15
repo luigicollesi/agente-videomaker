@@ -21,7 +21,7 @@ export function validateText3D(value){
    const fonts=m.typography.fonts??{};
    if(!fonts||typeof fonts!=='object'||Array.isArray(fonts))issues.push('typography.fonts must be an object');
    else for(const [family,path] of Object.entries(fonts))
-    if(!family||typeof path!=='string'||!local.test(path)||!path.endsWith('.json'))issues.push('invalid typography font: '+family);
+    if(!family||typeof path!=='string'||!local.test(path)||!(/\.(json|ttf)$/i.test(path)))issues.push('invalid typography font: '+family);
   }
  }
  if(!m.timeline||m.timeline.durationSource!=='clip'||m.timeline.deterministic!==true)issues.push('timeline must follow deterministic clip time');
