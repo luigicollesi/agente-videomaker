@@ -10,7 +10,11 @@ import {evaluateText3DAnimations,applyText3DContributions} from './text3d-animat
  * native?:any[],motion?:any[],appearance?:any[],vfx?:any[]}} options
  */
 export function createText3DCore(options){
- const {THREE,canvas,font}=options;
+ const {THREE,canvas}=options;
+ let activeFont=options.font;
+ let fontSize=Number.isFinite(options.size)&&options.size>0?options.size:.43;
+ let letterSpacing=0;
+ let textAlign='center';
  const makeGeometry=THREE.TextGeometry;
  if(!makeGeometry)throw new Error('THREE.TextGeometry addon required in core options');
  const animations={native:options.native??[],motion:options.motion??[],appearance:options.appearance??[],vfx:options.vfx??[]};
@@ -69,13 +73,13 @@ export function createText3DCore(options){
   try{
    for(const glyph of text3DGraphemes(text)){
     const wrapper=new THREE.Group();
-    const geometry=new makeGeometry(glyph,{font,size:options.size??.43,depth,curveSegments:12,bevelEnabled:true,bevelThickness:.018,bevelSize:.012,bevelSegments:3});
+    const geometry=new makeGeometry(glyph,{font:activeFont,size:fontSize,depth,curveSegments:12,bevelEnabled:true,bevelThickness:.018,bevelSize:.012,bevelSegments:3});
     geometry.computeBoundingBox();
     const width=geometry.boundingBox?geometry.boundingBox.max.x-geometry.boundingBox.min.x:.22;
     const mesh=new THREE.Mesh(geometry,[front,side]);
     mesh.position.set(-(geometry.boundingBox?.min.x??0),-.14,0);
     wrapper.add(mesh);wrapper.position.x=cursor;nextChars.push(wrapper);nextMeshes.push(mesh);
-    cursor+=Math.max(.15,width)+.055;
+    cursor+=Math.max(.15,width)+letterSpacing+.055;
    }
   }catch(e){for(const mesh of nextMeshes)mesh.geometry.dispose();throw e}
   for(const mesh of meshes)mesh.geometry.dispose();
@@ -83,7 +87,7 @@ export function createText3DCore(options){
   characters.splice(0,characters.length,...nextChars);
   meshes.splice(0,meshes.length,...nextMeshes);
   for(const child of characters)root.add(child);
-  root.position.x=-cursor/2;
+  root.position.x=textAlign==='left'?0:textAlign==='right'?-cursor:-cursor/2;
   modelText=text;
   fit();
  };
@@ -121,7 +125,22 @@ export function createText3DCore(options){
   contractVersion:2,renderer,scene,camera,
   model:{root,characters,meshes},
   appearance:{materials:[front,side],lights:[ambient,key]},
-  animations,resize: (w,h)=>{resize(w,h);outerBaseline=snapshot(outer)},setText(text){if(disposed)throw Error('Text3D disposed');if(String(text)!==modelText){rebuildGeometry(String(text));baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}},setDepth(value){if(disposed)throw Error('Text3D disposed');if(!Number.isFinite(value)||value<=0||value>10)throw Error('Invalid depth');if(value!==depth){depth=value;rebuildGeometry(modelText);baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}},setDuration(value){if(!Number.isFinite(value)||value<=0)throw new Error('Invalid clip duration');duration=value},setBaseColor(color){front.color.set(color);side.color.copy(front.color).multiplyScalar(.48);baseFront=front.color.clone();baseSide=side.color.clone()},frame:async t=>{if(disposed)throw new Error('Text3D disposed');await run(t)},
+  animations,setTypography(settings){
+   if(disposed)throw Error('Text3D disposed');
+   const nextFont=settings.font??activeFont;
+   const nextSize=settings.fontSize??fontSize;
+   const nextSpacing=settings.letterSpacing??letterSpacing;
+   const nextAlign=settings.textAlign??textAlign;
+   if(!nextFont||typeof nextFont.generateShapes!=='function')throw Error('Invalid Text3D font');
+   if(!Number.isFinite(nextSize)||nextSize<=0||nextSize>100)throw Error('Invalid Text3D font size');
+   if(!Number.isFinite(nextSpacing)||Math.abs(nextSpacing)>10)throw Error('Invalid Text3D letter spacing');
+   if(!['left','center','right'].includes(nextAlign))throw Error('Invalid Text3D alignment');
+   if(nextFont===activeFont&&nextSize===fontSize&&nextSpacing===letterSpacing&&nextAlign===textAlign)return;
+   const old=[activeFont,fontSize,letterSpacing,textAlign];
+   activeFont=nextFont;fontSize=nextSize;letterSpacing=nextSpacing;textAlign=nextAlign;
+   try{rebuildGeometry(modelText);baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}
+   catch(e){[activeFont,fontSize,letterSpacing,textAlign]=old;throw e}
+  },resize: (w,h)=>{resize(w,h);outerBaseline=snapshot(outer)},setText(text){if(disposed)throw Error('Text3D disposed');if(String(text)!==modelText){rebuildGeometry(String(text));baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}},setDepth(value){if(disposed)throw Error('Text3D disposed');if(!Number.isFinite(value)||value<=0||value>10)throw Error('Invalid depth');if(value!==depth){depth=value;rebuildGeometry(modelText);baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}},setDuration(value){if(!Number.isFinite(value)||value<=0)throw new Error('Invalid clip duration');duration=value},setBaseColor(color){front.color.set(color);side.color.copy(front.color).multiplyScalar(.48);baseFront=front.color.clone();baseSide=side.color.clone()},frame:async t=>{if(disposed)throw new Error('Text3D disposed');await run(t)},
   dispose(){
    if(disposed)return;disposed=true;
    const errors=[];
