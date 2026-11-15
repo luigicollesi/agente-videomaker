@@ -31,6 +31,7 @@ async function validateText3D(dir) {
   if(issues.length)throw new Error('Text3D contract: '+issues.join('; '));
   for(const kind of ['native','motion','appearance','vfx'])for(const file of manifest.modules[kind])await safeAsset(base,file);
   await safeAsset(base,manifest.model.font);
+  for(const file of Object.values(manifest.typography?.fonts??{}))await safeAsset(base,file);
  }
  else throw new Error('Legacy Text3D formats are not supported');
  const fields=['id','source2DId'];
