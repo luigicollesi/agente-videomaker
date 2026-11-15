@@ -12,7 +12,10 @@ export class Text3DVisualError extends Error {
 const TYPES={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.json':'application/json','.woff2':'font/woff2','.css':'text/css'};
 /** @param {string} directory @param {number} duration */
 export async function verifyText3D(directory,duration=10) {
- const root=resolve(directory), server=createServer(async(req,res)=>{
+ const root=resolve(directory);
+ const manifest=await readFile(resolve(root,'manifest.json'),'utf8').then(JSON.parse).catch(()=>null);
+ const requireV2=manifest?.contractVersion===2;
+ const server=createServer(async(req,res)=>{
   try {
    const pathname=decodeURIComponent(new URL(req.url??'/','http://localhost').pathname);
    const path=resolve(root,'.'+pathname);
@@ -53,8 +56,9 @@ export async function verifyText3D(directory,duration=10) {
    const canvas=document.querySelector('canvas');
    return {legacy:false,version:c?.contractVersion,webgl:c?.renderer?.isWebGLRenderer===true,
     canvasMatches:c?.renderer?.domElement===canvas,scene:c?.scene?.isScene===true,
-    camera:c?.camera?.isCamera===true,meshes:Array.isArray(meshes)?meshes.filter(m=>m?.isMesh&&m.geometry?.isBufferGeometry&&m.geometry?.attributes?.position?.count>0).length:0};
+    camera:c?.camera?.isCamera===true,meshes:Array.isArray(meshes)?meshes.filter(m=>{if(!m?.isMesh||!m.geometry?.isBufferGeometry||!(m.geometry?.attributes?.position?.count>0))return false;let p=m;while(p&&p!==c.scene)p=p.parent;return p===c.scene}).length:0};
   });
+  if(requireV2&&component.legacy)throw new Text3DVisualError('INVALID_3D_CONTRACT','v2 component must expose window.__text3dComponent');
   if(!component.legacy&&(!component.webgl||!component.canvasMatches||!component.scene||!component.camera||component.meshes<1||component.version!==2))
    throw new Text3DVisualError('INVALID_3D_GEOMETRY',JSON.stringify(component));
   const times=[Math.min(.5,duration*.15),duration*.5,Math.max(.5,duration*.85)].filter(t=>t<duration);
