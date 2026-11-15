@@ -83,6 +83,34 @@ export async function verifyText3D(directory,duration=10) {
    samples.push({time:t,count:result.count??0});
    visible=Math.max(visible,result.count??0);
   }
+  // Seek away and back: the same absolute time must render the same visible picture.
+  // Ignore tiny per-channel antialiasing jitter, but reject material/lighting/frame changes.
+  if(requireV2&&times.length>1){
+   const repeat=await page.evaluate(async ([away,at])=>{
+    const gl=document.querySelector('canvas')?.getContext('webgl2');
+    if(!gl)return {error:'WEBGL_UNAVAILABLE'};
+    const capture=async t=>{
+     await window.film.frame(t);
+     const data=new Uint8Array(gl.drawingBufferWidth*gl.drawingBufferHeight*4);
+     gl.readPixels(0,0,gl.drawingBufferWidth,gl.drawingBufferHeight,gl.RGBA,gl.UNSIGNED_BYTE,data);
+     return data;
+    };
+    const a=await capture(at);
+    await capture(away);
+    const b=await capture(at);
+    let changed=0,visible=0;
+    for(let i=0;i<a.length;i+=4){
+     if(a[i+3]>10||b[i+3]>10)visible++;
+     if(Math.max(Math.abs(a[i]-b[i]),Math.abs(a[i+1]-b[i+1]),
+       Math.abs(a[i+2]-b[i+2]),Math.abs(a[i+3]-b[i+3]))>8)changed++;
+    }
+    return {changed,visible};
+   },[times[0],times[1]]).catch(e=>({error:'FRAME_EXCEPTION',detail:String(e)}));
+   if('error' in repeat)throw new Text3DVisualError(repeat.error,repeat.detail??'Repeated frame');
+   if(repeat.changed>Math.max(100,repeat.visible*.005))
+    throw new Text3DVisualError('NONDETERMINISTIC_FRAME',
+     'Repeated absolute time '+times[1]+' differs after seeking: '+JSON.stringify(repeat));
+  }
   if(errors.length)throw new Text3DVisualError('PAGE_ERROR',errors.join('; '));
   if(visible<100)throw new Text3DVisualError('BLANK_FRAME','No sufficiently visible pixels at sampled times: '+JSON.stringify(samples)+'; meshes='+component.meshes+'. Check font glyph contours, opacity, and animation timing.');
   return {ok:true,visiblePixels:visible,times};
