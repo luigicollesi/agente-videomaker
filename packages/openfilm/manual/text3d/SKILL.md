@@ -5,13 +5,13 @@ description: Build, convert, verify and publish reusable real Three.js Text3D co
 
 # Videomaker Text3D
 
-The canonical contract reference is `examples/text3d/manifest.json`. Generate drafts with `videomaker text3d create <folder>`, customize modules, run `validate`, and use `register` for packaged WebGL verification. The shared core owns the renderer, geometry and time; never recreate it when text changes. Experimental versioned manifests, templates and older CLI workflows are unsupported. Do not claim visual fidelity without source-specific visual tests.
+The canonical contract reference is `examples/text3d/manifest.json`. Generate drafts with `videomaker text3d create <folder>`, customize modules, run `validate`, then `videomaker text3d preview <folder>` to bundle dependencies and verify WebGL before `register`. The shared core owns the renderer, geometry and time; never recreate it when text changes. Experimental versioned manifests, templates and older CLI workflows are unsupported. Do not claim visual fidelity without source-specific visual tests.
 
 The **selected 2D source** is the authority for text layout, font appearance, lighting, glow, entrance/hold/exit, particles, colors, easing and timing. Inspect HTML/CSS/JS, assets, data-props and overrides. Recreate its behavior in three-dimensional geometry; never copy the sample's animation preset. Missing exit animation means no invented exit.
 
 Use `THREE.WebGLRenderer` and genuine meshes; SVGRenderer, CSS/pixel extrusion or a hidden WebGL renderer behind 2D output are not acceptable. A dynamic font may provide native character/deformation animations, isolated from external group motion. Modules use absolute timeline time and restore state for deterministic seeking.
 
-Keep the draft in a persistent folder. Run `videomaker text3d validate <folder>`, fix all errors, then verify visual rendering, asset loading, source-specific animation frames and fonts. Registration is permitted only after verification of the **packed copy**. Register into Saved, confirm it can be imported and rendered, and only then apply to the timeline. If blocked, report the preserved draft's actual path and failure; never claim success or modify the original clip.
+Keep the draft in a persistent folder. Run `videomaker text3d validate <folder>` for structural checks, then `videomaker text3d preview <folder>` to generate the verified `<folder>-preview/files/index.html` with local Three.js import maps and assets. NEVER run `videomaker look` on the unbundled draft HTML: bare imports such as `three` will fail there by design; use `look` on the packaged preview page, inspect visual frames and font glyph coverage, and correct the original draft if needed (remove stale preview folder before regenerating). Registration is permitted only after verification of the **packed copy**. Register into Saved, confirm it can be imported and rendered, and only then apply to the timeline. If blocked, report the preserved draft's actual path and failure; never claim success or modify the original clip.
 
 ## Text3D animation contributions
 
