@@ -56,6 +56,9 @@ export async function createText3D({canvas,element,root}){
     core.setTypography({font:selected,...(size?{fontSize:Number(size)}:{}),...(spacing?{letterSpacing:Number(spacing)}:{}),textAlign:align});
     lastFamily=family;lastSize=size;lastSpacing=spacing;lastAlign=align;
    }
+   const x=parseFloat(css.getPropertyValue('--text3d-rotation-x'))||0;
+   const y=parseFloat(css.getPropertyValue('--text3d-rotation-y'))||0;
+   core.setRotation(x,y);
    const desiredDepth=parseFloat(css.getPropertyValue('--text3d-depth'));
    if(Number.isFinite(desiredDepth)&&desiredDepth>0)core.setDepth(desiredDepth);
    const length=parseFloat(css.getPropertyValue('--clip-length'));
