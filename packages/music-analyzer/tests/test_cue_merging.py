@@ -50,3 +50,15 @@ def test_merging_preserves_result_limit():
                    merge_coincident=True,selection="chronological")
     assert r["count"]==4 and r["returned_count"]==2
     assert r["truncated"]
+
+
+def test_representative_truncation_uses_preselection_count():
+    d={"source":{"decoded_duration_seconds":20},
+       "rhythm":{"beats":[{"time_seconds":i*0.25} for i in range(68)]},
+       "events":[],"curves":{"points":[]},"structure":{}}
+    r=extract_cues(d,0,20,limit=30,merge_coincident=True,
+                   selection="representative",categories=["beat"])
+    assert r["count"]==68
+    assert r["merged_count"]==0
+    assert r["returned_count"]==30
+    assert r["truncated"] is True
