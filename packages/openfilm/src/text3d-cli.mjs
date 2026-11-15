@@ -1,7 +1,7 @@
 // @ts-check
 /** Publish reusable Text3D components from a folder into Saved and the immutable-version registry. */
 import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
-import { basename, dirname, join, resolve, sep } from 'node:path';
+import { basename, dirname, join, resolve, relative, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
 import { verifyText3D } from './text3d-verify.mjs';
 import { validateText3DV2 } from './text3d-v2-contract.mjs';
@@ -13,6 +13,15 @@ import { activeText3D, listText3D, registerText3D } from '../studio/server/text3
 
 /** @param {unknown} value */
 const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+/** Resolve a manifest asset without allowing absolute paths, traversal or symlink escapes. */
+async function safeAsset(base,name){
+ if(typeof name!=='string'||!/^\.\/[a-z0-9_./-]+$/i.test(name)||name.split('/').includes('..'))throw new Error('Unsafe Text3D asset path: '+name);
+ const path=resolve(base,name),rel=relative(base,path);
+ if(!rel||rel.startsWith('..'+sep)||rel==='..'||rel.startsWith(sep))throw new Error('Text3D asset escapes package: '+name);
+ const file=await stat(path).catch(()=>null);
+ if(!file?.isFile())throw new Error('Missing Text3D asset: '+name);
+ return path;
+}
 /** @param {string} dir */
 async function validateText3D(dir) {
  const base=resolve(dir);
@@ -20,8 +29,8 @@ async function validateText3D(dir) {
  if(manifest?.contractVersion===2){
   const issues=validateText3DV2(manifest);
   if(issues.length)throw new Error('Text3D v2 contract: '+issues.join('; '));
-  for(const kind of ['native','motion','appearance','vfx'])for(const file of manifest.modules[kind])if(!(await stat(join(base,file)).catch(()=>null))?.isFile())throw new Error('Missing Text3D v2 module: '+file);
-  if(!(await stat(join(base,manifest.model.font)).catch(()=>null))?.isFile())throw new Error('Missing Text3D v2 font');
+  for(const kind of ['native','motion','appearance','vfx'])for(const file of manifest.modules[kind])await safeAsset(base,file);
+  await safeAsset(base,manifest.model.font);
  }
  else if(!record(manifest)||manifest.formatVersion!==1||manifest.runtimeVersion!==1)
   throw new Error('Text3D manifest requires formatVersion=1 and runtimeVersion=1');
@@ -66,7 +75,7 @@ async function validateText3D(dir) {
 /** @param {string[]} args */
 export async function text3DCommand(args) {
  const [action, ...rest]=args;
- const usage='videomaker text3d create <folder> | list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
+ const usage='videomaker text3d create <folder> | verify <folder> | list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
  try {
   if(action==='create'&&rest.length===1){
    const target=resolve(rest[0]);
@@ -74,6 +83,12 @@ export async function text3DCommand(args) {
    await mkdir(join(target,'assets'),{recursive:true});
    await copyFile(new URL(import.meta.resolve('three/examples/fonts/helvetiker_regular.typeface.json')),join(target,'assets/font.json'));
    return {ok:true,lines:['Text3D v2 draft created: '+target]};
+  }
+  if(action==='verify'&&rest.length===1){
+   const manifest=await validateText3D(rest[0]);
+   const duration=Number(manifest.durationSeconds);
+   const report=await verifyText3D(resolve(rest[0]),Number.isFinite(duration)&&duration>0?duration:10);
+   return {ok:true,lines:['Text3D visual verification passed: '+(manifest.componentId??manifest.id+'/'+manifest.version),JSON.stringify(report)]};
   }
   if(action==='list'||action==='inspect'){
    const entries=action==='inspect'?[await activeText3D(rest[0]??'')].filter(Boolean):await listText3D(rest[0]??null);
