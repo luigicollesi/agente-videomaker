@@ -126,6 +126,7 @@ export async function text3DCommand(args) {
     if(manifest.contractVersion===2){
      await copyFile(new URL('./text3d-v2-core.mjs',import.meta.url),join(files,'openfilm-text3d-v2-core.mjs'));
      await copyFile(new URL('./text3d-resource-manager.mjs',import.meta.url),join(files,'text3d-resource-manager.mjs'));
+     await copyFile(new URL('./text3d-animation-composer.mjs',import.meta.url),join(files,'text3d-animation-composer.mjs'));
      await copyFile(new URL('./text3d-runtime.mjs',import.meta.url),join(files,'text3d-runtime.mjs'));
     }
     const moduleMain=new URL(import.meta.resolve('three'));
