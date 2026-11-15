@@ -9,4 +9,5 @@ import {createText3D} from './component.js';
 const ready=createText3D({canvas:document.querySelector('canvas'),element:document.querySelector('.t'),root:document.documentElement});
 window.film={ready,frame:async t=>(await ready).frame(t),frameReadsOverrides:true};
 window.__text3dComponent=ready;
+ready.then(component=>{window.__text3dHitTest=(x,y)=>component.hitTest(x,y)});
 </script></body></html>
