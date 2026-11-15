@@ -47,6 +47,9 @@ export async function createText3D({canvas,element,root}){
    core.setText(text);
    core.resize(canvas.clientWidth||canvas.width,canvas.clientHeight||canvas.height);
    const css=getComputedStyle(root);
+   const viewport=['x','y','w','h'].map(k=>parseFloat(css.getPropertyValue('--text3d-viewport-'+k)));
+   core.setViewport(viewport.every(Number.isFinite)&&viewport[2]>0&&viewport[3]>0
+    ? {x:viewport[0],y:viewport[1],width:viewport[2],height:viewport[3]} : null);
    const family=css.getPropertyValue('--text3d-font').trim().replace(/^['"]|['"]$/g,'')||'default';
    const size=css.getPropertyValue('--text3d-size').trim();
    const spacing=css.getPropertyValue('--text3d-spacing').trim();
