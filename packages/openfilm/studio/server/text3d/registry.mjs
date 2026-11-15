@@ -1,5 +1,5 @@
 // @ts-check
-/** Text3D version registry. Logical names never replace immutable version IDs. */
+/** Registry of active Text3D components; published bundles remain immutable. */
 import { readFile, mkdir, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -11,7 +11,7 @@ const REGISTRY = '.text3d-registry.json';
 const ID = /^[a-z0-9][a-z0-9/_-]{0,159}$/i;
 /** @param {any} entry @returns {entry is RegistryEntry} */
 const supported = entry => entry && typeof entry === 'object' &&
-  ID.test(entry.source2DId ?? '') && ID.test(entry.componentId ?? '') &&
+  entry.version === undefined && ID.test(entry.source2DId ?? '') && ID.test(entry.componentId ?? '') &&
   typeof entry.bundlePath === 'string' &&
   /^saved\/[a-z0-9][a-z0-9/_-]{0,200}$/i.test(entry.bundlePath) &&
   typeof entry.displayName === 'string' && entry.displayName.length <= 100 &&
@@ -45,7 +45,7 @@ async function write(root, entries) {
 /** @param {string|null} [source2DId] @param {string} [root] */
 export async function listText3D(source2DId=null,root) {
  return (await read(root))
-  .filter(e=>!e.version&&!/\/v[1-9][0-9]*$/.test(e.componentId))
+  .filter(e=>!/\/v[1-9][0-9]*$/.test(e.componentId))
   .filter(e=>source2DId==null||e.source2DId===source2DId)
   .sort((a,b)=>a.source2DId.localeCompare(b.source2DId));
 }
@@ -56,10 +56,10 @@ export async function activeText3D(source2DId,root) {
 /** Atomically replace the registry pointer after the new bundle has passed verification. */
 /** @param {RegistryEntry} input @param {string} [root] */
 export async function registerText3D(input,root) {
- if(!supported(input)||input.version!==undefined||/\/v[1-9][0-9]*$/.test(input.componentId))
+ if(!supported(input)||/\/v[1-9][0-9]*$/.test(input.componentId))
   throw new Error('Invalid versionless Text3D registry entry');
  const entries=await read(root);
- const next=entries.filter(e=>!e.version&&!/\/v[1-9][0-9]*$/.test(e.componentId)&&e.componentId!==input.componentId&&e.source2DId!==input.source2DId);
+ const next=entries.filter(e=>!/\/v[1-9][0-9]*$/.test(e.componentId)&&e.componentId!==input.componentId&&e.source2DId!==input.source2DId);
  const updated={...input,active:true};
  next.push(updated);
  await write(root,next);
