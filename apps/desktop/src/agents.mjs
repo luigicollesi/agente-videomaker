@@ -1341,6 +1341,7 @@ export class AgentSession {
       // ACP launches the local MCP over stdio; unsupported agents retain their
       // existing session behavior if they do not expose these tools.
       mcpServers: [{
+        type: 'stdio',
         name: 'videomaker-media',
         command: nodeBinary(),
         args: [fileURLToPath(new URL('./media-mcp.mjs', import.meta.url))],
