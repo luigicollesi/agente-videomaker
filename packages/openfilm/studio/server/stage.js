@@ -628,6 +628,7 @@
 
   /** All layers under a point of a clip's page, the smallest first (equal areas: the one drawn later first). */
   const layersAt = (c, x, y, includeLocked) => {
+    if (c.win?.__text3dComponent) return []; // the canvas is a surface, not an editable page layer
     const doc = c.win.document;
     /* what is really at the point: a line's own stroke, not the box around it (a diagonal line's box covers the words
        beside it, and as the smaller box it was taken for them) */
@@ -666,7 +667,7 @@
     const inside = (c) => { const p = matrixOf(c).inverse().transformPoint(new DOMPoint(x, y)); return p.x >= 0 && p.y >= 0 && p.x <= c.w && p.y <= c.h ? p : null; };
     if (held) {
       const own = shown().find((c) => c.kind === 'page' && c.win && c.win.document === held.ownerDocument && inside(c));
-      if (own) return own;
+      if (own && (!own.win?.__text3dComponent || text3DPixel(own, inside(own)) === true)) return own;
     }
     const top = clipAt(x, y);
     if (!top || top.kind !== 'page' || !top.win) return top;
@@ -1750,7 +1751,7 @@
     box({ x, y, w, h, all }) {
       const out = [];
       for (const c of shown()) {
-        if (c.kind !== 'page' || !c.win) continue;
+        if (c.kind !== 'page' || !c.win || c.win.__text3dComponent) continue;
         const M = matrixOf(c);
         const inside = layersOf(c.win.document).filter((el) => {
           if (!(kindOf(el) || isGroup(el))) return false;
