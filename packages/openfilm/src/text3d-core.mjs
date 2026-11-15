@@ -115,12 +115,12 @@ export function createText3DCore(options){
  const baseMaterial=[snapshotMaterial(front),snapshotMaterial(side)];
  const restoreMaterial=(m,b)=>{m.color.copy(b.color);m.emissive.copy(b.emissive);m.emissiveIntensity=b.emissiveIntensity;m.opacity=b.opacity;m.transparent=b.transparent;m.roughness=b.roughness;m.metalness=b.metalness;m.visible=b.visible};
  const baseLight=[{intensity:ambient.intensity,color:ambient.color.clone(),position:ambient.position.clone()},{intensity:key.intensity,color:key.color.clone(),position:key.position.clone()}];
- let userRotationX=0,userRotationY=0;
- const setRotation=(x,y)=>{
-  if(!Number.isFinite(x)||!Number.isFinite(y))throw new Error('Invalid 3D rotation');
-  if(x===userRotationX&&y===userRotationY)return;
-  userRotationX=x;userRotationY=y;
-  orientation.rotation.set(THREE.MathUtils.degToRad(x),THREE.MathUtils.degToRad(y),0,'YXZ');
+ let userRotationX=0,userRotationY=0,userRotationZ=0;
+ const setRotation=(x,y,z=0)=>{
+  if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z))throw new Error('Invalid 3D rotation');
+  if(x===userRotationX&&y===userRotationY&&z===userRotationZ)return;
+  userRotationX=x;userRotationY=y;userRotationZ=z;
+  orientation.rotation.set(THREE.MathUtils.degToRad(x),THREE.MathUtils.degToRad(y),THREE.MathUtils.degToRad(z),'YXZ');
   fit();outerBaseline=snapshot(outer);
  };
  const run=async(t)=>{
