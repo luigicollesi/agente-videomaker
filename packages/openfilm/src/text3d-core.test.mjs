@@ -46,6 +46,8 @@ test('v2 core composes native and external motion with deterministic seeks',asyn
  assert.equal(component.renderer,originalRenderer);
  const fitScale=component.model.root.parent.scale.x;
  assert.ok(fitScale>0&&fitScale<=1,'auto-fit scale should remain positive and not enlarge');
+ assert.ok(component.appearance.lights[0].intensity<=1,'ambient light should not wash out neon colors');
+ assert.ok(component.appearance.lights[1].intensity<=1.5,'key light should preserve saturated color');
  component.setTypography({font,fontSize:.62,letterSpacing:.08,textAlign:'right'});
  assert.equal(component.renderer,originalRenderer);
  assert.equal(component.model.meshes[0].geometry.parameters.options.size,.62);
