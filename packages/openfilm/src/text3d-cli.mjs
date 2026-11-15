@@ -77,16 +77,17 @@ async function validateText3D(dir) {
  * Produces the Three.js typeface JSON shape required by FontLoader.
  * @param {Buffer} data
  */
-async function convertTrueTypeToTypeface(data){
+export async function convertTrueTypeToTypeface(data){
  const module=await import('opentype.js');
  const opentype=module.default??module;
  const font=opentype.parse(data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength));
  const glyphs={};
  const scale=1000/font.unitsPerEm;
- for(let code=32;code<=0xffff;code++){
+ for(let i=0;i<font.glyphs.length;i++){
+  const glyph=font.glyphs.get(i);
+  const code=glyph.unicode;
+  if(!Number.isInteger(code)||code<32||code>0xffff)continue;
   const char=String.fromCharCode(code);
-  const glyph=font.charToGlyph(char);
-  if(!glyph||glyph.index===0)continue;
   const commands=glyph.getPath(0,0,font.unitsPerEm).commands;
   let outline='';
   let x=0,y=0;
