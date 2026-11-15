@@ -87,7 +87,14 @@ export async function listLibrary() {
       const at = rel ? `${rel}/${entry.name}` : entry.name;
       if (entry.isDirectory()) {
         const bundle = await readBundle(join(root, at));
-        if (bundle) { files.push(bundleEntry(at, bundle)); continue; }
+        if (bundle) {
+          // Registered Text3D components live exclusively in the Text 3D library.
+          // Preserve the bundle on disk: deleting it would break existing projects.
+          if (bundle.clip?.attrs?.['data-openfilm-content-type'] !== 'text3d') {
+            files.push(bundleEntry(at, bundle));
+          }
+          continue;
+        }
         folders.push(libraryPath(at));
         if (depth < 8) await walk(at, depth + 1);
         continue;
