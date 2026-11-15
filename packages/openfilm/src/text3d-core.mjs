@@ -41,7 +41,7 @@ export function createText3DCore(options){
  const ambient=new THREE.AmbientLight(0xffffff,.55);
  const key=new THREE.DirectionalLight(0xffffff,1.2);
  key.position.set(-2,4,6);scene.add(ambient,key);
- const outer=new THREE.Group(),root=new THREE.Group();outer.add(root);scene.add(outer);
+ const outer=new THREE.Group(),orientation=new THREE.Group(),root=new THREE.Group();outer.add(orientation);orientation.add(root);scene.add(outer);
  root.rotation.y=-.22;
  const front=new THREE.MeshStandardMaterial({color:0xdae9ff,metalness:.28,roughness:.35,transparent:true});
  const side=new THREE.MeshStandardMaterial({color:0x577eae,metalness:.4,roughness:.5,transparent:true});
@@ -52,7 +52,7 @@ export function createText3DCore(options){
   // Measure unscaled geometry; otherwise each edit compounds the previous fit.
   outer.position.set(0,0,0);outer.scale.setScalar(1);
   outer.updateMatrixWorld(true);
-  const box=new THREE.Box3().setFromObject(root);
+  const box=new THREE.Box3().setFromObject(orientation);
   if(box.isEmpty())return;
   const width=Math.max(.01,box.max.x-box.min.x),height=Math.max(.01,box.max.y-box.min.y);
   // Perspective sizing must use the nearest glyph surface, not just camera-to-origin.
@@ -109,6 +109,11 @@ export function createText3DCore(options){
  const baseMaterial=[snapshotMaterial(front),snapshotMaterial(side)];
  const restoreMaterial=(m,b)=>{m.color.copy(b.color);m.emissive.copy(b.emissive);m.emissiveIntensity=b.emissiveIntensity;m.opacity=b.opacity;m.transparent=b.transparent;m.roughness=b.roughness;m.metalness=b.metalness;m.visible=b.visible};
  const baseLight=[{intensity:ambient.intensity,color:ambient.color.clone(),position:ambient.position.clone()},{intensity:key.intensity,color:key.color.clone(),position:key.position.clone()}];
+ const setRotation=(x,y)=>{
+  if(!Number.isFinite(x)||!Number.isFinite(y))throw new Error('Invalid 3D rotation');
+  orientation.rotation.set(THREE.MathUtils.degToRad(x),THREE.MathUtils.degToRad(y),0,'YXZ');
+  fit();outerBaseline=snapshot(outer);
+ };
  const run=async(t)=>{
   if(!Number.isFinite(t)||t<0)throw new Error('Invalid frame time');
   await motion.frame(t);
@@ -129,7 +134,7 @@ export function createText3DCore(options){
   contractVersion:2,renderer,scene,camera,
   model:{root,characters,meshes},
   appearance:{materials:[front,side],lights:[ambient,key]},
-  animations,setTypography(settings){
+  animations,setRotation,setTypography(settings){
    if(disposed)throw Error('Text3D disposed');
    const nextFont=settings.font??activeFont;
    const nextSize=settings.fontSize??fontSize;
