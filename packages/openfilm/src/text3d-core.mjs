@@ -48,6 +48,7 @@ export function createText3DCore(options){
  const characters=[],meshes=[];
  let modelText='',depth=Number.isFinite(options.depth)&&options.depth>0?options.depth:.15;
  let viewportWidth=canvas.width,viewportHeight=canvas.height;
+ let targetViewport=null;
  const fit=()=>{
   // Measure unscaled geometry; otherwise each edit compounds the previous fit.
   outer.position.set(0,0,0);outer.scale.setScalar(1);
@@ -60,10 +61,15 @@ export function createText3DCore(options){
  const distance=Math.max(camera.near+.01,camera.position.z-nearestZ);
  const visibleHeight=2*distance*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
   const visibleWidth=visibleHeight*camera.aspect;
-  const factor=Math.min(1,(visibleWidth*.72)/width,(visibleHeight*.68)/height);
+  const area=targetViewport;
+  const widthRatio=area?area.width/viewportWidth:1;
+  const heightRatio=area?area.height/viewportHeight:1;
+  const factor=Math.min(1,(visibleWidth*widthRatio*.72)/width,(visibleHeight*heightRatio*.68)/height);
   outer.scale.setScalar(factor);
   const center=box.getCenter(new THREE.Vector3());
-  outer.position.set(-center.x*factor,-center.y*factor,0);
+  const dx=area?((area.x+area.width/2)/viewportWidth-.5)*visibleWidth:0;
+  const dy=area?(.5-(area.y+area.height/2)/viewportHeight)*visibleHeight:0;
+  outer.position.set(dx-center.x*factor,dy-center.y*factor,0);
  };
  const resize=(width,height)=>{
   if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)throw Error('Invalid Text3D viewport');
@@ -137,7 +143,15 @@ export function createText3DCore(options){
   contractVersion:2,renderer,scene,camera,
   model:{root,characters,meshes},
   appearance:{materials:[front,side],lights:[ambient,key]},
-  animations,setRotation,setTypography(settings){
+  animations,setRotation,setViewport(area){
+   if(disposed)throw Error('Text3D disposed');
+   if(area!==null && (!Number.isFinite(area?.x)||!Number.isFinite(area?.y)||
+     !Number.isFinite(area?.width)||!Number.isFinite(area?.height)||area.width<=0||area.height<=0))
+      throw Error('Invalid Text3D target viewport');
+   if(JSON.stringify(area)===JSON.stringify(targetViewport))return;
+   targetViewport=area?{x:area.x,y:area.y,width:area.width,height:area.height}:null;
+   fit();outerBaseline=snapshot(outer);
+  },setTypography(settings){
    if(disposed)throw Error('Text3D disposed');
    const nextFont=settings.font??activeFont;
    const nextSize=settings.fontSize??fontSize;
