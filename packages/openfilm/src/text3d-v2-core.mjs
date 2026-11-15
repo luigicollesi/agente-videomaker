@@ -40,14 +40,30 @@ export function createText3DCore(options){
  const front=new THREE.MeshStandardMaterial({color:0xdae9ff,metalness:.28,roughness:.35});
  const side=new THREE.MeshStandardMaterial({color:0x577eae,metalness:.4,roughness:.5});
  const characters=[],meshes=[];
- let modelText='';
+ let modelText='',depth=Number.isFinite(options.depth)&&options.depth>0?options.depth:.15;
+ let viewportWidth=canvas.width,viewportHeight=canvas.height;
+ const fit=()=>{
+  const box=new THREE.Box3().setFromObject(root);
+  if(box.isEmpty())return;
+  const width=Math.max(.01,box.max.x-box.min.x),height=Math.max(.01,box.max.y-box.min.y);
+  const visibleHeight=2*camera.position.z*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
+  const visibleWidth=visibleHeight*camera.aspect;
+  const factor=Math.min(1,(visibleWidth*.84)/width,(visibleHeight*.78)/height);
+  outer.scale.setScalar(factor);
+ };
+ const resize=(width,height)=>{
+  if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)throw Error('Invalid Text3D viewport');
+  if(width===viewportWidth&&height===viewportHeight)return;
+  viewportWidth=width;viewportHeight=height;
+  renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();fit();
+ };
  const rebuildGeometry=(text)=>{
   const nextChars=[],nextMeshes=[];
   let cursor=0;
   try{
    for(const glyph of text3DGraphemes(text)){
     const wrapper=new THREE.Group();
-    const geometry=new makeGeometry(glyph,{font,size:options.size??.43,depth:options.depth??.14,curveSegments:12,bevelEnabled:true,bevelThickness:.018,bevelSize:.012,bevelSegments:3});
+    const geometry=new makeGeometry(glyph,{font,size:options.size??.43,depth,curveSegments:12,bevelEnabled:true,bevelThickness:.018,bevelSize:.012,bevelSegments:3});
     geometry.computeBoundingBox();
     const width=geometry.boundingBox?geometry.boundingBox.max.x-geometry.boundingBox.min.x:.22;
     const mesh=new THREE.Mesh(geometry,[front,side]);
@@ -63,6 +79,7 @@ export function createText3DCore(options){
   for(const child of characters)root.add(child);
   root.position.x=-cursor/2;
   modelText=text;
+  fit();
  };
  try{rebuildGeometry(String(options.text??''))}
  catch(error){front.dispose();side.dispose();renderer.dispose();throw error}
@@ -70,7 +87,7 @@ export function createText3DCore(options){
  const motion=createText3DMotion({group:outer,characters:[]});
  const snapshot=o=>({position:o.position.clone(),rotation:o.rotation.clone(),scale:o.scale.clone()});
  const restore=(o,b)=>{o.position.copy(b.position);o.rotation.copy(b.rotation);o.scale.copy(b.scale)};
- let rootBaseline=snapshot(root);const cameraBaseline=snapshot(camera),outerBaseline=snapshot(outer);
+ let rootBaseline=snapshot(root);const cameraBaseline=snapshot(camera);let outerBaseline=snapshot(outer);
  let baseline=characters.map(snapshot);
  let duration=Number.isFinite(options.duration)&&options.duration>0?options.duration:10;
  let baseFront=front.color.clone(),baseSide=side.color.clone();
@@ -98,7 +115,7 @@ export function createText3DCore(options){
   contractVersion:2,renderer,scene,camera,
   model:{root,characters,meshes},
   appearance:{materials:[front,side],lights:[ambient,key]},
-  animations,setDuration(value){if(!Number.isFinite(value)||value<=0)throw new Error('Invalid clip duration');duration=value},setBaseColor(color){front.color.set(color);side.color.copy(front.color).multiplyScalar(.48);baseFront=front.color.clone();baseSide=side.color.clone()},frame:async t=>{if(disposed)throw new Error('Text3D disposed');await run(t)},
+  animations,resize,setDepth(value){if(disposed)throw Error('Text3D disposed');if(!Number.isFinite(value)||value<=0||value>10)throw Error('Invalid depth');if(value!==depth){depth=value;rebuildGeometry(modelText);baseline=characters.map(snapshot);rootBaseline=snapshot(root);outerBaseline=snapshot(outer)}},setDuration(value){if(!Number.isFinite(value)||value<=0)throw new Error('Invalid clip duration');duration=value},setBaseColor(color){front.color.set(color);side.color.copy(front.color).multiplyScalar(.48);baseFront=front.color.clone();baseSide=side.color.clone()},frame:async t=>{if(disposed)throw new Error('Text3D disposed');await run(t)},
   dispose(){
    if(disposed)return;disposed=true;
    const errors=[];
