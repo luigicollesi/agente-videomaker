@@ -48,6 +48,7 @@ export function createText3DCore(options){
  const characters=[],meshes=[];
  let modelText='',depth=Number.isFinite(options.depth)&&options.depth>0?options.depth:.15;
  let viewportWidth=canvas.width,viewportHeight=canvas.height;
+ /** @type {{x:number,y:number,width:number,height:number}|null} */
  let targetViewport=null;
  const fit=()=>{
   // Measure unscaled geometry; otherwise each edit compounds the previous fit.
