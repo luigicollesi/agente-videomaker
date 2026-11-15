@@ -121,6 +121,9 @@
       const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
       if (!gl || gl.isContextLost() || !gl.drawingBufferWidth || !gl.drawingBufferHeight) return null;
       const bounds = canvas.getBoundingClientRect();
+      if (typeof c.win.__text3dHitTest === 'function') {
+        return c.win.__text3dHitTest((p.x-bounds.left)/bounds.width,(p.y-bounds.top)/bounds.height);
+      }
       const x = Math.floor((p.x - bounds.left) / bounds.width * gl.drawingBufferWidth);
       const y = Math.floor((1 - (p.y - bounds.top) / bounds.height) * gl.drawingBufferHeight);
       if (x < 0 || y < 0 || x >= gl.drawingBufferWidth || y >= gl.drawingBufferHeight) return false;
