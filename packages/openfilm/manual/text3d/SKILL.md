@@ -3,9 +3,9 @@ name: text3d
 description: Build, convert, verify and publish reusable real Three.js Text3D components.
 ---
 
-# Videomaker Text3D v2
+# Videomaker Text3D
 
-The v2 contract reference is `examples/text3d-v2/manifest.json`. The v2 runtime, browser template and bundled module loader are implemented. Start every new conversion with `videomaker text3d create <folder>`, then update its manifest source identity, visual parameters and modules. The `register` command packages and checks the actual WebGL/geometry output. Do not claim conversion fidelity without source-specific visual inspection. Do not claim v2 publish support or invoke a nonexistent `create` command. For currently executable conversions, follow the v1 CLI while preserving these architectural requirements. Do not invent a new renderer, camera/timeline controller or contract. The shared runtime owns rendering and the clock; modules supply native model animation, appearance, motion and VFX.
+The canonical contract reference is `examples/text3d/manifest.json`. Generate drafts with `videomaker text3d create <folder>`, customize modules, run `validate`, and use `register` for packaged WebGL verification. The shared core owns the renderer, geometry and time; never recreate it when text changes. Experimental versioned manifests, templates and older CLI workflows are unsupported. Do not claim visual fidelity without source-specific visual tests.
 
 The **selected 2D source** is the authority for text layout, font appearance, lighting, glow, entrance/hold/exit, particles, colors, easing and timing. Inspect HTML/CSS/JS, assets, data-props and overrides. Recreate its behavior in three-dimensional geometry; never copy the sample's animation preset. Missing exit animation means no invented exit.
 
