@@ -94,8 +94,8 @@ export async function convertTrueTypeToTypeface(data){
   for(const c of commands){
    if(c.type==='M'){outline+='m '+Math.round(c.x*scale)+' '+Math.round(-c.y*scale)+' ';x=c.x;y=c.y}
    else if(c.type==='L'){outline+='l '+Math.round(c.x*scale)+' '+Math.round(-c.y*scale)+' ';x=c.x;y=c.y}
-   else if(c.type==='Q')outline+='q '+Math.round(c.x1*scale)+' '+Math.round(-c.y1*scale)+' '+Math.round(c.x*scale)+' '+Math.round(-c.y*scale)+' ';
-   else if(c.type==='C')outline+='b '+Math.round(c.x1*scale)+' '+Math.round(-c.y1*scale)+' '+Math.round(c.x2*scale)+' '+Math.round(-c.y2*scale)+' '+Math.round(c.x*scale)+' '+Math.round(-c.y*scale)+' ';
+   else if(c.type==='Q')outline+='q '+Math.round(c.x*scale)+' '+Math.round(-c.y*scale)+' '+Math.round(c.x1*scale)+' '+Math.round(-c.y1*scale)+' ';
+   else if(c.type==='C')outline+='b '+Math.round(c.x*scale)+' '+Math.round(-c.y*scale)+' '+Math.round(c.x1*scale)+' '+Math.round(-c.y1*scale)+' '+Math.round(c.x2*scale)+' '+Math.round(-c.y2*scale)+' ';
   }
   glyphs[char]={ha:Math.round(glyph.advanceWidth*scale),x_min:0,x_max:0,o:outline.trim()};
  }
