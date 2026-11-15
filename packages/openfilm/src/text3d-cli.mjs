@@ -73,7 +73,7 @@ async function validateText3D(dir) {
 /** @param {string[]} args */
 export async function text3DCommand(args) {
  const [action, ...rest]=args;
- const usage='videomaker text3d create <folder> | list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
+ const usage='videomaker text3d create <folder> | preview <folder> | list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
  try {
   if(action==='create'&&rest.length===1){
    const target=resolve(rest[0]);
@@ -112,7 +112,7 @@ export async function text3DCommand(args) {
    const manifest=await validateText3D(rest[0]);
    return {ok:true,lines:['Text3D structure validated: '+(manifest.id),'Run register for packaged visual verification.']};
   }
-  if(action==='register'&&rest[0]){
+  if((action==='register'||action==='preview')&&rest.length===1){
    const source=resolve(rest[0]),manifest=await validateText3D(source);
    const id=String(manifest.componentId??manifest.id);
    const sourceId=String(manifest.source2DId);
@@ -188,6 +188,12 @@ export async function text3DCommand(args) {
     }
     // Only the packaged copy is authoritative; verify its imports and actual pixels.
     await verifyText3D(files,seconds);
+    if(action==='preview'){
+     const previewDir=source+'-preview';
+     if(await stat(previewDir).catch(()=>null))throw new Error('Preview folder already exists: '+previewDir);
+     await rename(staging,previewDir);
+     return {ok:true,lines:['Verified packaged Text3D preview: '+join(previewDir,'files','index.html'),'This preview is not registered or applied.']};
+    }
     await mkdir(join(folder,'..'),{recursive:true});
     // Publish the verified build to a unique directory; never overwrite a referenced bundle.
     const uniqueFolder=folder+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
