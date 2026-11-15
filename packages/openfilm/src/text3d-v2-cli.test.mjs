@@ -32,8 +32,10 @@ test('v2 end-to-end register packages real WebGL component before registry activ
   assert.equal(registered.ok,true,registered.lines.join(' '));
   const lookup=await text3DCommand(['inspect','text/example']);
   assert.equal(lookup.ok,true);
-  assert.match(lookup.lines[0],/text3d\\/example\\/v1/);
-  assert.ok((await readFile(join(folder,'saved/text3d/text3d/example/v1/files/text3d-animation-composer.mjs'))).length>100);
+  assert.match(lookup.lines[0],/text3d\\/example/);
+  const registry=JSON.parse(await readFile(join(folder,'saved/.text3d-registry.json'),'utf8'));
+  const bundle=registry.entries[0].bundlePath.slice('saved/'.length);
+  assert.ok((await readFile(join(folder,'saved',bundle,'files/text3d-animation-composer.mjs'))).length>100);
  }finally{
   if(previous===undefined)delete process.env.OPENFILM_SAVED;
   else process.env.OPENFILM_SAVED=previous;
