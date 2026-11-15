@@ -1,6 +1,6 @@
 // @ts-check
 /** Shared Text3D v2 core. Rendering, model ownership and time are controlled here. */
-import {createText3DMotion,text3DGraphemes} from './text3d-runtime.mjs';
+import {text3DGraphemes} from './text3d-runtime.mjs';
 import {Text3DResourceManager} from './text3d-resource-manager.mjs';
 import {evaluateText3DAnimations,applyText3DContributions} from './text3d-animation-composer.mjs';
 
@@ -105,7 +105,6 @@ export function createText3DCore(options){
  try{rebuildGeometry(String(options.text??''))}
  catch(error){front.dispose();side.dispose();renderer.dispose();throw error}
  const resources=new Text3DResourceManager();
- const motion=createText3DMotion({group:outer,characters:[]});
  const snapshot=o=>({position:o.position.clone(),rotation:o.rotation.clone(),scale:o.scale.clone()});
  const restore=(o,b)=>{o.position.copy(b.position);o.rotation.copy(b.rotation);o.scale.copy(b.scale)};
  let rootBaseline=snapshot(root);const cameraBaseline=snapshot(camera);let outerBaseline=snapshot(outer);
@@ -131,7 +130,6 @@ export function createText3DCore(options){
   restoreMaterial(front,baseMaterial[0]);restoreMaterial(side,baseMaterial[1]);
   front.color.copy(baseFront);side.color.copy(baseSide);
   for(const [i,light] of [ambient,key].entries()){light.intensity=baseLight[i].intensity;light.color.copy(baseLight[i].color);light.position.copy(baseLight[i].position)}
-  await motion.frame(t);
   const commands=await evaluateText3DAnimations(animations,t,(kind,index)=>({
    scene,camera,renderer,duration,model:{root,characters,meshes},materials:[front,side],
    resources:{track:resource=>resources.track(kind+':'+index,resource)}
