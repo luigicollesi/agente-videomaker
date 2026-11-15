@@ -7,9 +7,9 @@
 
 <p align="center"><strong>Interface preta e vermelha • Studio editável • Codex e outros agentes</strong></p>
 
-> **Projeto independente baseado em [OpenFilm](https://github.com/openfilm/openfilm)** (licença MIT).
-> O motor de edição, o formato `film.html` e o comando `openfilm` são mantidos por compatibilidade.
-> Este fork não é uma distribuição oficial do OpenFilm nem é endossado por seus mantenedores.
+> **Base tecnológica:** o Agente Videomaker utiliza como ponto de partida o código-fonte do projeto de código aberto [OpenFilm](https://github.com/openfilm/openfilm), obtido em **11 de novembro de 2026 (11/11/2026)**, sob a **licença MIT**.
+> A partir dessa base, o Agente Videomaker desenvolve sua própria identidade visual, recursos e integrações. O motor de edição, o formato `film.html` e o comando `openfilm` são preservados por compatibilidade.
+> Este é um projeto independente: não constitui uma distribuição oficial do OpenFilm nem é endossado por seus mantenedores.
 
 ## Executar no Ubuntu
 
@@ -38,5 +38,7 @@ pnpm test
 
 ## Créditos e licenças
 
-O Agente Videomaker usa código OpenFilm licenciado sob MIT. Os avisos originais de licença, atribuição e terceiros permanecem neste repositório. A marca OpenFilm pertence a seus respectivos titulares. A nova identidade visual do Agente Videomaker não representa o projeto original.
+O Agente Videomaker é desenvolvido sobre uma base de código do **[OpenFilm](https://github.com/openfilm/openfilm)**, retirada do projeto original em **11/11/2026**. Os créditos pelo código original pertencem aos **colaboradores do OpenFilm**. A licença **MIT** autoriza seu uso, modificação e distribuição, desde que sejam mantidos os respectivos avisos de licença e direitos autorais.
+
+As modificações, funcionalidades adicionais e a identidade visual do Agente Videomaker são desenvolvimentos deste projeto independente. Os avisos originais de licença, atribuição e terceiros permanecem no repositório, incluindo o arquivo [LICENSE](LICENSE). A marca OpenFilm pertence a seus respectivos titulares; não há afiliação oficial ou endosso dos mantenedores do OpenFilm.
 

@@ -10,3 +10,7 @@ description: Media for an Videomaker film. Read it before you add music, a sound
 Media can come from `get` (Videomaker's library, or a service that makes it), any service the person uses (with its API docs and their key), or your own code. Save it under `assets/`.
 
 When the person wants a service that is not built in to make pictures, clips or sounds (on the canvas too), add it as a provider: `videomaker get` ends by naming its folder, the contract it follows and a built-in one to read. Write it from the service's API docs, then try it with `get <verb> --via <id>` once the person has added its key in Settings → Services.
+
+## Reverse video
+
+For reverse playback, run `python packages/openfilm/manual/media/scripts/reverse-video.py INPUT OUTPUT` from the repository root (or use the script's absolute path). Run `--help` for `--start`, `--end` and `--audio mute|reverse|keep` (default: mute). Save output under the film project's `assets/`; keep the original unchanged. Use the existing timeline controls for trims, speed and placement. FFmpeg and FFprobe are required; no paid service.
