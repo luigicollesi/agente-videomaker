@@ -25,9 +25,21 @@
       "name": "Text",
       "type": "text",
       "at": ".t"
+    },
+    {
+      "name": "Depth",
+      "type": "var",
+      "var": "--text3d-depth"
+    },
+    {
+      "name": "Front Color",
+      "type": "var",
+      "var": "--text3d-color"
     }
   ],
   "parameterMap": {
-    "Text": "Text"
+    "Text": "Text",
+    "Depth": "Depth",
+    "Front Color": "Front Color"
   }
 }
