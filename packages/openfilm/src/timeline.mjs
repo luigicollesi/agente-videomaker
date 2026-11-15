@@ -135,8 +135,12 @@ function place(c, box) {
       pointerEvents:'none',
     });
     const root=c.win?.document?.documentElement;
-    if(root)for(const [key,value] of Object.entries({x:at.x,y:at.y,w:at.w,h:at.h}))
-      root.style.setProperty('--text3d-viewport-'+key,String(value));
+    if(root) {
+      for(const [key,value] of Object.entries({x:at.x,y:at.y,w:at.w,h:at.h}))
+        root.style.setProperty('--text3d-viewport-'+key,String(value));
+      // Keep the WebGL surface fixed; rotate the actual text in its own scene.
+      root.style.setProperty('--text3d-rotation-z',String(at.r)+'deg');
+    }
     return;
   }
   const page = c.kind === 'page';
