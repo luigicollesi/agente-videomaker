@@ -17,6 +17,7 @@ from music_analyzer.harmonic_structure import enrich_harmony_structure
 from music_analyzer.structure_v2 import detect_repeated_regions
 from music_analyzer.temporal_dynamics import enrich_temporal_dynamics
 from music_analyzer.rhythm_extensions import enrich_rhythm
+from music_analyzer.structure_v3 import detect_repeats_v3
 from music_analyzer.cache import PIPELINE_REVISION, sha256_file, cache_key, load_cached, write_cached
 
 
@@ -62,6 +63,11 @@ def analyze_music(audio_path: str, output_path: str,
         result["structure"].update(detect_repeated_regions(result))
         result = enrich_temporal_dynamics(result)
         result = enrich_rhythm(result)
+        result["structure_v3"] = detect_repeats_v3(result)
+        result["quality"] = {"timebase_status": source_meta.get("timestamp_mapping", "unverified"),
+                             "structure_v3_status": result["structure_v3"]["status"],
+                             "cues_status": "available",
+                             "note": "Scores are not probabilities; no editor alignment inferred"}
         result["cache_revision"] = PIPELINE_REVISION
         output.parent.mkdir(parents=True, exist_ok=True)
         temporary = output.with_suffix(output.suffix + ".tmp")
