@@ -202,3 +202,33 @@ These changes do **not** constitute a completed V1.0 release: local EBU
 loudness, verified source/editor mapping, CQT/Tonnetz, spectral HPSS,
 stereo-local curves, tempo-warped structural matching, native editor tool
 registration, and full real-audio benchmark validation remain to be done.
+
+## Acoustic cues V2 and sequence comparison
+
+```bash
+music-analyzer cues analysis.json --start 90 --end 108 --limit 30 \
+  --categories beat strong_onset energy harmonic_change structure_boundary \
+  --selection representative
+
+music-analyzer compare analysis.json \
+  --start-a 90 --end-a 108 --start-b 178 --end-b 196
+```
+
+The V2 cues include existing detected beats and onsets. Onsets without
+stored peak amplitudes are labeled `onset_unranked`: do not interpret them as
+strong onsets. The `representative` selector spreads results across the
+requested interval. The comparison now includes bounded constrained
+multifeature DTW, in addition to legacy aggregate cosine comparisons.
+
+The full analysis stores `structure_v3` **separately** from the validated
+V2 structural candidate output. V3 uses multi-angle recurrence path
+enhancement and is explicitly **experimental** until evaluated against
+annotated music. The `quality` object reports these limitations.
+
+`timebase.map_decoded_to_editor` only returns mapped editor seconds after
+explicit verification; metadata alone cannot establish MP3/MP4/editor
+alignment.
+
+**Release gate:** This milestone is not a certified stable V1.0. Test it on
+real media, compare with annotated boundaries, run a complete regression
+suite, and confirm editor tool registration before releasing.
