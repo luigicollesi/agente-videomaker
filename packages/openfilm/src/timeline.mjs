@@ -131,15 +131,20 @@ function place(c, box) {
     Object.assign(c.el.style, {
       position:'absolute',left:'0',top:'0',right:'auto',bottom:'auto',margin:'0',
       translate:'none',rotate:'none',scale:'none',
-      width:stage.w+'px',height:stage.h+'px',transformOrigin:'0 0',transform:'none',
+      width:stage.w+'px',height:stage.h+'px',
+      // Rotate around the actual text viewport, not the center of the full-stage canvas.
+      // This also works for previously registered Text3D bundles with an older core.
+      transformOrigin:`${at.x+at.w/2}px ${at.y+at.h/2}px`,
+      transform:`rotate(${at.r}deg)`,
       pointerEvents:'none',
     });
     const root=c.win?.document?.documentElement;
     if(root) {
       for(const [key,value] of Object.entries({x:at.x,y:at.y,w:at.w,h:at.h}))
         root.style.setProperty('--text3d-viewport-'+key,String(value));
-      // Keep the WebGL surface fixed; rotate the actual text in its own scene.
-      root.style.setProperty('--text3d-rotation-z',String(at.r)+'deg');
+      // The standard Position & Size rotation is applied to the clip presentation,
+      // including legacy bundles. Avoid rotating the 3D mesh a second time.
+      root.style.setProperty('--text3d-rotation-z','0deg');
     }
     return;
   }
