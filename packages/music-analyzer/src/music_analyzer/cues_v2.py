@@ -98,6 +98,7 @@ def extract_cues(d, start, end, *, categories=None, limit=30, min_relative_stren
                                                "relative_strength": e["relative_strength"]} for e in group],
                                  "time_reference": "decoded_pcm"})
         events = combined
+    total_after_merge = len(events)
     if selection == "representative" and len(events) > limit:
         # Reserve one slot per available category when capacity allows.
         bins = np.linspace(start, end, limit + 1)
@@ -125,7 +126,7 @@ def extract_cues(d, start, end, *, categories=None, limit=30, min_relative_stren
         events = sorted(chosen, key=lambda e:(e["time_seconds"],e["category"]))
     return {"start_seconds": start, "end_seconds": end, "cues": events[:limit],
             "count": total, "returned_count": min(len(events), limit),
-            "merged_count": merged_count, "truncated": len(events) > limit,
+            "merged_count": merged_count, "truncated": total_after_merge > limit,
             "available_categories": sorted(selected),
             "time_reference": "decoded_pcm_unverified_source_mapping",
             "warning": "Acoustic candidates, not mandatory editing decisions"}
