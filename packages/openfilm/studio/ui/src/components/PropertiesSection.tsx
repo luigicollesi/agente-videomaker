@@ -92,7 +92,7 @@ export function PropertiesSection({ host, commit }: {
     {name:'Rotation X',type:'var',var:'--text3d-rotation-x'},
     {name:'Rotation Y',type:'var',var:'--text3d-rotation-y'}
   ] : [];
-  const transformProps = is3D ? (supports3DRotation ? builtIn3D.map(base=>shown.find(p=>p.type==='var'&&p.var===base.var)??base) : shown.filter(p=>p.type==='var'&&transform3D.has(p.var))) : [];
+  const transformProps = is3D ? (supports3DRotation ? builtIn3D.map(base=>shown.find(p=>p.type==='var'&&base.type==='var'&&p.var===base.var)??base) : shown.filter(p=>p.type==='var'&&transform3D.has(p.var))) : [];
   const appearance3D = is3D ? shown.filter(p => p.type === 'var' && visual3D.has(p.var)) : [];
   const movement3D = is3D ? shown.filter(p => p.type === 'var' && motion3D.has(p.var)) : [];
   const standard = shown.filter(p => !is3D || p.type !== 'var' || (!visual3D.has(p.var) && !motion3D.has(p.var) && !transform3D.has(p.var)));
