@@ -54,7 +54,7 @@ def main():
                 dest=folder/f'frame-{i:03d}.jpg'
                 run(['ffmpeg','-hide_banner','-loglevel','error','-nostdin','-y',
                      '-ss',f'{t:.6f}','-i',str(source),'-frames:v','1',
-                     '-vf',f'scale=min({a.width}\\\\,iw):-2','-q:v','3',str(dest)])
+                     '-vf',f'scale={a.width}:-2:force_original_aspect_ratio=decrease','-q:v','3',str(dest)])
                 if not dest.is_file():raise ValueError('Frame extraction failed')
                 frames.append({'time_seconds':round(t,3),'path':str(dest)})
         except BaseException:
