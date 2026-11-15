@@ -35,3 +35,9 @@ export function createEffect() {
 ```
 
 Temporary legacy effects may mutate the scene through context for compatibility, but this pathway is not fully isolated or guaranteed deterministic. Use `context.resources.track(resource)` for every effect-created GPU resource that supports `dispose()`; resources are tracked by effect owner and disposed centrally. Do not dispose shared core materials or the WebGLRenderer from an effect. Advanced geometry deformation, particles, color mixing and postprocessing contributions are **not yet** part of the declarative contract. Never claim those capabilities exist without implementation and verification.
+
+## Editable extrusion depth and automatic layout
+
+Every v2 extruded-text component MUST expose `Depth` as a CSS variable property `--text3d-depth` (positive world units) with an entry in `parameterMap`. The sample template implements this: read the variable on each frame and call `core.setDepth(value)`, which rebuilds **only glyph geometry**. Never fake thickness using CSS shadows or a flat SVG. Preserve the separate mesh face and side materials.
+
+After text changes, call `core.setText(text)`, never `core.dispose()` followed by `createText3DCore()`. The shared core automatically fits its actual glyph bounds inside the canvas and centers the text. Keep `core.resize(canvas.clientWidth, canvas.clientHeight)` so editing `OPEN` into `TESTEEEEE` does not crop glyphs. The default slightly oblique 3D viewpoint reveals the letter sidewalls; do not replace it with CSS transforms. Do not hardcode layout around the original word.
