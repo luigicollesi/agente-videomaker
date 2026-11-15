@@ -3515,17 +3515,9 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     }
     studioHost.ask({
       refs:[refOfBlock(block)],
-      text:(replacing ? [
-        'Update Text3D '+replacing.componentId+' ('+replacing.version+') on '+(block.clipId??'')+'.',
-        'Recreate existing source animations/VFX in 3D; keep timing, text and mapped params unless requested. Never copy sample motions.',
-        'Create a new immutable version if needed; retain previous versions.',
-        'Iterate until real rendering passes; register in Saved, verify the registered copy, then apply. Keep drafts on failure.'
-      ] : [
-        'Convert '+source2DId+' to real Text3D on '+(block.clipId??'')+'.',
-        'Inspect and recreate the 2D source animations/VFX in 3D; preserve timing, text and mapped params. Never copy sample motions.',
-        'Reuse a compatible version or create the canonical Text3D draft via videomaker text3d create, preserving native/model animation, effects and parameterMap.',
-        'Run videomaker text3d inspect, validate, register and apply. Verify before apply.'
-      ]).join('\n')
+      text:(replacing
+        ? 'Atualize o Text3D '+replacing.componentId+' do clipe '+(block.clipId??'')+' seguindo a skill Text3D. Preserve o comportamento original, valide e aplique o componente.'
+        : 'Converta '+source2DId+' do clipe '+(block.clipId??'')+' em texto 3D seguindo a skill Text3D. Preserve as animações e propriedades originais, valide e aplique o componente.')
     });
   },[toast,refOfBlock]);
   const requestText3D = React.useCallback(async (block:TimelineBlock) => {
