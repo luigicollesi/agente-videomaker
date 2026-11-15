@@ -139,7 +139,11 @@
     for (const c of shown()) {
       if (pictures && c.kind === 'page') continue;
       const p = matrixOf(c).inverse().transformPoint(new DOMPoint(x, y));
-      if (p.x >= 0 && p.y >= 0 && p.x <= c.w && p.y <= c.h) return c;
+      if (p.x < 0 || p.y < 0 || p.x > c.w || p.y > c.h) continue;
+      // A full-stage Text3D canvas is a rendering surface, not an opaque selection box.
+      // Let clicks on transparent pixels fall through to clips underneath.
+      if (c.win?.__text3dComponent && text3DPixel(c, p) !== true) continue;
+      return c;
     }
     return null;
   };
@@ -669,6 +673,7 @@
     for (const c of shown()) {
       const p = inside(c);
       if (!p) continue;
+      if (c.win?.__text3dComponent && text3DPixel(c, p) !== true) continue;
       if (c.kind !== 'page' || !c.win) break;
       if (layersAt(c, p.x, p.y, includeLocked).some((h) => !fillsPage(c, h))) return c;
     }
