@@ -2,6 +2,7 @@
 /** Shared Text3D v2 core. Rendering, model ownership and time are controlled here. */
 import {createText3DMotion,text3DGraphemes} from './text3d-runtime.mjs';
 import {Text3DResourceManager} from './text3d-resource-manager.mjs';
+import {evaluateText3DAnimations,applyText3DContributions} from './text3d-animation-composer.mjs';
 
 /**
  * Animation modules are evaluated in absolute seconds, never accumulated deltas.
@@ -83,13 +84,11 @@ export function createText3DCore(options){
   restoreMaterial(front,baseMaterial[0]);restoreMaterial(side,baseMaterial[1]);
   front.color.copy(baseFront);side.color.copy(baseSide);
   for(const [i,light] of [ambient,key].entries()){light.intensity=baseLight[i].intensity;light.color.copy(baseLight[i].color);light.position.copy(baseLight[i].position)}
-  for(const kind of ['native','motion','appearance','vfx']){
-   for(const [index,module] of animations[kind].entries()){
-    if(module.enabled===false)continue;
-    const owner=kind+':'+index;
-    await module.evaluate(t,{scene,camera,renderer,model:{root,characters,meshes},materials:[front,side],resources:{track:resource=>resources.track(owner,resource)}});
-   }
-  }
+  const commands=await evaluateText3DAnimations(animations,t,(kind,index)=>({
+   scene,camera,renderer,model:{root,characters,meshes},materials:[front,side],
+   resources:{track:resource=>resources.track(kind+':'+index,resource)}
+  }));
+  applyText3DContributions(commands,{root,characters,materials:[front,side],lights:[ambient,key]});
   renderer.render(scene,camera);
  };
  let disposed=false;
