@@ -53,6 +53,12 @@ test('v2 core composes native and external motion with deterministic seeks',asyn
  assert.equal(component.model.meshes[0].geometry.parameters.options.size,.62);
  assert.equal(component.model.characters.length,9);
  assert.throws(()=>component.setTypography({fontSize:-1}),/font size/);
+ component.setRotation(25,-40);
+ assert.equal(component.renderer,originalRenderer);
+ const angle=component.model.root.parent.rotation.y;
+ await component.frame(2);await component.frame(1);
+ assert.equal(component.model.root.parent.rotation.y,angle);
+ assert.throws(()=>component.setRotation(NaN,0),/rotation/);
  component.setDepth(0.9);
  assert.ok(component.model.meshes[0].geometry.parameters.options.depth===0.9);
  assert.equal(component.renderer,originalRenderer);
