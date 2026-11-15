@@ -256,3 +256,24 @@ not modify the number or positions of measured onsets or beats.
 The DTW comparison preserves `normalized_alignment_cost` and adds
 `mean_alignment_cost`, `path_length_ratio`, and `feature_coverage`.
 No output is a calibrated musical similarity probability.
+
+## Optional cue grouping (presentation only)
+
+The existing `cues` query continues to return individual events by default.
+The category `onset` is the preferred name; `strong_onset` remains an
+accepted legacy query alias. The event `kind` distinguishes ordinary,
+unranked and strong onsets using the existing strength threshold.
+
+```bash
+music-analyzer cues analysis.json --start 90 --end 108 --limit 30 \
+  --categories beat onset energy harmonic_change structure_boundary \
+  --merge-coincident --merge-window-ms 30
+```
+
+Coincident cues of **different categories** are fused only in the optional
+output representation. The `evidence` list preserves every original event's
+timestamp and source method. The merged event is anchored at the earliest
+timestamp, with no changes to rhythm, onsets or the saved analysis.
+`count` remains the raw event count; `returned_count` is the number
+actually returned; `merged_count` is the number of event entries saved
+by merging. The `--limit` applies to the post-fusion cues.
