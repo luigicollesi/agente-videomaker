@@ -44,6 +44,9 @@ export function createText3DCore(options){
  let modelText='',depth=Number.isFinite(options.depth)&&options.depth>0?options.depth:.15;
  let viewportWidth=canvas.width,viewportHeight=canvas.height;
  const fit=()=>{
+  // Measure unscaled geometry; otherwise each edit compounds the previous fit.
+  outer.position.set(0,0,0);outer.scale.setScalar(1);
+  outer.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(root);
   if(box.isEmpty())return;
   const width=Math.max(.01,box.max.x-box.min.x),height=Math.max(.01,box.max.y-box.min.y);
@@ -51,6 +54,8 @@ export function createText3DCore(options){
   const visibleWidth=visibleHeight*camera.aspect;
   const factor=Math.min(1,(visibleWidth*.84)/width,(visibleHeight*.78)/height);
   outer.scale.setScalar(factor);
+  const center=box.getCenter(new THREE.Vector3());
+  outer.position.set(-center.x*factor,-center.y*factor,0);
  };
  const resize=(width,height)=>{
   if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)throw Error('Invalid Text3D viewport');
