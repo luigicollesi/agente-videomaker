@@ -1,7 +1,7 @@
 // @ts-check
 /** Publish reusable Text3D components from a folder into Saved and the single active registry. */
 import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
-import { basename, dirname, join, resolve, relative, sep } from 'node:path';
+import { dirname, join, resolve, relative, sep } from 'node:path';
 import { savedRoot } from './locations.mjs';
 import { verifyText3D } from './text3d-verify.mjs';
 import { validateText3D as validateText3DManifest } from './text3d-contract.mjs';
@@ -90,7 +90,7 @@ export async function text3DCommand(args) {
    const [folder,clipId,componentId]=rest;
    const project=resolve(folder);
    const entry=(await listText3D()).find(e=>e.componentId===componentId);
-   if(!entry)throw new Error('Registered Text3D version not found');
+   if(!entry)throw new Error('Registered Text3D component not found');
    const {rev,value}=await readProjectFilm(project);
    const clip=value?.tracks.flatMap(t=>t.clips).find(c=>c.id===clipId);
    if(!clip)throw new Error('Selected clip was not found');
