@@ -120,16 +120,19 @@
       if (!canvas || !canvas.clientWidth || !canvas.clientHeight) return null;
       const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
       if (!gl || gl.isContextLost() || !gl.drawingBufferWidth || !gl.drawingBufferHeight) return null;
-      const bounds = canvas.getBoundingClientRect();
-      if (typeof c.win.__text3dHitTest === 'function') {
-        return c.win.__text3dHitTest(p.x / c.w, p.y / c.h);
-      }
+      // Pixel alpha is the authoritative visual hit test for the whole 3D object.
+      // Raycasting alone misses bloom, neon glow and other visible VFX.
       const x = Math.floor(p.x / c.w * gl.drawingBufferWidth);
       const y = Math.floor((1 - p.y / c.h) * gl.drawingBufferHeight);
       if (x < 0 || y < 0 || x >= gl.drawingBufferWidth || y >= gl.drawingBufferHeight) return false;
       const rgba = new Uint8Array(4);
       gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
-      return rgba[3] > 32;
+      if (rgba[3] > 16) return true;
+      // Some WebGL effects do not contribute coverage to the alpha channel.
+      // Raycast against the actual glyph mesh as a second, narrowly scoped test.
+      return typeof c.win.__text3dHitTest === 'function'
+        ? c.win.__text3dHitTest(p.x / c.w, p.y / c.h) === true
+        : false;
     } catch {
       return null; // WebGL unavailable: leave legacy selection behavior intact.
     }
