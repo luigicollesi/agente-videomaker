@@ -4,8 +4,8 @@ import {readFile} from 'node:fs/promises';
 import * as THREE from 'three';
 import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
 import {FontLoader} from 'three/addons/loaders/FontLoader.js';
-import {createText3DCore} from './text3d-v2-core.mjs';
-import {validateText3DInstance} from './text3d-v2-contract.mjs';
+import {createText3DCore} from './text3d-core.mjs';
+import {validateText3DInstance} from './text3d-contract.mjs';
 
 test('v2 core composes native and external motion with deterministic seeks',async()=>{
  const raw=JSON.parse(await readFile(new URL('../node_modules/three/examples/fonts/helvetiker_regular.typeface.json',import.meta.url),'utf8'));
