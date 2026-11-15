@@ -33,8 +33,8 @@ async function validateText3D(dir) {
   await safeAsset(base,manifest.model.font);
  }
  else if(!record(manifest)||manifest.formatVersion!==1||manifest.runtimeVersion!==1)
-  throw new Error('Text3D manifest requires formatVersion=1 and runtimeVersion=1');
- const fields=manifest.contractVersion===2?['id','source2DId','version']:['componentId','source2DId','sourceRevision','displayName','version'];
+  throw new Error('Text3D requires the current Three.js component contract');
+ const fields=manifest.contractVersion===2?['id','source2DId']:['componentId','source2DId','sourceRevision','displayName','version'];
  for(const field of fields)if(typeof manifest[field]!=='string'||!manifest[field])
   throw new Error('Text3D manifest is missing '+field);
  if(!record(manifest.parameterMap))throw new Error('Text3D requires parameterMap');
@@ -82,7 +82,7 @@ export async function text3DCommand(args) {
    await cp(new URL('../examples/text3d-v2/',import.meta.url),target,{recursive:true,errorOnExist:true,force:false});
    await mkdir(join(target,'assets'),{recursive:true});
    await copyFile(new URL(import.meta.resolve('three/examples/fonts/helvetiker_regular.typeface.json')),join(target,'assets/font.json'));
-   return {ok:true,lines:['Text3D v2 draft created: '+target]};
+   return {ok:true,lines:['Text3D draft created: '+target]};
   }
   if(action==='list'||action==='inspect'){
    const entries=action==='inspect'?[await activeText3D(rest[0]??'')].filter(Boolean):await listText3D(rest[0]??null);
@@ -112,22 +112,22 @@ export async function text3DCommand(args) {
   }
   if(action==='validate'&&rest[0]){
    const manifest=await validateText3D(rest[0]);
-   return {ok:true,lines:['Text3D structure validated: '+(manifest.componentId??manifest.id+'/'+manifest.version),'Run register for packaged visual verification.']};
+   return {ok:true,lines:['Text3D structure validated: '+(manifest.componentId??manifest.id),'Run register for packaged visual verification.']};
   }
   if(action==='register'&&rest[0]){
    const source=resolve(rest[0]),manifest=await validateText3D(source);
-   const id=String(manifest.componentId??manifest.id+'/'+manifest.version);
+   const id=String(manifest.componentId??manifest.id);
    const sourceId=String(manifest.source2DId);
    if(!/^[a-z0-9_-]+(?:\/[a-z0-9_-]+)*$/i.test(sourceId))throw new Error('Unsafe Text3D source identifier');
-   const version=String(manifest.version);
    const pathParts=id.split('/');
-   if(pathParts.some(p=>!p||!/^[a-z0-9][a-z0-9_-]*$/i.test(p))||pathParts.length<2||pathParts.at(-1)!==version)
+   if(pathParts.some(p=>!p||!/^[a-z0-9][a-z0-9_-]*$/i.test(p))||pathParts.length<2||/^v[1-9][0-9]*$/.test(pathParts.at(-1)))
     throw new Error('Unsafe Text3D component identifier');
    const folder=join(savedRoot(),'text3d',...pathParts);
    const relative='text3d/'+pathParts.join('/');
    const parent=join(savedRoot(),'text3d');
    await mkdir(parent,{recursive:true});
    const staging=await mkdtemp(join(parent,'.staging-'));
+   let publishedFolder='',publishedRelative='';
    try{
     const files=join(staging,'files');
     await cp(source,files,{recursive:true,errorOnExist:true,force:false});
@@ -165,7 +165,7 @@ export async function text3DCommand(args) {
     const seconds=Number.isFinite(duration)&&duration>0&&duration<=3600?duration:10.5;
     const clip={src:'index.html',time:[0,seconds],attrs:{
       'data-openfilm-content-type':'text3d','data-text3d-source-id':sourceId,
-      'data-text3d-version':version,'data-props':JSON.stringify(manifest.props)
+      'data-props':JSON.stringify(manifest.props)
     }};
     await writeFile(join(staging,'saved.json'),JSON.stringify({version:2,kind:'clip',clip,durationMs:seconds*1000},null,2));
     // Preserve the exact 2D library poster in the immutable 3D Saved bundle.
@@ -191,16 +191,20 @@ export async function text3DCommand(args) {
     // Only the packaged copy is authoritative; verify its imports and actual pixels.
     await verifyText3D(files,seconds);
     await mkdir(join(folder,'..'),{recursive:true});
-    await rename(staging,folder);
+    // Publish the verified build to a unique directory; never overwrite a referenced bundle.
+    const uniqueFolder=folder+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+    await rename(staging,uniqueFolder);
+    publishedFolder=uniqueFolder;
+    publishedRelative=relative+'-'+uniqueFolder.split('-').at(-2)+'-'+uniqueFolder.split('-').at(-1);
    }catch(error){await rm(staging,{recursive:true,force:true});throw error}
-   const entry={source2DId:sourceId,componentId:id,version,bundlePath:'saved/'+relative,
-     displayName:String(manifest.displayName??manifest.id),sourceRevision:String(manifest.sourceRevision??'v2'),
+   const entry={source2DId:sourceId,componentId:id,bundlePath:'saved/'+publishedRelative,
+     displayName:String(manifest.displayName??manifest.id),sourceRevision:String(manifest.sourceRevision??'current'),
      parameterMap:manifest.parameterMap,status:'ready',active:true};
-   // The bundle is never overwritten, even if another version is promoted.
+   // Stable IDs: registry points only to the verified active bundle.
    try{
     const saved=await registerText3D(/** @type {any} */ (entry));
     return {ok:true,lines:['Text3D registered: '+saved.componentId, 'Library: '+saved.bundlePath]};
-   }catch(error){await rm(folder,{recursive:true,force:true});throw error}
+   }catch(error){if(publishedFolder)await rm(publishedFolder,{recursive:true,force:true});throw error}
   }
   return {ok:false,usage:true,lines:[usage]};
  }catch(error){return {ok:false,lines:[error instanceof Error?error.message:String(error)]}}
