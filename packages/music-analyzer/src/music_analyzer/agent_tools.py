@@ -63,6 +63,8 @@ def compare_music_intervals(path: str, start_a: float, end_a: float,
 
 def get_music_editing_cues(path: str, start: float, end: float, limit: int = 30,
                            categories=None, selection: str = "representative",
-                           min_relative_strength: float = 0.0) -> dict:
+                           min_relative_strength: float = 0.0,
+                           merge_coincident: bool = False, merge_window_ms: float = 30) -> dict:
     return extract_cues(_load(path), start, end, categories=categories, limit=limit,
-                        selection=selection, min_relative_strength=min_relative_strength)
+                        selection=selection, min_relative_strength=min_relative_strength,
+                        merge_coincident=merge_coincident, merge_window_ms=merge_window_ms)
