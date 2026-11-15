@@ -4,7 +4,7 @@ import {mkdtemp,readFile,rm} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {text3DCommand} from './text3d-cli.mjs';
+import {text3DCommand,convertTrueTypeToTypeface} from './text3d-cli.mjs';
 
 test('Text3D create scaffolds an offline, structurally valid component',async()=>{
  const folder=await mkdtemp(join(tmpdir(),'text3d-v2-cli-'));
@@ -54,9 +54,8 @@ test('Text3D end-to-end register packages real WebGL component before registry a
 test('Text3D TTF conversion keeps exported typeface self-contained',async(t)=>{
  const filename='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
  if(!existsSync(filename)){t.skip('DejaVu TTF not installed on runner');return}
- const {TTFLoader}=await import('three/addons/loaders/TTFLoader.js');
  const bytes=await readFile(filename);
- const json=new TTFLoader().parse(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength));
+ const json=await convertTrueTypeToTypeface(bytes);
  assert.ok(json.glyphs?.A,'Converted typeface must include A');
  assert.ok(json.glyphs?.['é'],'Converted typeface must include accented glyphs');
 });
