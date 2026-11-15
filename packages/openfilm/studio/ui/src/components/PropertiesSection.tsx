@@ -86,12 +86,13 @@ export function PropertiesSection({ host, commit }: {
   const transform3D = new Set(['--text3d-depth','--text3d-rotation-x','--text3d-rotation-y']);
   const visual3D = new Set(['--text3d-color','--text3d-side','--text3d-shadow','--text3d-light']);
   const motion3D = new Set(['--text3d-events']);
-  const builtIn3D: ComponentProp[] = is3D && host.page.includes('/text3d/') ? [
+  const supports3DRotation = is3D && (shown.some(p=>p.type==='var'&&p.var==='--text3d-rotation-x') || controls?.vars.some(v=>v.name==='--text3d-rotation-x'));
+  const builtIn3D: ComponentProp[] = supports3DRotation ? [
     {name:'Depth',type:'var',var:'--text3d-depth'},
     {name:'Rotation X',type:'var',var:'--text3d-rotation-x'},
     {name:'Rotation Y',type:'var',var:'--text3d-rotation-y'}
   ] : [];
-  const transformProps = is3D ? builtIn3D.map(base=>shown.find(p=>p.type==='var'&&p.var===base.var)??base) : [];
+  const transformProps = is3D ? (supports3DRotation ? builtIn3D.map(base=>shown.find(p=>p.type==='var'&&p.var===base.var)??base) : shown.filter(p=>p.type==='var'&&transform3D.has(p.var))) : [];
   const appearance3D = is3D ? shown.filter(p => p.type === 'var' && visual3D.has(p.var)) : [];
   const movement3D = is3D ? shown.filter(p => p.type === 'var' && motion3D.has(p.var)) : [];
   const standard = shown.filter(p => !is3D || p.type !== 'var' || (!visual3D.has(p.var) && !motion3D.has(p.var) && !transform3D.has(p.var)));
