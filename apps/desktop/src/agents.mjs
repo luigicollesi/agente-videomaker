@@ -1338,7 +1338,14 @@ export class AgentSession {
 
     const params = {
       cwd: this.opts.cwd,
-      mcpServers: [],
+      // ACP launches the local MCP over stdio; unsupported agents retain their
+      // existing session behavior if they do not expose these tools.
+      mcpServers: [{
+        name: 'videomaker-media',
+        command: nodeBinary(),
+        args: [fileURLToPath(new URL('./media-mcp.mjs', import.meta.url))],
+        env: [{ name: 'VIDEOMAKER_PROJECT', value: this.opts.cwd }],
+      }],
       ...(skills?.additionalDirectories ? { additionalDirectories: skills.additionalDirectories } : {}),
       ...(claude ? { _meta: { systemPrompt: { append: instructions }, ...(skills?.claude ? { claudeCode: { options: skills.claude } } : {}) } } : {}),
     };
