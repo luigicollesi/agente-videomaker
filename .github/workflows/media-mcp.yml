@@ -95,6 +95,8 @@ jobs:
           node --check apps/desktop/src/mcp/project-pages.mjs
       - name: Check advanced music options
         run: node --check apps/desktop/src/mcp/music-options.mjs
+      - name: Check timeline source sandbox syntax
+        run: node --check apps/desktop/src/mcp/timeline-source.mjs
       - name: Check Text3D helper syntax
         run: node --check apps/desktop/src/mcp/text3d-safety.mjs
       - name: MCP protocol, timeline, runtime and locking tests
@@ -106,6 +108,8 @@ jobs:
           apps/desktop/src/media-mcp.captions.integration.test.mjs
           apps/desktop/src/media-mcp.text3d.test.mjs
           apps/desktop/src/media-mcp.timeline.test.mjs
+          apps/desktop/src/media-mcp.timeline-source.test.mjs
+          apps/desktop/src/media-mcp.empty.test.mjs
           apps/desktop/src/media-mcp.runtime.test.mjs
           apps/desktop/src/media-mcp.lock.test.mjs
           apps/desktop/src/media-mcp.discovery.test.mjs
