@@ -14,6 +14,7 @@ const project=resolve(process.env.VIDEOMAKER_PROJECT || process.cwd());
 const require=createRequire(import.meta.url);
 const images=new Set(['.jpg','.jpeg','.png','.webp']);
 const videos=new Set(['.mp4','.mov','.webm','.mkv','.avi','.m4v']);
+const pythonBinary=()=>process.env.VIDEOMAKER_PYTHON || (process.platform==='win32'?'python':'python3');
 const schema={type:'object',properties:{path:{type:'string',description:'Media path inside project/assets'}} ,required:['path']};
 const tools=[
  {name:'inspect_image',description:'Inspect an image from this project Media. Returns visual image content, not a filename description.',inputSchema:schema},
@@ -23,7 +24,7 @@ const tools=[
  {name:'timeline_set_playback',description:'Set clip playback speed (0.1..100) or volume (0..4) using Studio. Requires current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},field:{type:'string',enum:['speed','volume']},value:{type:'number'}},required:['clip','revision','field','value'],additionalProperties:false}},
  {name:'timeline_duplicate_clip',description:'Duplicate an existing clip at a nonnegative timeline second using Studio, requiring an exact current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_move_clip',description:'Move one clip to a nonnegative timeline second using the Studio edit engine. Requires current revision returned by timeline_overview; stale revisions are refused.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
- {name:'timeline_clips',description:'Read-only bounded list of clips from the current film, with IDs, source, kind and timeline/source timing.',inputSchema:{type:'object',properties:{track:{type:'integer',minimum:0},limit:{type:'integer',minimum:1,maximum:100}},additionalProperties:false}},
+ {name:'timeline_clips',description:'Read-only bounded list of clips from the current film, with IDs, source, kind and timeline/source timing.',inputSchema:{type:'object',properties:{track:{type:'integer',minimum:0},limit:{type:'integer',minimum:1,maximum:100},offset:{type:'integer',minimum:0}},additionalProperties:false}},
  {name:'music_analyze',description:'Analyze an existing WAV, MP3 or MP4 in project/assets and save a new acoustic-analysis JSON in assets. Offline; may require Python analysis dependencies.',inputSchema:{type:'object',properties:{path:schema.properties.path,output:{type:'string',description:'New analysis JSON path inside project/assets'}},required:['path','output']}},
  {name:'music_overview',description:'Get compact BPM, dynamics and structure overview from an existing analysis JSON.',inputSchema:schema},
  {name:'music_context',description:'Get acoustic context of a time interval from an existing analysis JSON.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0}},required:['path','start','end']}},
@@ -40,34 +41,51 @@ async function safePath(raw,extensions){
  return file;
 }
 const MAX_OUTPUT_BYTES=4*1024*1024;
+const activeChildren=new Set();
 let activeHeavyJob=false;
 async function heavyJob(work){
  if(activeHeavyJob)throw Error('A media processing job is already running');
  activeHeavyJob=true;
  try{return await work()}finally{activeHeavyJob=false}
 }
+function terminateChild(child){
+ if(process.platform!=='win32'&&child.pid){
+  try{process.kill(-child.pid,'SIGKILL');return}catch{/* child group already ended */}
+ }
+ try{child.kill('SIGKILL')}catch{/* child already ended */}
+}
 function exec(name,args,timeout=30000,env=process.env){
- return new Promise((yes,no)=>{
-  const child=spawn(name,args,{stdio:['ignore','pipe','pipe'],env});
+ return new Promise((resolve,reject)=>{
+  const child=spawn(name,args,{stdio:['ignore','pipe','pipe'],env,detached:process.platform!=='win32'});
+  activeChildren.add(child);
   const out=[],err=[];
-  let bytes=0,finished=false;
-  const finish=(error,data)=>{
-   if(finished)return;
-   finished=true;clearTimeout(timer);
-   if(error)no(error);else yes(data);
+  let bytes=0,failure=null;
+  const stop=reason=>{
+   if(failure)return;
+   failure=reason;
+   terminateChild(child);
   };
-  const timer=setTimeout(()=>{child.kill('SIGKILL');finish(Error(name+' timed out'))},timeout);
+  const timer=setTimeout(()=>stop(Error(name+' timed out')),timeout);
   const consume=(parts,chunk)=>{
+   if(failure)return;
    bytes+=chunk.length;
-   if(bytes>MAX_OUTPUT_BYTES){child.kill('SIGKILL');finish(Error(name+' output exceeded limit'));return}
+   if(bytes>MAX_OUTPUT_BYTES){stop(Error(name+' output exceeded limit'));return}
    parts.push(chunk);
   };
   child.stdout.on('data',d=>consume(out,d));
   child.stderr.on('data',d=>consume(err,d));
-  child.on('error',e=>finish(e));
-  child.on('close',code=>finish(code===0?null:Error(Buffer.concat(err).toString().slice(0,600)||name+' failed'),Buffer.concat(out)));
+  child.on('error',e=>{failure??=e});
+  child.on('close',code=>{
+   clearTimeout(timer);
+   activeChildren.delete(child);
+   if(failure)return reject(failure);
+   if(code!==0)return reject(Error(Buffer.concat(err).toString().slice(0,600)||name+' failed'));
+   resolve(Buffer.concat(out));
+  });
  });
 }
+process.on('exit',()=>{for(const child of activeChildren)terminateChild(child)});
+
 const image=(data,mime)=>({type:'image',mimeType:mime,data:data.toString('base64')});
 async function inspect(name,args){
  const path=await safePath(args?.path,name==='inspect_image'?images:videos);
@@ -119,7 +137,7 @@ async function reverseVideo(args){
  const cli=[script,input,output,'--audio',audio];
  if(args?.start!==undefined)cli.push('--start',String(args.start));
  if(args?.end!==undefined)cli.push('--end',String(args.end));
- await heavyJob(()=>exec(process.platform==='win32'?'python':'python3',cli,600000));
+ await heavyJob(()=>exec(pythonBinary(),cli,600000));
  return {content:[{type:'text',text:JSON.stringify({status:'created',path:relative(project,output),audio})}]};
 }
 
@@ -151,7 +169,7 @@ async function musicTool(name,args){
    cli.push('--limit',String(limit));
   }
  }
- const python=process.platform==='win32'?'python':'python3';
+ const python=pythonBinary();
  if(name==='music_analyze'){
   const destination=cli[3];
   return heavyJob(async()=>{
@@ -227,11 +245,13 @@ async function timelineTool(name,args){
  if(name==='timeline_overview')return {content:[{type:'text',text:JSON.stringify({revision:rev,stage:value.stage,track_count:tracks.length,clip_count:count,tracks:tracks.map((t,i)=>({index:i,clip_count:t.clips?.length??0,locked:!!t.locked,hidden:!!t.hidden,muted:!!t.muted}))})}]};
  const track=args?.track;
  const limit=args?.limit??50;
+ const offset=args?.offset??0;
+ if(!Number.isInteger(offset)||offset<0)throw Error('Invalid offset');
  if(track!==undefined&&(!Number.isInteger(track)||track<0||track>=tracks.length))throw Error('Invalid track index');
  if(!Number.isInteger(limit)||limit<1||limit>100)throw Error('Invalid limit');
  const chosen=track===undefined?tracks.map((t,i)=>({t,i})): [{t:tracks[track],i:track}];
  const all=chosen.flatMap(({t,i})=>(t.clips??[]).map(c=>({track:i,id:c.id??null,src:c.src??null,kind:kindOf(c),at:c.at??null,time:c.time??null,speed:c.speed??null})));
- return {content:[{type:'text',text:JSON.stringify({revision:rev,total:all.length,returned:Math.min(limit,all.length),truncated:all.length>limit,clips:all.slice(0,limit)})}]};
+ return {content:[{type:'text',text:JSON.stringify({revision:rev,total:all.length,returned:Math.min(limit,Math.max(0,all.length-offset)),offset,next_offset:offset+limit<all.length?offset+limit:null,truncated:offset+limit<all.length,clips:all.slice(offset,offset+limit)})}]};
 }
 
 function send(value){process.stdout.write(JSON.stringify(value)+'\n')}
