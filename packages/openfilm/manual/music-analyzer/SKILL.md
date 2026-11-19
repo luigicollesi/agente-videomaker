@@ -19,6 +19,12 @@ When the local `videomaker-media` MCP is available, prefer `music_analyze` (WAV/
 
 `music_inspect` describes streams of WAV/MP3/MP4 inputs without a full analysis. `music_analyze` returns a short validated receipt with `output_path`; inspect that result with `music_overview`, `music_context`, `music_cues` or `music_compare` instead of dumping the stored analysis JSON. Use the existing CLI for unsupported options and avoid duplicate runs.
 
+## Advanced native MCP options
+
+Use `music_inspect` with optional `audio_stream` to identify the selected stream of MP4 audio. `music_analyze` accepts `audio_stream`, `use_cache:true` (private cache in the project's `.film/music-analyzer-cache/`) and `experimental_structure_v3:true`. These flags use the existing Python implementation; the experimental structure detector is not a verified chorus/verse classifier. The output remains a new validated JSON in `assets/`.
+
+`music_cues` accepts `categories` (beat, onset, strong_onset, energy, harmonic_change, structure_boundary), `selection` (representative or chronological), `min_relative_strength` from 0 to 1, `merge_coincident` and `merge_window_ms`. Prefer small `limit` and a short `start`/`end` interval. For downstream offline signal processing, `music_decode` writes a new mono f32le PCM (`pcm_output`) plus a JSON description (`metadata_output`) under `assets/`, with optional `audio_stream` and `sample_rate`. The MCP returns **paths and sizes only**, never PCM bytes; output files cannot replace existing files. Don't decode PCM when the regular music analysis and cues already answer the editing question.
+
 ## Runtime
 
 Python 3.12+, FFmpeg and FFprobe are required. Desktop release builds include the analyzer's Python source but do not bundle a Python interpreter or third-party Python dependencies. Install the dependencies into the chosen interpreter. The source directory may be overridden with `VIDEOMAKER_MUSIC_ANALYZER_SRC`. For the MCP server, set `VIDEOMAKER_PYTHON` to the absolute path of the interpreter in the configured virtual environment (for example, `.../.venv/bin/python`); otherwise it uses `python3` on Unix or `python` on Windows. Configure the variable in the app/agent environment before starting a new MCP session. Do not automatically install Python packages. The `music-analyzer` executable becomes available after installing the package:
