@@ -27,3 +27,7 @@ When available, prefer the built-in `videomaker-media` MCP tools `inspect_image`
 ## Native reverse tool (MCP)
 
 When `videomaker-media` exposes `reverse_video`, use it before running the reverse script manually. Pass `path` (existing video in `assets/`), `output` (new `.mp4` path in `assets/`), optional `start`/`end` seconds and `audio` (`mute`, `reverse`, `keep`). The tool will not overwrite an existing output. It creates an asset but does not automatically insert it into the timeline. If the tool is not available, use the existing CLI procedure described above.
+
+## MCP processing safety
+
+`videomaker-media` allows one heavy processing job per project across MCP processes (video inspection, reversal or audio analysis). A hidden `.videomaker-mcp-heavy.lock` in the project prevents concurrent work. Under normal shutdown it is cleaned automatically. If a process crashes, first verify no media job or MCP process is still running before manually removing this lock. Output files are published without overwriting existing assets; choose a new output path on retry. On Windows the MCP attempts to terminate the full child process tree when cancelling work.
