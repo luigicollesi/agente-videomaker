@@ -7,6 +7,8 @@ description: How an Agente Videomaker film works, including creative procedural 
 
 ## Native MCP-first workflow
 
+Plan story, art direction, scene rhythm, motion, typography and audio before editing. Review clarity, pacing and impact; refine weak scenes. Minimalism must be intentional, not a shortcut.
+
 Start with the smallest native operation relevant to the request. Use `timeline_overview`, `film_audit` (for computed duration and file integrity), `film_preview_range` (native multi-shot contact sheet), `film_preview_frame`, `timeline_apply_batch` and `timeline_set_properties` before reading or rewriting `film.html` or running equivalent CLI commands. For existing linked procedural pages, inspect and patch targeted snippets with `project_page_update`; provide its current file SHA-256 **and** film revision for edits. Use direct source editing for new pages or complex JavaScript effects beyond those limited replacements, and state why a fallback was required. Do not forbid authoring bespoke effects or overfit visual changes to generic presets.
 
 Treat a claim of exact duration as verified only when `film_audit` returns `duration_confirmed:true` and, when requested, `expected_duration_matches:true`. Unknown media/page durations need further inspection; never guess. A contact sheet or one screenshot verifies only the sampled moments, not every film frame. In your final response give meaningful plain words beside any Studio reference token: "climax (45–60 s) [[range:45-60]]", not a reference-only phrase.
