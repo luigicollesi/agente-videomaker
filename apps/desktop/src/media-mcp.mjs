@@ -11,7 +11,7 @@ import { unlinkSync, existsSync } from 'node:fs';
 import { readProjectFilm, changeProjectFilm } from 'openfilm/studio-film';
 import { kindOf, readFilm, clipKind } from 'openfilm/film-doc';
 import { applyOps } from 'openfilm/studio-ops';
-import { listBoards, readCanvas } from 'openfilm/studio-canvas';
+import { listBoards, readCanvas, canvasRevision } from 'openfilm/studio-canvas';
 import { searchLibrary, KINDS, LIBRARY_VERBS, libraryGet } from 'openfilm/library-search';
 import { listText3D } from 'openfilm/text3d-registry';
 import { propertyEdits, batchOps } from './mcp/timeline-actions.mjs';
@@ -31,7 +31,7 @@ const tools=[
  {name:'inspect_video',description:'Inspect a video from this project Media. Returns timestamped image frames. Sampled frames do not guarantee exact event boundaries.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',minimum:0},max_frames:{type:'integer',minimum:1,maximum:24}},required:['path']}},
  {name:'library_search',description:'Search built-in free offline media library; concise ranked results, no terminal or copied assets.',inputSchema:{type:'object',properties:{kind:{type:'string',enum:['music','sound','transition','effect','filter','sticker','text','template']},query:{type:'string',minLength:1},limit:{type:'integer',minimum:1,maximum:20},duration:{type:'number',minimum:0}},required:['kind','query'],additionalProperties:false}},
  {name:'canvas_list',description:'List canvas boards with compact node counts.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
- {name:'canvas_apply',description:'Apply up to 30 validated canvas operations through the running Studio; visible immediately. Does not bypass Studio API.',inputSchema:{type:'object',properties:{ops:{type:'array',items:{type:'object'},minItems:1,maxItems:30}},required:['ops'],additionalProperties:false}},
+ {name:'canvas_apply',description:'Apply 1-30 native Canvas operations to an explicitly named board, guarding against stale revisions. Requires Studio.',inputSchema:{type:'object',properties:{board:{type:'string'},revision:{type:'string'},ops:{type:'array',items:{type:'object'},minItems:1,maxItems:30}},required:['ops'],additionalProperties:false}},
  {name:'canvas_nodes',description:'Read a board as compact paged node summaries, or one full node and its connections by id.',inputSchema:{type:'object',properties:{board:{type:'string'},node:{type:'string'},limit:{type:'integer',minimum:1,maximum:50},offset:{type:'integer',minimum:0}},additionalProperties:false}},
  {name:'library_take',description:'Import one free library asset into this project, using the built-in get --take engine. Does not insert into timeline.',inputSchema:{type:'object',properties:{kind:{type:'string',enum:['music','sound','transition','effect','filter','sticker','text','template']},id:{type:'string',minLength:1,maxLength:500}},required:['kind','id'],additionalProperties:false}},
  {name:'timeline_set_properties',description:'Atomically edit 1-30 whitelisted clip properties (trim, position, box, fade, volume, speed, motion) with current revision; rejects invalid steps.',inputSchema:{type:'object',properties:{revision:{type:'string'},edits:{type:'array',minItems:1,maxItems:30,items:{type:'object',properties:{clip:{type:'string'},prop:{type:'string'},value:{}},required:['clip','prop','value'],additionalProperties:false}}},required:['revision','edits'],additionalProperties:false}},
@@ -540,7 +540,13 @@ async function timelineAssetEdit(name,args){
 
 async function canvasApply(args){
  if(!Array.isArray(args?.ops)||args.ops.length===0||args.ops.length>30||args.ops.some(op=>!op||typeof op!=='object'||Array.isArray(op)))throw Error('Invalid canvas steps');
- const payload={folder:project,ops:args.ops};
+ const boards=await listBoards(project);
+ const board=args?.board??(boards.length===1?'main':null);
+ if(!board||!boards.some(item=>item.id===board))throw Error('Specify an existing canvas board before editing');
+ const current=await readCanvas(project,board);
+ const revision=args?.revision??canvasRevision(current);
+ if(typeof revision!=='string'||!/^[a-f0-9]{16}$/.test(revision))throw Error('Invalid canvas revision');
+ const payload={folder:project,board,revision,ops:args.ops};
  if(Buffer.byteLength(JSON.stringify(payload))>40000)throw Error('Canvas operation payload exceeds 40 KB');
  const { running }=await import('openfilm/studio-client');
  const studio=await running();
@@ -553,7 +559,7 @@ async function canvasApply(args){
  if(!res.ok)throw Error('Studio rejected canvas edit: HTTP '+res.status);
  const answer=await res.json();
  if(!answer?.ok)throw Error('Canvas edit rejected: '+String(answer?.text??answer?.error??'invalid steps'));
- return {content:[{type:'text',text:JSON.stringify({status:'updated',added:answer.added??[],nodes:answer.canvas?.nodes?.length??0,edges:answer.canvas?.edges?.length??0})}]};
+ return {content:[{type:'text',text:JSON.stringify({status:'updated',board,revision:answer.revision,added:answer.added??[],nodes:answer.canvas?.nodes?.length??0,edges:answer.canvas?.edges?.length??0})}]};
 }
 
 async function canvasTool(name,args){
@@ -567,7 +573,7 @@ async function canvasTool(name,args){
   if(typeof args.node!=='string'||!args.node)throw Error('Invalid node id');
   const node=canvas.nodes.find(n=>n.id===args.node);
   if(!node)throw Error('Canvas node not found');
-  return {content:[{type:'text',text:JSON.stringify({board,node,edges:canvas.edges.filter(e=>e.from===node.id||e.to===node.id)})}]};
+  return {content:[{type:'text',text:JSON.stringify({board,revision:canvasRevision(canvas),node,edges:canvas.edges.filter(e=>e.from===node.id||e.to===node.id)})}]};
  }
  const limit=args?.limit??20,offset=args?.offset??0;
  if(!Number.isInteger(limit)||limit<1||limit>50||!Number.isInteger(offset)||offset<0)throw Error('Invalid canvas pagination');
@@ -577,7 +583,7 @@ async function canvasTool(name,args){
   ...(n.title?{title:n.title}:{}),...(n.text?{text:n.text.slice(0,140)}:{}),
   ...(n.path?{path:n.path}:{}),...(n.parent?{parent:n.parent}:{})
  }));
- return {content:[{type:'text',text:JSON.stringify({board,total:all.length,edge_count:canvas.edges.length,offset,returned:nodes.length,next_offset:offset+limit<all.length?offset+limit:null,nodes})}]};
+ return {content:[{type:'text',text:JSON.stringify({board,revision:canvasRevision(canvas),total:all.length,edge_count:canvas.edges.length,offset,returned:nodes.length,next_offset:offset+limit<all.length?offset+limit:null,nodes})}]};
 }
 async function timelineEdit(name,args){
  if(name==='timeline_split_clip'){
