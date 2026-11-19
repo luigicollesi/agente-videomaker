@@ -56,7 +56,7 @@ const tools=[
  {name:'text3d_list',description:'List registered reusable 3D text components, with compact metadata and optional source filter.',inputSchema:{type:'object',properties:{source_id:{type:'string'},limit:{type:'integer',minimum:1,maximum:50},offset:{type:'integer',minimum:0}},additionalProperties:false}},
  {name:'text3d_inspect',description:'Read registered Text3D component metadata and editable parameters without reading its bundled source files.',inputSchema:{type:'object',properties:{component_id:{type:'string'}},required:['component_id'],additionalProperties:false}},
  {name:'text3d_create',description:'Create a scoped Text3D draft under .film/text3d-drafts with the existing authoring engine.',inputSchema:{type:'object',properties:{name:{type:'string',maxLength:50}},required:['name'],additionalProperties:false}},
- {name:'text3d_preview',description:'Bundle and verify a Text3D draft with native Three.js preview pipeline. Does not register it.',inputSchema:{type:'object',properties:{folder:{type:'string'}},required:['folder'],additionalProperties:false}},
+ {name:'text3d_preview',description:'Bundle and verify a Text3D draft using the native Three.js pipeline. To regenerate after edits, set replace_preview=true.',inputSchema:{type:'object',properties:{folder:{type:'string'},replace_preview:{type:'boolean'}},required:['folder'],additionalProperties:false}},
  {name:'text3d_font_add',description:'Add one installed upright TrueType font to a scoped Text3D draft; re-preview after changing the draft.',inputSchema:{type:'object',properties:{folder:{type:'string'},family:{type:'string'},weight:{type:'integer',minimum:1,maximum:1000}},required:['folder','family'],additionalProperties:false}},
  {name:'text3d_register',description:'Publish an unchanged preview-verified Text3D draft to Saved. Requires explicit visual approval. Never call automatically after preview.',inputSchema:{type:'object',properties:{folder:{type:'string'},visual_approved:{type:'boolean'}},required:['folder','visual_approved'],additionalProperties:false}},
  {name:'text3d_apply',description:'Apply an already registered Text3D component to a specific unlocked clip with exact film revision; verifies imported bundle.',inputSchema:{type:'object',properties:{revision:{type:'string'},clip:{type:'string'},component_id:{type:'string'}},required:['revision','clip','component_id'],additionalProperties:false}},
@@ -365,6 +365,16 @@ async function text3dTool(name,args){
   const target=await draftPath(project,args?.folder);
   return heavyJob(async()=>{
    const sourceBefore=await draftFingerprint(target);
+   if(args?.replace_preview===true){
+    const previous=target+'-preview';
+    const info=await lstat(previous).catch(error=>{if(error?.code==='ENOENT')return null;throw error});
+    if(info){
+     if(!info.isDirectory()||info.isSymbolicLink())throw Error('Existing preview is not a regular folder');
+     await rm(previous,{recursive:true});
+    }
+   }else if(args?.replace_preview!==undefined&&args.replace_preview!==false){
+    throw Error('replace_preview must be a boolean');
+   }
    const job={kind:'text3d-preview',root:project,source:target};
    const worker=fileURLToPath(new URL('./film-mcp-worker.mjs',import.meta.url));
    const bytes=await exec(process.execPath,[worker,JSON.stringify(job)],240000,{...process.env,ELECTRON_RUN_AS_NODE:'1',OPENFILM_NO_BROWSER:'1'},[0],project);
