@@ -166,6 +166,17 @@ async function guardedTimelineOps(revision,ops,summary){
  const result=await changeProjectFilm(project,(value,latest)=>{
   if(latest.rev!==revision)throw Error('Stale timeline revision; inspect again');
   if(!latest.value)throw Error('Invalid film.html');
+  if(ops[0]?.op==='split'){
+   const op=ops[0];
+   const clip=value.tracks.flatMap(t=>t.clips??[]).find(c=>c.id===op.clip);
+   if(!clip)throw Error('Clip not found');
+   if(!['video','sound'].includes(kindOf(clip)))throw Error('MCP split currently supports only video or audio');
+   if(!Array.isArray(clip.time)||clip.time.length!==2||!clip.time.every(Number.isFinite))throw Error('Explicit source trim [start,end] required before MCP split');
+   const speed=clip.speed??1;
+   const beginning=clip.at??0;
+   const expectedAt=beginning+(op.time[1]-op.time[0])/speed;
+   if(Math.abs(clip.time[0]-op.time[0])>0.002||Math.abs(clip.time[1]-op.restTime[1])>0.002||!Number.isFinite(expectedAt)||Math.abs(expectedAt-op.at)>0.002)throw Error('Split must match clip source trim, speed and timeline time');
+  }
   const edited=applyOps(value,ops);
   const checked=readFilm(edited);
   if(!checked.doc)throw Error(checked.problems.join('; '));
