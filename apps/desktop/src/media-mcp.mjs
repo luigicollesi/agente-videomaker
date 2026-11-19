@@ -3,7 +3,7 @@ import { createInterface } from 'node:readline';
 import { readFile, mkdtemp, rm, realpath, stat, lstat, link, open } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, extname, relative, isAbsolute } from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import { unlinkSync, existsSync } from 'node:fs';
@@ -70,7 +70,8 @@ async function heavyJob(work){
 }
 function terminateChild(child){
  if(process.platform==='win32' && child.pid){
-  try{const killer=spawn('taskkill',['/PID',String(child.pid),'/T','/F'],{stdio:'ignore',windowsHide:true});killer.on('error',()=>{});killer.unref()}catch{/* process already ended */}
+  try{const killed=spawnSync('taskkill',['/PID',String(child.pid),'/T','/F'],{stdio:'ignore',windowsHide:true,timeout:10000});if(killed.status===0)return}catch{/* process already ended */}
+  try{child.kill('SIGKILL')}catch{/* process already ended */}
   return;
  }
  if(child.pid){try{process.kill(-child.pid,'SIGKILL');return}catch{/* group already ended */}}
