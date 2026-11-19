@@ -22,6 +22,10 @@ on:
       - "packages/openfilm/src/library-search.mjs"
       - "apps/desktop/scripts/release.mjs"
       - "apps/desktop/src/agents.mjs"
+      - "apps/desktop/src/pi-agent.mjs"
+      - "apps/desktop/src/pi-mcp-bridge.mjs"
+      - "apps/desktop/src/pi-mcp-bridge.test.mjs"
+      - "apps/desktop/src/agent-prompt.md"
       - ".github/workflows/media-mcp.yml"
   pull_request:
     paths:
@@ -43,6 +47,10 @@ on:
       - "packages/openfilm/src/library-search.mjs"
       - "apps/desktop/scripts/release.mjs"
       - "apps/desktop/src/agents.mjs"
+      - "apps/desktop/src/pi-agent.mjs"
+      - "apps/desktop/src/pi-mcp-bridge.mjs"
+      - "apps/desktop/src/pi-mcp-bridge.test.mjs"
+      - "apps/desktop/src/agent-prompt.md"
       - ".github/workflows/media-mcp.yml"
   workflow_dispatch:
 
@@ -69,6 +77,12 @@ jobs:
           node --check apps/desktop/src/media-mcp.mjs
       - name: Check worker syntax
         run: node --check apps/desktop/src/film-mcp-worker.mjs
+      - name: Check Pi MCP bridge and agent syntax
+        run: |
+          node --check apps/desktop/src/pi-mcp-bridge.mjs
+          node --check apps/desktop/src/pi-agent.mjs
+      - name: Check advanced music options
+        run: node --check apps/desktop/src/mcp/music-options.mjs
       - name: Check Text3D helper syntax
         run: node --check apps/desktop/src/mcp/text3d-safety.mjs
       - name: MCP protocol, timeline, runtime and locking tests
@@ -85,6 +99,9 @@ jobs:
           apps/desktop/src/media-mcp.discovery.test.mjs
           apps/desktop/src/media-mcp.canvas-captions.test.mjs
           apps/desktop/src/media-mcp.film.test.mjs
+          apps/desktop/src/media-mcp.music-options.test.mjs
+          apps/desktop/src/media-mcp.music-advanced.test.mjs
+          apps/desktop/src/pi-mcp-bridge.test.mjs
       - uses: actions/setup-python@v5
         if: runner.os == 'Linux'
         with:
