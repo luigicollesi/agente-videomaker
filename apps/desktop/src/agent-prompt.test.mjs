@@ -9,6 +9,8 @@ test("the app's own agent's prompt is short: where it is and how it talks; how a
   assert.ok(prompt.split(/\s+/).length < 720, 'a concise system prompt, not the full manual');
   assert.ok(!prompt.includes('<manual>') && !prompt.includes('## film.html'), 'the manual is not carried: its skills are');
   assert.match(prompt, /Native MCP execution/);
+  assert.match(prompt, /inspect and refine/);
+  assert.match(prompt, /Language-only changes must preserve production quality/);
   assert.match(prompt, /film_audit/);
   assert.match(prompt, /film_preview_range/);
   assert.match(prompt, /project_page_update/);
