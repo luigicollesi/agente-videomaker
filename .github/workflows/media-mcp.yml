@@ -11,6 +11,8 @@ on:
       - "packages/openfilm/src/text3d-cli.mjs"
       - "packages/openfilm/studio/server/text3d/**"
       - "packages/openfilm/studio/server/captions.mjs"
+      - "packages/openfilm/studio/server/caption-tracks.mjs"
+      - "packages/openfilm/src/captions.mjs"
       - "packages/openfilm/studio/server/film-subtitle.mjs"
       - "packages/openfilm/library/catalogs/motions.json"
       - "packages/openfilm/manual/media/scripts/reverse-video.py"
@@ -30,6 +32,8 @@ on:
       - "packages/openfilm/src/text3d-cli.mjs"
       - "packages/openfilm/studio/server/text3d/**"
       - "packages/openfilm/studio/server/captions.mjs"
+      - "packages/openfilm/studio/server/caption-tracks.mjs"
+      - "packages/openfilm/src/captions.mjs"
       - "packages/openfilm/studio/server/film-subtitle.mjs"
       - "packages/openfilm/library/catalogs/motions.json"
       - "packages/openfilm/manual/media/scripts/reverse-video.py"
@@ -79,6 +83,7 @@ jobs:
           apps/desktop/src/media-mcp.runtime.test.mjs
           apps/desktop/src/media-mcp.lock.test.mjs
           apps/desktop/src/media-mcp.discovery.test.mjs
+          apps/desktop/src/media-mcp.canvas-captions.test.mjs
           apps/desktop/src/media-mcp.film.test.mjs
       - uses: actions/setup-python@v5
         if: runner.os == 'Linux'
