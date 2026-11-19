@@ -299,6 +299,24 @@ test('frame readiness waits for the destination tab strip before counting paint 
   frame(); assert.equal(await promise, true);
 });
 
+test('hidden project view can become ready when animation frames are throttled', async () => {
+  let poll, ready = false;
+  const pending = new Map();
+  const promise = runInNewContext(`(${waitForPageFrame.toString()})(500, '[data-project-tab="next"]')`, {
+    setTimeout: (fn, delay) => { pending.set(delay, fn); if (delay === 100) poll = fn; return delay; },
+    clearTimeout: (id) => pending.delete(id),
+    requestAnimationFrame: () => 1, // Chromium never delivers the frame.
+    cancelAnimationFrame: () => {},
+    document: { querySelector: () => ready ? {} : null },
+  });
+  poll();
+  assert.equal(pending.has(100), true);
+  ready = true;
+  poll();
+  assert.equal(await promise, true);
+  assert.equal(pending.size, 0);
+});
+
 test('native readiness includes a submitted compositor surface, with a bounded tiny capture', async () => {
   let submitted;
   const contents = {
