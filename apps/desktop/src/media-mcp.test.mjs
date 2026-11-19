@@ -38,7 +38,7 @@ test('Media MCP lists native tools and denies paths outside assets', async () =>
   const init=await request(1,'initialize',{});
   assert.equal(init.result.serverInfo.name,'videomaker-media');
   const listed=await request(2,'tools/list');
-  assert.deepEqual(listed.result.tools.map(t=>t.name),['inspect_image','inspect_video','timeline_overview','timeline_split_clip','timeline_set_playback','timeline_duplicate_clip','timeline_move_clip','timeline_clips','music_analyze','music_overview','music_context','music_cues','reverse_video']);
+  assert.deepEqual(listed.result.tools.map(t=>t.name),['inspect_image','inspect_video','library_search','canvas_list','canvas_nodes','timeline_overview','timeline_split_clip','timeline_set_playback','timeline_duplicate_clip','timeline_move_clip','timeline_clips','music_validate','music_compare','music_analyze','music_overview','music_context','music_cues','reverse_video']);
   const denied=await request(3,'tools/call',{name:'inspect_image',arguments:{path:'private.jpg'}});
   assert.equal(denied.result.isError,true);
   const reverseDenied=await request(4,'tools/call',{name:'reverse_video',arguments:{path:'private.jpg',output:'assets/out.mp4'}});
