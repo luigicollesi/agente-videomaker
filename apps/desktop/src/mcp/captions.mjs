@@ -69,15 +69,21 @@ async function studioProject(project){
  if(!match)throw Error('This project is not open in Studio');
  return {url:studio.origin+'/api/projects/'+encodeURIComponent(match.id),key:studio.key};
 }
-async function studioWrite(project,resource,method,body){
+/** Authenticated request scoped to this exact project, without exposing the key to the agent. */
+export async function studioRequest(project,resource,method='GET',body=null,timeout=15000){
  const {url,key}=await studioProject(project);
+ if(typeof resource!=='string'||!/^[a-z][a-z0-9/_-]*$/.test(resource)||resource.includes('..'))throw Error('Invalid Studio resource path');
  const res=await fetch(url+'/'+resource,{
-  method,headers:{'x-studio-key':key,'content-type':'application/json'},
-  body:JSON.stringify(body),signal:AbortSignal.timeout(15000)
+  method,headers:{'x-studio-key':key,...(body===null?{}:{'content-type':'application/json'})},
+  ...(body===null?{}:{body:JSON.stringify(body)}),
+  signal:AbortSignal.timeout(timeout)
  });
  const result=await res.json().catch(()=>({}));
- if(!res.ok)throw Error('Studio rejected subtitle edit ('+res.status+'): '+String(result.error??'invalid request').slice(0,350));
+ if(!res.ok)throw Error('Studio rejected '+resource+' ('+res.status+'): '+String(result.error??result.message??'invalid request').slice(0,350));
  return result;
+}
+async function studioWrite(project,resource,method,body){
+ return studioRequest(project,resource,method,body);
 }
 async function currentFilm(project,rev){
  const film=await readProjectFilm(project);
