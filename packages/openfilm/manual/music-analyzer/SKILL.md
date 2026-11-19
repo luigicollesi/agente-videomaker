@@ -10,7 +10,7 @@ Use the existing local analyzer in `packages/music-analyzer/`. This skill is pro
 
 ## Native MCP tools
 
-When the local `videomaker-media` MCP is available, prefer `music_analyze` (WAV/MP3/MP4 input and new JSON output in `assets/`), `music_overview`, `music_context` and `music_cues` (queries of that JSON). These tools run the same Python analyzer, not a second implementation. Install the Python dependencies first; missing dependencies are reported as errors. Use short time ranges, validate timeline alignment before editing, and do not interpret acoustic cues as lyrics or verified song sections. Fall back to the CLI below only if these tools are unavailable.
+When the local `videomaker-media` MCP is available, prefer `music_analyze` (WAV/MP3/MP4 input and new JSON output in `assets/`), `music_overview`, `music_context` and `music_cues` (queries of that JSON). These tools run the same Python analyzer, not a second implementation. MCP analysis runs one heavy media job at a time, validates results before publishing a new JSON, and refuses to replace an existing output. Choose a fresh output path for each new analysis. Install the Python dependencies first; missing dependencies are reported as errors. Use short time ranges, validate timeline alignment before editing, and do not interpret acoustic cues as lyrics or verified song sections. Fall back to the CLI below only if these tools are unavailable.
 
 ## Runtime
 
