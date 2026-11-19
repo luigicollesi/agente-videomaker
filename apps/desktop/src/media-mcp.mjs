@@ -18,6 +18,7 @@ import { propertyEdits, batchOps } from './mcp/timeline-actions.mjs';
 import { readMotion } from 'openfilm/clip-motion';
 import { captionTool } from './mcp/captions.mjs';
 import { motionPresetList, motionPresetOps } from './mcp/motion-presets.mjs';
+import { draftPath, draftFingerprint, recordPreview, requireVerifiedPreview } from './mcp/text3d-safety.mjs';
 
 const project=resolve(process.env.VIDEOMAKER_PROJECT || process.cwd());
 const require=createRequire(import.meta.url);
@@ -316,14 +317,9 @@ async function text3dTool(name,args){
   return {content:[{type:'text',text:JSON.stringify({status:'created',folder:relative(project,folder),next:'Edit draft, then call text3d_validate'})}]};
  }
  if(name==='text3d_preview'){
-  if(typeof args?.folder!=='string'||!args.folder.trim())throw Error('Invalid Text3D draft folder');
-  const root=await realpath(project),base=await realpath(join(project,'.film','text3d-drafts'));
-  const baseRel=relative(root,base);
-  if(!baseRel||baseRel==='..'||baseRel.startsWith('..'+sep)||isAbsolute(baseRel))throw Error('Text3D drafts directory escapes project');
-  const target=await realpath(resolve(project,args.folder));
-  const rel=relative(base,target);
-  if(!rel||rel==='..'||rel.startsWith('..'+sep)||isAbsolute(rel)||!(await stat(target)).isDirectory())throw Error('Text3D draft must be a directory inside .film/text3d-drafts');
+  const target=await draftPath(project,args?.folder);
   return heavyJob(async()=>{
+   const sourceBefore=await draftFingerprint(target);
    const job={kind:'text3d-preview',root:project,source:target};
    const worker=fileURLToPath(new URL('./film-mcp-worker.mjs',import.meta.url));
    const bytes=await exec(process.execPath,[worker,JSON.stringify(job)],240000,{...process.env,ELECTRON_RUN_AS_NODE:'1',OPENFILM_NO_BROWSER:'1'},[0],project);
@@ -333,6 +329,8 @@ async function text3dTool(name,args){
    const page=await realpath(result.preview);
    const relativePage=relative(root,page);
    if(relativePage==='..'||relativePage.startsWith('..'+sep)||isAbsolute(relativePage))throw Error('Text3D preview escapes project');
+   if(await draftFingerprint(target)!==sourceBefore)throw Error('Text3D source changed during preview; verify again');
+   await recordPreview(target);
    return {content:[{type:'text',text:JSON.stringify({status:'preview_bundled',preview_page:relativePage,notes:(result.lines??[]).slice(0,3).map(v=>String(v).slice(0,250)),next:'Inspect rendered frames before registering'})}]};
   });
  }
