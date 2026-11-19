@@ -109,7 +109,7 @@ export async function paintPage(contents, { paintTimeoutMs = 500, readySelector 
   if (contents.capturePage) {
     try {
       await Promise.race([
-        contents.capturePage({ x: 0, y: 0, width: 1, height: 1 }, { stayHidden: true }),
+        Promise.resolve().then(() => contents.capturePage({ x: 0, y: 0, width: 1, height: 1 }, { stayHidden: true })).catch(() => null),
         new Promise(resolve => { timer = setTimeout(resolve, paintTimeoutMs); }),
       ]);
     } finally { clearTimeout(timer); }
