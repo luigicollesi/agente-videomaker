@@ -12,6 +12,11 @@ at (`canvas node `ID``) is there. A project can have several canvases; your step
 `videomaker canvas` prints the board; `videomaker canvas apply '<steps>'` adds, changes, wires and removes nodes, all at
 once, and the person sees it at once. Its `--help` lists the steps.
 
+
+## Native MCP workflow (preferred)
+
+When `videomaker-media` MCP is available, first use `canvas_list` for board names, then `canvas_nodes` with `board`, `limit` and `offset` for compact node browsing; request one full node with `node` only when needed. Use `canvas_apply` with the Studio's existing `ops` list to add, update, wire or remove nodes. `canvas_apply` targets the board currently shown in the running Studio and returns only new IDs and counts, reducing model context. Open the correct board in Studio before calling it; if Studio is not running, it fails safely rather than writing the canvas file directly. Keep each request to at most 30 operations and inspect the resulting board when necessary. Fall back to the `videomaker canvas` CLI only when the MCP tool is unavailable. Do not duplicate steps by calling both methods.
+
 ## Laying out what the person asks for
 
 - **A storyboard or shots**: one row per shot, left to right: a note (what happens, in the person's words), a picture
