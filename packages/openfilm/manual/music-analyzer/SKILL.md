@@ -14,7 +14,7 @@ When the local `videomaker-media` MCP is available, prefer `music_analyze` (WAV/
 
 ## Runtime
 
-Python 3.12+, FFmpeg and FFprobe are required. For the MCP server, set `VIDEOMAKER_PYTHON` to the absolute path of the interpreter in the configured virtual environment (for example, `.../.venv/bin/python`); otherwise it uses `python3` on Unix or `python` on Windows. Configure the variable in the app/agent environment before starting a new MCP session. Do not automatically install Python packages. The `music-analyzer` executable becomes available after installing the package:
+Python 3.12+, FFmpeg and FFprobe are required. Desktop release builds include the analyzer's Python source but do not bundle a Python interpreter or third-party Python dependencies. Install the dependencies into the chosen interpreter. The source directory may be overridden with `VIDEOMAKER_MUSIC_ANALYZER_SRC`. For the MCP server, set `VIDEOMAKER_PYTHON` to the absolute path of the interpreter in the configured virtual environment (for example, `.../.venv/bin/python`); otherwise it uses `python3` on Unix or `python` on Windows. Configure the variable in the app/agent environment before starting a new MCP session. Do not automatically install Python packages. The `music-analyzer` executable becomes available after installing the package:
 
 ```bash
 cd packages/music-analyzer
