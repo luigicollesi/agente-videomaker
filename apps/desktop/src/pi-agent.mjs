@@ -32,6 +32,7 @@ import * as acp from '@agentclientprotocol/sdk';
 import { DefaultResourceLoader, ModelRuntime, SessionManager, SettingsManager, createAgentSession } from '@earendil-works/pi-coding-agent';
 import { Agent, install, setGlobalDispatcher } from 'undici';
 import { agentSessionsDir, openLog } from './chat-store.mjs';
+import { PiMcpBridge, piMcpTools } from './pi-mcp-bridge.mjs';
 import { IMAGE_BUDGET, THINKING, TOO_LARGE, WAIT_MINUTES, contextUsed, effortOption, fitImages, modelOption, modelsJson, providerOf, retryNotice, stopReason, toolCall, toolContent } from './pi-config.mjs';
 
 /* stdout is the protocol's: anything else Pi or a library prints goes to stderr */
@@ -125,6 +126,8 @@ async function open(client, cwd, resumeId) {
   let pending = null;
   /* the session's id, once it has one: the questions `ask` puts are the session's */
   let sessionId = null;
+  // Lazy stdio connection; only compact MCP discovery and call tools enter Pi context.
+  const mcpBridge=new PiMcpBridge({cwd});
   /* the pictures a request carries at most (pi-config.mjs IMAGE_BUDGET), and those the last one carried (bytes) */
   let imageBudget = IMAGE_BUDGET;
   let imagesSent = 0;
@@ -150,6 +153,7 @@ async function open(client, cwd, resumeId) {
         pi.on('context_with_system', (event) => { pending = { startedAt: Date.now(), messages: event.messages }; });
       } },
       { name: 'openfilm-ask', hidden: true, factory: (pi) => pi.registerTool(askTool(client, () => sessionId)) },
+      { name: 'openfilm-native-mcp', hidden: true, factory: (pi) => { for(const tool of piMcpTools(mcpBridge))pi.registerTool(tool); } },
     ],
   });
   await resourceLoader.reload();
@@ -157,7 +161,7 @@ async function open(client, cwd, resumeId) {
   const { session } = await createAgentSession({
     cwd, agentDir: config.agentDir, modelRuntime, model: piModel(startModel, startEffort),
     ...(startEffort !== 'auto' ? { thinkingLevel: startEffort } : {}),
-    resourceLoader, sessionManager, settingsManager, tools: ['read', 'bash', 'edit', 'write', 'ask'],
+    resourceLoader, sessionManager, settingsManager, tools: ['read', 'bash', 'edit', 'write', 'ask', 'videomaker_tools', 'videomaker_call'],
   });
   /* a request refused as too large is one Pi tries again (its retry: once, the failed attempt left out of what is sent)
      when it held pictures to leave out; Pi neither retries a 413 nor, but for Anthropic's own words, compacts for it */
@@ -167,7 +171,7 @@ async function open(client, cwd, resumeId) {
   const now = ownOf(session.model);
   const onModel = now.id ?? startModel;
   const levels = byId.get(onModel)?.levels ?? ['auto'];
-  const entry = { session, log: null, answer: null, overflow: null, model: onModel,
+  const entry = { session, mcpBridge, log: null, answer: null, overflow: null, model: onModel,
     effort: now.thinking && levels.includes(session.thinkingLevel) ? session.thinkingLevel : !now.thinking && levels.includes('auto') ? 'auto' : byId.get(onModel)?.effort ?? 'auto' };
   /* a conversation taken up again on a model no longer set up: on the one a session starts on */
   if (!now.id) await use(entry, onModel, entry.effort);
@@ -359,11 +363,13 @@ const connection = new acp.AgentSideConnection((client) => ({
   }),
   async cancel(params) { await sessions.get(params.sessionId)?.session.abort(); },
   async closeSession(params) {
-    sessions.get(params.sessionId)?.session.dispose();
+    const entry=sessions.get(params.sessionId);
+    entry?.session.dispose();
+    entry?.mcpBridge?.close();
     sessions.delete(params.sessionId);
   },
 }), acp.ndJsonStream(Writable.toWeb(process.stdout), Readable.toWeb(process.stdin)));
 
 await connection.closed;
-for (const { session } of sessions.values()) session.dispose();
+for (const { session, mcpBridge } of sessions.values()) { session.dispose(); mcpBridge?.close(); }
 process.exit(0);
