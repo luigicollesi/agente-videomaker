@@ -318,7 +318,8 @@ async function text3dTool(name,args){
   if(typeof args?.component_id!=='string'||!args.component_id.trim())throw Error('Invalid Text3D component ID');
   const entry=entries.find(e=>e.componentId===args.component_id);
   if(!entry)throw Error('Text3D component not found');
-  return {content:[{type:'text',text:JSON.stringify({component_id:entry.componentId,source_id:entry.source2DId,display_name:entry.displayName,parameter_map:entry.parameterMap??{},bundle_path:entry.bundlePath,active:entry.active})}]};
+  const params=Object.entries(entry.parameterMap??{});
+  return {content:[{type:'text',text:JSON.stringify({component_id:entry.componentId,source_id:entry.source2DId,display_name:entry.displayName,parameter_map:Object.fromEntries(params.slice(0,40)),parameters_truncated:params.length>40,bundle_path:entry.bundlePath,active:entry.active})}]};
  }
  if(args?.source_id!==undefined&&(typeof args.source_id!=='string'||args.source_id.length>150))throw Error('Invalid source filter');
  const limit=args?.limit??12,offset=args?.offset??0;
