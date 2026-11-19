@@ -57,6 +57,9 @@ const tools=[
  {name:'text3d_inspect',description:'Read registered Text3D component metadata and editable parameters without reading its bundled source files.',inputSchema:{type:'object',properties:{component_id:{type:'string'}},required:['component_id'],additionalProperties:false}},
  {name:'text3d_create',description:'Create a scoped Text3D draft under .film/text3d-drafts with the existing authoring engine.',inputSchema:{type:'object',properties:{name:{type:'string',maxLength:50}},required:['name'],additionalProperties:false}},
  {name:'text3d_preview',description:'Bundle and verify a Text3D draft with native Three.js preview pipeline. Does not register it.',inputSchema:{type:'object',properties:{folder:{type:'string'}},required:['folder'],additionalProperties:false}},
+ {name:'text3d_font_add',description:'Add one installed upright TrueType font to a scoped Text3D draft; re-preview after changing the draft.',inputSchema:{type:'object',properties:{folder:{type:'string'},family:{type:'string'},weight:{type:'integer',minimum:1,maximum:1000}},required:['folder','family'],additionalProperties:false}},
+ {name:'text3d_register',description:'Publish an unchanged preview-verified Text3D draft to Saved. Requires explicit visual approval. Never call automatically after preview.',inputSchema:{type:'object',properties:{folder:{type:'string'},visual_approved:{type:'boolean'}},required:['folder','visual_approved'],additionalProperties:false}},
+ {name:'text3d_apply',description:'Apply an already registered Text3D component to a specific unlocked clip with exact film revision; verifies imported bundle.',inputSchema:{type:'object',properties:{revision:{type:'string'},clip:{type:'string'},component_id:{type:'string'}},required:['revision','clip','component_id'],additionalProperties:false}},
  {name:'text3d_validate',description:'Structurally validate a draft in this project .film/text3d-drafts directory without registering or modifying clips.',inputSchema:{type:'object',properties:{folder:{type:'string'}},required:['folder'],additionalProperties:false}},
  {name:'music_inspect',description:'Inspect audio streams from source WAV/MP3/MP4 without running full acoustic analysis.',inputSchema:schema},
  {name:'music_validate',description:'Validate acoustic analysis JSON timestamps and structure; reports valid or invalid, does not modify file.',inputSchema:schema},
@@ -300,6 +303,48 @@ async function libraryTake(args){
  const response=await libraryGet(verb,{take:args.id},project);
  if(response.code!==0)throw Error(response.lines?.join(' ').slice(0,600)||'Library import failed');
  return {content:[{type:'text',text:JSON.stringify({status:'completed',kind:args.kind,id:args.id,details:(response.lines??[]).slice(0,8).map(line=>line.slice(0,500))})}]};
+}
+async function runText3D(name,args){
+ let command,revision=null,folder=null;
+ if(name==='text3d_apply'){
+  if(typeof args?.revision!=='string'||!/^[a-f0-9]{16}$/.test(args.revision)||typeof args?.clip!=='string'||!args.clip.trim()||
+     typeof args?.component_id!=='string'||!args.component_id.trim())throw Error('Invalid Text3D apply arguments');
+  const film=await readProjectFilm(project);
+  if(!film.value||film.rev!==args.revision)throw Error('Stale film revision; inspect again');
+  const track=film.value.tracks.find(t=>(t.clips??[]).some(c=>c.id===args.clip));
+  if(!track)throw Error('Clip not found');
+  if(track.locked)throw Error('Cannot modify a locked track');
+  if(!(await listText3D()).some(entry=>entry.componentId===args.component_id))throw Error('Text3D component is not registered');
+  command=['apply',project,args.clip,args.component_id];
+  revision=args.revision;
+ }else{
+  folder=await draftPath(project,args?.folder);
+  if(name==='text3d_font_add'){
+   if(typeof args.family!=='string'||!args.family.trim()||args.family.length>100||
+      args.weight!==undefined&&(!Number.isInteger(args.weight)||args.weight<1||args.weight>1000))throw Error('Invalid Text3D font');
+   command=['font-add',folder,args.family.trim(),String(args.weight??400)];
+  }else{
+   if(args?.visual_approved!==true)throw Error('Visual approval is required before publishing Text3D');
+   command=['register',folder];
+  }
+ }
+ return heavyJob(async()=>{
+  if(name==='text3d_register')await requireVerifiedPreview(folder);
+  const job={kind:'text3d-command',root:project,args:command,...(revision?{revision}:{})};
+  const worker=fileURLToPath(new URL('./film-mcp-worker.mjs',import.meta.url));
+  const bytes=await exec(process.execPath,[worker,JSON.stringify(job)],600000,{...process.env,ELECTRON_RUN_AS_NODE:'1'},[0],project);
+  const log=bytes.toString('utf8'),marker='MCP_FILM_RESULT=',pos=log.lastIndexOf(marker);
+  if(pos<0)throw Error('Text3D worker returned no completion receipt');
+  let result;
+  try{result=JSON.parse(log.slice(pos+marker.length).split('\n')[0])}catch{throw Error('Invalid Text3D worker receipt')}
+  if(name==='text3d_apply'&&!/^[a-f0-9]{16}$/.test(result.revision??''))throw Error('Text3D apply returned no film revision');
+  return {content:[{type:'text',text:JSON.stringify({
+   status:name==='text3d_register'?'registered':name==='text3d_apply'?'applied':'font_added',
+   ...(result.revision?{revision:result.revision}:{}),
+   notes:(result.lines??[]).slice(0,3).map(x=>String(x).slice(0,250)),
+   ...(name==='text3d_font_add'?{next:'Run text3d_preview again before registering'}:{})
+  })}]};
+ });
 }
 async function text3dTool(name,args){
  if(name==='text3d_create'){
@@ -643,7 +688,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=msg.params?.name==='motion_presets'?{content:[{type:'text',text:JSON.stringify(await motionPresetList(msg.params?.arguments))}]}:msg.params?.name==='timeline_apply_motion_preset'?await timelineMotionPreset(msg.params?.arguments):['captions_list','captions_style','captions_correct_line'].includes(msg.params?.name)?{content:[{type:'text',text:JSON.stringify(await captionTool(project,msg.params.name,msg.params?.arguments))}]}:msg.params?.name==='timeline_get_motion'?await timelineGetMotion(msg.params?.arguments):['timeline_set_properties','timeline_apply_batch'].includes(msg.params?.name)?await timelineAdvanced(msg.params.name,msg.params?.arguments):['film_preview_frame','film_render'].includes(msg.params?.name)?await filmTool(msg.params.name,msg.params?.arguments):msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate','text3d_create','text3d_preview'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
+   case 'tools/call':result=['text3d_font_add','text3d_register','text3d_apply'].includes(msg.params?.name)?await runText3D(msg.params.name,msg.params?.arguments):msg.params?.name==='motion_presets'?{content:[{type:'text',text:JSON.stringify(await motionPresetList(msg.params?.arguments))}]}:msg.params?.name==='timeline_apply_motion_preset'?await timelineMotionPreset(msg.params?.arguments):['captions_list','captions_style','captions_correct_line'].includes(msg.params?.name)?{content:[{type:'text',text:JSON.stringify(await captionTool(project,msg.params.name,msg.params?.arguments))}]}:msg.params?.name==='timeline_get_motion'?await timelineGetMotion(msg.params?.arguments):['timeline_set_properties','timeline_apply_batch'].includes(msg.params?.name)?await timelineAdvanced(msg.params.name,msg.params?.arguments):['film_preview_frame','film_render'].includes(msg.params?.name)?await filmTool(msg.params.name,msg.params?.arguments):msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate','text3d_create','text3d_preview'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
