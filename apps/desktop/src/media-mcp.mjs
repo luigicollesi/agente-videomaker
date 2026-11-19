@@ -750,7 +750,7 @@ function measure(method,name,started,response){
  const elapsedMs=Math.round(Number(process.hrtime.bigint()-started)/1e6*10)/10;
  const outputBytes=Buffer.byteLength(JSON.stringify(response??{}));
  process.stderr.write('MCP_METRIC '+JSON.stringify({
-  method,tool:method==='tools/call'?String(name??'unknown').slice(0,64):null,
+  method,tool:method==='tools/call'?(tools.some(t=>t.name===name)?name:'unknown'):null,
   ok:!response?.isError,elapsed_ms:elapsedMs,response_bytes:outputBytes
  })+'\n');
 }
