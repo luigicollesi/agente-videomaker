@@ -100,6 +100,40 @@ test('Media MCP applies revision-guarded timeline edits to a real film', async (
   assert.ok(afterRemove.doc,afterRemove.problems.join('; '));
   assert.ok(!afterRemove.value.tracks.flatMap(t=>t.clips).some(c=>c.id===inserted.new_clip_id));
   assert.equal((await readFile(join(project,'assets','overlay.png'))).toString(),'asset retained outside timeline');
+  const changed=await call('timeline_set_properties',{revision:removed.revision,edits:[
+    {clip:'source-clip',prop:'box',value:{x:40,y:60,w:640,h:360,r:15}},
+    {clip:'source-clip',prop:'fade',value:[0.3,0.3]},
+    {clip:'source-clip',prop:'motion',value:{rotate:[{t:0,v:0},{t:2,v:45,ease:'ease-out'}]}}
+  ]});
+  let advanced=readFilmFile(await readFile(join(project,'film.html'),'utf8'));
+  assert.ok(advanced.doc,advanced.problems.join('; '));
+  assert.equal(advanced.value.tracks.flatMap(t=>t.clips).find(c=>c.id==='source-clip').box.r,15);
+  assert.ok(Object.keys(advanced.value.keyframes??{}).some(k=>k.includes('source-clip--rotate')));
+  const batch=await call('timeline_apply_batch',{revision:changed.revision,steps:[
+    {op:'insert_asset',path:'assets/overlay.png',id:'batch-overlay',at:24,time:[0,2]},
+    {op:'props',edits:[{clip:'batch-overlay',prop:'box',value:{x:10,y:20,w:300,h:200}}]},
+    {op:'move',clip:'source-clip',at:3},
+    {op:'stage',w:1080,h:1920}
+  ]});
+  assert.deepEqual(batch.new_clip_ids,['batch-overlay']);
+  advanced=readFilmFile(await readFile(join(project,'film.html'),'utf8'));
+  assert.ok(advanced.doc,advanced.problems.join('; '));
+  assert.equal(advanced.value.stage.h,1920);
+  assert.equal(advanced.value.tracks.flatMap(t=>t.clips).find(c=>c.id==='batch-overlay').box.x,10);
+  const snapshot=await readFile(join(project,'film.html'),'utf8');
+  const invalidBatch=await request('tools/call',{name:'timeline_apply_batch',arguments:{revision:batch.revision,steps:[
+    {op:'move',clip:'source-clip',at:4},
+    {op:'remove',clip:'does-not-exist'}
+  ]}});
+  assert.equal(invalidBatch.result.isError,true);
+  assert.equal(await readFile(join(project,'film.html'),'utf8'),snapshot);
+  const invalidProperty=await request('tools/call',{name:'timeline_set_properties',arguments:{revision:batch.revision,edits:[{clip:'source-clip',prop:'src',value:'../../secret'}]}});
+  assert.equal(invalidProperty.result.isError,true);
+  const locked=await call('timeline_apply_batch',{revision:batch.revision,steps:[{op:'track',track:0,field:'locked',value:true}]});
+  const denied=await request('tools/call',{name:'timeline_set_properties',arguments:{revision:locked.revision,edits:[{clip:'source-clip',prop:'at',value:8}]}});
+  assert.equal(denied.result.isError,true);
+  const unlocked=await call('timeline_apply_batch',{revision:locked.revision,steps:[{op:'track',track:0,field:'locked',value:false}]});
+  await call('timeline_set_properties',{revision:unlocked.revision,edits:[{clip:'source-clip',prop:'at',value:8}]});
   const old=await request('tools/call',{name:'timeline_set_playback',arguments:{clip:'source-clip',revision:duplicated.revision,field:'volume',value:0.5}});
   assert.equal(old.result.isError,true);
  } finally {
