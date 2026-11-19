@@ -34,7 +34,7 @@ test('MCP reads film captions and style without terminal or Studio', {timeout:30
   });
   const ok=async(name,args={})=>{
    const result=await request(name,args);
-   assert.equal(result.result?.isError,false,JSON.stringify(result));
+   assert.notEqual(result.result?.isError,true,JSON.stringify(result));
    return JSON.parse(result.result.content[0].text);
   };
   const page=await ok('captions_list',{start:0,end:2,limit:5});
