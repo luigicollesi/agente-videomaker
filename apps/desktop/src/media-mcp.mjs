@@ -289,7 +289,10 @@ async function text3dTool(name,args){
   if(typeof args?.name!=='string'||!/^[a-z][a-z0-9_-]{0,49}$/.test(args.name))throw Error('Invalid Text3D draft name');
   const parent=join(project,'.film','text3d-drafts');
   await mkdir(parent,{recursive:true});
-  const folder=join(parent,args.name);
+  const base=await realpath(project),actualParent=await realpath(parent);
+  const relParent=relative(base,actualParent);
+  if(!relParent||relParent==='..'||relParent.startsWith('..'+sep)||isAbsolute(relParent))throw Error('Text3D draft directory must stay in the project');
+  const folder=join(actualParent,args.name);
   if(await stat(folder).catch(()=>null))throw Error('Text3D draft already exists');
   const { text3DCommand }=await import('openfilm/text3d-cli');
   const made=await text3DCommand(['create',folder]);
@@ -299,6 +302,8 @@ async function text3dTool(name,args){
  if(name==='text3d_validate'){
   if(typeof args?.folder!=='string'||!args.folder.trim())throw Error('Invalid Text3D draft folder');
   const base=await realpath(join(project,'.film','text3d-drafts'));
+  const root=await realpath(project),relBase=relative(root,base);
+  if(!relBase||relBase==='..'||relBase.startsWith('..'+sep)||isAbsolute(relBase))throw Error('Text3D drafts directory escapes project');
   const target=await realpath(resolve(project,args.folder));
   const rel=relative(base,target);
   if(!rel||rel==='..'||rel.startsWith('..'+sep)||isAbsolute(rel))throw Error('Text3D drafts must be inside .film/text3d-drafts');
