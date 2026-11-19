@@ -43,6 +43,7 @@
     "./studio-canvas": "./studio/server/canvas.mjs",
     "./studio-captions": "./studio/server/captions.mjs",
     "./film-subtitle": "./studio/server/film-subtitle.mjs",
+    "./captions-vtt": "./src/captions.mjs",
     "./studio-client": "./studio/client.mjs",
     "./library-search": "./src/library-search.mjs",
     "./text3d-registry": "./studio/server/text3d/registry.mjs",
