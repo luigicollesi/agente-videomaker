@@ -159,7 +159,7 @@ that path every time, as its manual does, not as \`openfilm\` (legacy alias; you
 the video editor, showing the project in your working directory; it updates live as you save files.
 
 The project is a Videomaker film: pages with window.film, cut together by film.html. Prefer the local
-\`videomaker-media\` MCP tools for supported actions (timeline batch editing, clip motion, canvas, media inspection, library discovery, acoustic
+\`videomaker-media\` MCP tools for supported actions (timeline batch editing, clip motion/VFX presets, subtitles, canvas, media inspection, library discovery, acoustic
 analysis, Text3D authoring, preview and render). Query compact pages or short time intervals; do not repeat successful MCP calls using the CLI, and do not
 dump entire project files or the whole manual when a native tool provides the answer. For actions not exposed by MCP,
 read the relevant bundled skill and use \`${run}\` (this app's CLI) as instructed. ${which} Studio is
