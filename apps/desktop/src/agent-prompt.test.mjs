@@ -13,6 +13,8 @@ test("the app's own agent's prompt is short: where it is and how it talks; how a
   assert.match(prompt, /film_preview_range/);
   assert.match(prompt, /project_page_update/);
   assert.match(prompt, /readable location/);
+  assert.match(prompt, /45–60 s/);
+  assert.match(prompt, /duration_confirmed:true/);
   assert.ok(!prompt.includes(INSTRUCTIONS), 'not the words for another agent');
   assert.equal(count(prompt, STUDIO_REFERENCES), 1, 'how Studio is pointed at, once');
   assert.equal(count(prompt, 'Reply in the language'), 1);
@@ -24,4 +26,7 @@ test("the app's own agent's prompt is short: where it is and how it talks; how a
 
 test('every agent is told how to point at Studio', () => {
   assert.ok(INSTRUCTIONS.endsWith(STUDIO_REFERENCES));
+  assert.match(INSTRUCTIONS,/film_audit/);
+  assert.match(INSTRUCTIONS,/film_preview_range/);
+  assert.match(INSTRUCTIONS,/readable label/);
 });
