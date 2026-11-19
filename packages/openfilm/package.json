@@ -36,6 +36,8 @@
     "./skills": "./src/skills.mjs",
     "./skills-cli": "./src/skills-cli.mjs",
     "./studio": "./studio/server/server.mjs",
+    "./studio-film": "./studio/server/film.mjs",
+    "./studio-ops": "./studio/server/ops.mjs",
     "./desktop-account": "./studio/server/account.mjs",
     "./studio-ui/*": "./studio/ui/src/*",
     "./package.json": "./package.json"
