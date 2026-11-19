@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 
 async function main(){
  const job=JSON.parse(process.argv[2]??'null');
- if(!job||!['look','render','text3d-preview','text3d-command'].includes(job.kind)||typeof job.root!=='string')throw Error('Invalid film worker request');
+ if(!job||!['look','look-range','render','text3d-preview','text3d-command'].includes(job.kind)||typeof job.root!=='string')throw Error('Invalid film worker request');
  const root=resolve(job.root);
  process.chdir(root);
  let result;
@@ -23,6 +23,13 @@ async function main(){
   const done=await text3DCommand(['preview',job.source]);
   if(!done.ok)throw Error((done.lines??[]).slice(0,5).join(' ').slice(0,900)||'Text3D preview failed');
   result={preview:job.source+'-preview/files/index.html',lines:(done.lines??[]).slice(0,5)};
+ }else if(job.kind==='look-range'){
+  if(!Number.isFinite(job.start)||!Number.isFinite(job.end)||job.start<0||job.end<=job.start||
+     !Number.isInteger(job.count)||job.count<2||job.count>12)throw Error('Invalid preview range');
+  const {look}=await import('openfilm/look');
+  const preview=await look(['.',String(job.start)+'-'+String(job.end)],{root,count:job.count,offline:true,network:false});
+  if(!preview.ok)throw Error((preview.lines??[]).slice(0,5).join(' ').slice(0,1000)||'Contact sheet failed');
+  result={files:(preview.files??[]).slice(0,2),lines:(preview.lines??[]).slice(0,12)};
  }else if(job.kind==='look'){
   const {look}=await import('openfilm/look');
   result=await look(['.',String(job.at)],{root,count:1,offline:true,network:false});
