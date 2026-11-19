@@ -91,6 +91,10 @@ The selected 2D component is the authoritative animation specification. Inspect 
 
 A render that stopped on its own (a crash or the computer asleep) is resumed by running it again with the same options: it draws only what it had not finished. Cancelling on purpose clears its chunks.
 
+## Native film preview and export
+
+Prefer `film_preview_frame` with the timeline second `at` when checking visual results. It runs the existing `look` engine with one frame and returns brief checks plus the generated PNG when it is small enough; a returned image is for inspection, not proof that the full film is correct. Use `film_render` with the latest `revision`, a fresh `assets/*.mp4`, `*.webm` or `*.mov` `output`, optional `start`/`end` and `fps` to export via the existing native renderer. The MCP renders into a private directory and publishes only if the project revision still matches; it never replaces an existing destination. Both operations require a working browser and FFmpeg, and may be computationally expensive. Do not re-run the same render using CLI once the MCP confirms success. Inspect relevant frames before exporting; use CLI for advanced export options not yet exposed.
+
 ## Native timeline authoring (MCP preferred)
 
 For supported operations, use `timeline_overview` to get the latest revision and `timeline_get_clip` for one clip's properties. `timeline_insert_asset` inserts an existing project `assets/` file at timeline seconds (`at`, optional `track` and source `time` interval); `timeline_remove_clip` removes the specified clip without deleting the asset. Both require the exact latest `revision` and return the updated revision. Use `timeline_clips` pages instead of reading the whole `film.html`. Use other native MCP edit tools where supported; fall back to Studio/CLI for unsupported edits. Avoid retrying successful edits blindly.
