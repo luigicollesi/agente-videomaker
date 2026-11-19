@@ -21,7 +21,7 @@ const tools=[
  {name:'inspect_image',description:'Inspect an image from this project Media. Returns visual image content, not a filename description.',inputSchema:schema},
  {name:'inspect_video',description:'Inspect a video from this project Media. Returns timestamped image frames. Sampled frames do not guarantee exact event boundaries.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',minimum:0},max_frames:{type:'integer',minimum:1,maximum:24}},required:['path']}},
  {name:'timeline_overview',description:'Read-only overview of the current project film, its revision, stage and number of tracks/clips.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
- {name:'timeline_split_clip',description:'Split one clip using explicit source-time intervals and timeline second, as required by Studio. Current revision required. Source timings must be provided accurately.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},at:{type:'number',exclusiveMinimum:0},left_time:{type:'array',items:{type:'number'},minItems:2,maxItems:2},right_time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['clip','revision','at','left_time','right_time'],additionalProperties:false}},
+ {name:'timeline_split_clip',description:'Split one clip using explicit source-time intervals and timeline second, as required by Studio. Current revision required. Source timings must be provided accurately.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},at:{type:'number',exclusiveMinimum:0},left_time:{type:'array',items:{type:'number'},minItems:2,maxItems:2},right_time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['clip','revision','at'],additionalProperties:false}},
  {name:'timeline_set_playback',description:'Set clip playback speed (0.1..100) or volume (0..4) using Studio. Requires current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},field:{type:'string',enum:['speed','volume']},value:{type:'number'}},required:['clip','revision','field','value'],additionalProperties:false}},
  {name:'timeline_duplicate_clip',description:'Duplicate an existing clip at a nonnegative timeline second using Studio, requiring an exact current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_move_clip',description:'Move one clip to a nonnegative timeline second using the Studio edit engine. Requires current revision returned by timeline_overview; stale revisions are refused.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
@@ -230,8 +230,10 @@ async function musicTool(name,args){
 async function timelineEdit(name,args){
  if(name==='timeline_split_clip'){
   const validRange=t=>Array.isArray(t)&&t.length===2&&t.every(v=>Number.isFinite(v)&&v>=0)&&t[1]>t[0];
-  if(typeof args?.clip!=='string'||!args.clip.trim()||typeof args?.revision!=='string'||!/^[a-f0-9]{16}$/.test(args.revision)||!Number.isFinite(args.at)||args.at<=0||!validRange(args.left_time)||!validRange(args.right_time)||Math.abs(args.left_time[1]-args.right_time[0])>0.002)throw Error('Invalid split parameters or discontinuous source intervals');
-  return guardedTimelineOps(args.revision,[{op:'split',clip:args.clip,at:args.at,time:args.left_time,restTime:args.right_time}],{clip:args.clip,at:args.at,operation:name});
+  const explicit=args?.left_time!==undefined||args?.right_time!==undefined;
+  if(typeof args?.clip!=='string'||!args.clip.trim()||typeof args?.revision!=='string'||!/^[a-f0-9]{16}$/.test(args.revision)||!Number.isFinite(args.at)||args.at<=0)throw Error('Invalid split parameters');
+  if(explicit&&(!validRange(args.left_time)||!validRange(args.right_time)||Math.abs(args.left_time[1]-args.right_time[0])>0.002))throw Error('Invalid or discontinuous source intervals');
+  return guardedTimelineOps(args.revision,[{op:'split',clip:args.clip,at:args.at,...(explicit?{time:args.left_time,restTime:args.right_time}:{})}],{clip:args.clip,at:args.at,operation:name});
  }
  if(name==='timeline_set_playback'){
   if(typeof args?.clip!=='string'||!args.clip.trim()||typeof args?.revision!=='string'||!/^[a-f0-9]{16}$/.test(args.revision)||!['speed','volume'].includes(args.field)||!Number.isFinite(args.value)||args.value<(args.field==='speed'?0.1:0)||args.value>(args.field==='speed'?100:4))throw Error('Invalid playback property');
@@ -258,15 +260,23 @@ async function guardedTimelineOps(revision,ops,summary){
    if(!Array.isArray(clip.time)||clip.time.length!==2||!clip.time.every(Number.isFinite))throw Error('Explicit source trim [start,end] required before MCP split');
    const speed=clip.speed??1;
    const beginning=clip.at??0;
-   const expectedAt=beginning+(op.time[1]-op.time[0])/speed;
-   if(Math.abs(clip.time[0]-op.time[0])>0.002||Math.abs(clip.time[1]-op.restTime[1])>0.002||!Number.isFinite(expectedAt)||Math.abs(expectedAt-op.at)>0.002)throw Error('Split must match clip source trim, speed and timeline time');
+   const sourceCut=Math.round((clip.time[0]+(op.at-beginning)*speed)*1000)/1000;
+   if(!Number.isFinite(sourceCut)||sourceCut<=clip.time[0]+0.001||sourceCut>=clip.time[1]-0.001)throw Error('Split point must be strictly inside the clip');
+   if(!op.time&&!op.restTime){
+    op.time=[clip.time[0],sourceCut];
+    op.restTime=[sourceCut,clip.time[1]];
+   }
+   if(!Array.isArray(op.time)||!Array.isArray(op.restTime)||Math.abs(clip.time[0]-op.time[0])>0.002||Math.abs(clip.time[1]-op.restTime[1])>0.002||Math.abs(op.time[1]-sourceCut)>0.002||Math.abs(op.restTime[0]-sourceCut)>0.002)throw Error('Split must match clip source trim, speed and timeline time');
   }
   const edited=applyOps(value,ops);
   const checked=readFilm(edited);
   if(!checked.doc)throw Error(checked.problems.join('; '));
   return {value:edited};
  },{ops});
- return {content:[{type:'text',text:JSON.stringify({status:'updated',revision:result.rev,...summary})}]};
+ const beforeIds=new Set((result.current.value?.tracks??[]).flatMap(t=>t.clips??[]).map(c=>c.id));
+ const created=result.value.tracks.flatMap(t=>t.clips??[]).find(c=>!beforeIds.has(c.id));
+ const details=ops[0]?.op==='insert'?{new_clip_id:created?.id??null}:ops[0]?.op==='split'?{right_clip_id:created?.id??null,left_time:ops[0].time,right_time:ops[0].restTime}:{};
+ return {content:[{type:'text',text:JSON.stringify({status:'updated',revision:result.rev,...summary,...details})}]};
 }
 
 async function timelineTool(name,args){
