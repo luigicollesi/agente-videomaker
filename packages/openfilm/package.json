@@ -40,6 +40,7 @@
     "./studio-film": "./studio/server/film.mjs",
     "./studio-ops": "./studio/server/ops.mjs",
     "./studio-canvas": "./studio/server/canvas.mjs",
+    "./studio-captions": "./studio/server/captions.mjs",
     "./studio-client": "./studio/client.mjs",
     "./library-search": "./src/library-search.mjs",
     "./text3d-registry": "./studio/server/text3d/registry.mjs",
