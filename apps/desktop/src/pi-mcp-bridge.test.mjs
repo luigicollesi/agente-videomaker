@@ -17,7 +17,7 @@ test('embedded Pi discovers and calls exactly the same local MCP service without
   ' const v=JSON.parse(line);let result;',
   ' if(v.method==="initialize")result={capabilities:{tools:{}}};',
   ' else if(v.method==="tools/list")result={tools:[',
-  ' {name:"timeline_overview",description:"Read current timeline",inputSchema:{type:"object",properties:{}}},',
+  ' {name:"timeline_overview",description:"Read current timeline",inputSchema:{type:"object",properties:{revision:{type:"string",description:"Revision identifier returned by the film editing engine"},track:{type:"integer",description:"Index of track to inspect"},offset:{type:"integer",description:"Pagination offset"},limit:{type:"integer",description:"Maximum paginated entries"}}}},',
   ' {name:"music_context",description:"Read music interval",inputSchema:{type:"object",properties:{start:{type:"number"}}}}]};',
   ' else if(v.method==="tools/call")result={content:[{type:"text",text:JSON.stringify({name:v.params.name,args:v.params.arguments,project:process.env.VIDEOMAKER_PROJECT})}]};',
   ' process.stdout.write(JSON.stringify({jsonrpc:"2.0",id:v.id,result})+"\\n");',
