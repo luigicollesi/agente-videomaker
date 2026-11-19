@@ -57,23 +57,30 @@ export class PiMcpBridge{
    const timer=setTimeout(()=>{
     this.pending.delete(id);
     reject(Error('MCP '+method+' timed out'));
+    this.close();
    },timeout);
    this.pending.set(id,{resolve,reject,timer});
-   this.child.stdin.write(JSON.stringify({jsonrpc:'2.0',id,method,params})+'\n',error=>{
-    if(error){
-     const waiting=this.pending.get(id);
-     if(waiting){this.pending.delete(id);clearTimeout(timer);reject(error)}
-    }
-   });
+   try{
+    this.child.stdin.write(JSON.stringify({jsonrpc:'2.0',id,method,params})+'\n',error=>{
+     if(error){
+      const waiting=this.pending.get(id);
+      if(waiting){this.pending.delete(id);clearTimeout(timer);reject(error);this.close()}
+     }
+    });
+   }catch(error){
+    this.pending.delete(id);clearTimeout(timer);reject(error);this.close();
+   }
   });
  }
  async discover(query='',limit=6){
   const tools=await this.start();
   if(typeof query!=='string'||query.length>100||!Number.isInteger(limit)||limit<1||limit>10)throw Error('Invalid MCP discovery query or limit');
+  const exact=tools.get(query.trim());
   const words=query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const list=[...tools.values()].filter(t=>words.every(w=>(t.name+' '+t.description).toLowerCase().includes(w)));
-  const chosen=list.slice(0,limit).map(t=>({name:t.name,description:t.description,inputSchema:t.inputSchema}));
-  return {total:list.length,tools:chosen,remaining:Math.max(0,list.length-chosen.length)};
+  const list=exact?[exact]:[...tools.values()].filter(t=>words.every(w=>(t.name+' '+t.description).toLowerCase().includes(w)));
+  // A category search shows brief choices; requesting an exact tool name exposes only its schema.
+  const chosen=list.slice(0,limit).map(t=>({name:t.name,description:String(t.description??'').slice(0,155),...(exact?{inputSchema:t.inputSchema}:{})}));
+  return {total:list.length,tools:chosen,remaining:Math.max(0,list.length-chosen.length),...(exact?{schema_included:true}:{}),...(exact?{}:{next:'Request the exact tool name to read its arguments'})};
  }
  async call(name,args={}){
   const tools=await this.start();
@@ -90,17 +97,20 @@ export class PiMcpBridge{
   for(const request of this.pending.values()){clearTimeout(request.timer);request.reject(error)}
   this.pending.clear();
   this.catalog=null;
+  const child=this.child;
+  this.child=null;
+  if(child&&!child.killed){try{child.kill()}catch{/* already exited */}}
  }
  close(){
   this._abort(Error('MCP connection closed'));
   this.reader?.close();
-  if(this.child){try{this.child.kill()}catch{/* process already exited */}this.child=null}
+  this.reader=null;
  }
 }
 
 export function piMcpTools(bridge){
  return [
-  {name:'videomaker_tools',label:'Videomaker MCP tools',description:'Find native Videomaker MCP tools for the current task, with their precise input schemas. Search a domain such as timeline, captions, canvas, music or text3d and retrieve only needed tools.',
+  {name:'videomaker_tools',label:'Videomaker MCP tools',description:'Search native Videomaker MCP tools by category (compact names/descriptions), then query one exact tool name to get only its input schema. This saves context.',
    parameters:{type:'object',properties:{query:{type:'string',description:'Keyword or tool name fragment'},limit:{type:'integer',minimum:1,maximum:10}},additionalProperties:false},
    async execute(_id,params){const result=await bridge.discover(params?.query??'',params?.limit??6);return{content:[{type:'text',text:JSON.stringify(result)}],details:{}}}},
   {name:'videomaker_call',label:'Videomaker MCP',description:'Execute a native Videomaker MCP tool by name, using its exact input schema from videomaker_tools. Prefer this to terminal commands for native capabilities.',
