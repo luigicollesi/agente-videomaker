@@ -15,6 +15,7 @@ test('embedded Pi discovers and calls exactly the same local MCP service without
   'const rl=createInterface({input:process.stdin});',
   'rl.on("line",line=>{',
   ' const v=JSON.parse(line);let result;',
+  ' if(v.method==="hang")return;',
   ' if(v.method==="initialize")result={capabilities:{tools:{}}};',
   ' else if(v.method==="tools/list")result={tools:[',
   ' {name:"timeline_overview",description:"Read current timeline",inputSchema:{type:"object",properties:{revision:{type:"string",description:"Revision identifier returned by the film editing engine"},track:{type:"integer",description:"Index of track to inspect"},offset:{type:"integer",description:"Pagination offset"},limit:{type:"integer",description:"Maximum paginated entries"}}}},',
@@ -49,5 +50,11 @@ test('embedded Pi discovers and calls exactly the same local MCP service without
 
   await assert.rejects(bridge.call('unknown_tool',{}),/Unknown MCP tool/);
   await assert.rejects(bridge.discover('timeline',200),/Invalid MCP discovery/);
+  const initialPid=bridge.child.pid;
+  await assert.rejects(bridge.request('hang',{},100),/timed out/);
+  const restarted=await bridge.discover('timeline');
+  assert.equal(restarted.tools.length,1);
+  assert.notEqual(bridge.child.pid,initialPid);
+
  }finally{bridge.close();await rm(root,{recursive:true,force:true})}
 });
