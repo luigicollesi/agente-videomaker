@@ -71,6 +71,12 @@ test('MCP reads canvas in compact pages and searches native library', {timeout:6
   assert.ok(registered.components.length<=3);
   const missingText3D=await call('text3d_inspect',{component_id:'missing/text3d'});
   assert.equal(missingText3D.result.isError,true);
+  const draft=await ok('text3d_create',{name:'mcp-sample'});
+  assert.equal(draft.folder,'.film/text3d-drafts/mcp-sample');
+  const verified=await ok('text3d_validate',{folder:draft.folder});
+  assert.equal(verified.valid,true);
+  const secondDraft=await call('text3d_create',{name:'mcp-sample'});
+  assert.equal(secondDraft.result.isError,true);
   const invalidDraft=await call('text3d_create',{name:'../escape'});
   assert.equal(invalidDraft.result.isError,true);
   const invalid=await call('library_search',{kind:'invalid',query:'glow'});
