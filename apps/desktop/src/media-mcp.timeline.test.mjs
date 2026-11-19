@@ -39,8 +39,16 @@ test('Media MCP applies revision-guarded timeline edits to a real film', async (
    assert.notEqual(reply.result?.isError,true,JSON.stringify(reply.result));
    return JSON.parse(reply.result.content[0].text);
   };
+  const invalidPreview=await request('tools/call',{name:'film_preview_frame',arguments:{at:-1}});
+  assert.equal(invalidPreview.result.isError,true);
+  const badFps=await request('tools/call',{name:'film_render',arguments:{revision:'0000000000000000',output:'assets/export.mp4',fps:500}});
+  assert.equal(badFps.result.isError,true);
+  const wrongFormat=await request('tools/call',{name:'film_render',arguments:{revision:'0000000000000000',output:'assets/export.txt'}});
+  assert.equal(wrongFormat.result.isError,true);
   const current=await call('timeline_overview');
   assert.equal(current.clip_count,1);
+  const staleRender=await request('tools/call',{name:'film_render',arguments:{revision:'0000000000000000',output:'assets/export.mp4'}});
+  assert.equal(staleRender.result.isError,true);
   const stale=await request('tools/call',{name:'timeline_move_clip',arguments:{clip:'source-clip',revision:'0000000000000000',at:3}});
   assert.equal(stale.result.isError,true);
   const moved=await call('timeline_move_clip',{clip:'source-clip',revision:current.revision,at:2});
