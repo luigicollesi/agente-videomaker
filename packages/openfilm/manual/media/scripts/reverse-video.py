@@ -37,7 +37,7 @@ def main():
     p.add_argument('--start', type=float, default=0)
     p.add_argument('--end', type=float)
     a = p.parse_args()
-    source, dest = a.input.resolve(), a.output.resolve()
+    source, dest = a.input.resolve(), a.output.absolute()
     if not source.is_file() or source == dest:
         p.error('Input must exist and output must be a different file')
     try:
@@ -90,7 +90,7 @@ def main():
             tolerance = max(0.2, 3 / max(fps_value, 1))
             if abs(actual - (end-a.start)) > tolerance:
                 raise ValueError(f'Output duration mismatch: {actual:.3f}s vs {end-a.start:.3f}s')
-            os.replace(staged, dest)
+            # Atomically publish only when destination is still absent. Hard-linking\n            # a staged file prevents replacing a concurrently created asset.\n            os.link(staged, dest)
         print(dest)
     except (OSError, subprocess.CalledProcessError, ValueError, KeyError, ZeroDivisionError) as error:
         p.exit(1, f'reverse-video: {error}\n')
