@@ -226,12 +226,12 @@ test("an agent is told to run the app's openfilm by its whole path: its shell ma
   const command = openfilmCommand('/Users/me/Library/Application Support/OpenFilm/bin', 'darwin');
   assert.equal(command, "'/Users/me/Library/Application Support/OpenFilm/bin/openfilm'", 'quoted, for the space in it');
   const told = agentInstructions(command);
-  for (const run of [`\`${command}\` with no arguments`, `\`${command} open\``, `\`${command} look\``]) assert.ok(told.includes(run), run);
+  for (const run of [`\`${command}\` (this app's CLI)`, `\`${command} look\``, '`videomaker-media` MCP tools']) assert.ok(told.includes(run), run);
   assert.match(told, /not as `openfilm` \(your shell may find another one first\)/);
   assert.ok(!told.includes('on your PATH'));
   assert.equal(openfilmCommand('C:\\Users\\me\\AppData\\Roaming\\OpenFilm\\bin', 'win32'), null, 'on Windows the name on the PATH');
   assert.equal(agentInstructions(null), INSTRUCTIONS);
-  assert.match(INSTRUCTIONS, /Use the `openfilm` command on your PATH/);
+  assert.match(INSTRUCTIONS, /Use the `videomaker` command on your PATH/);
 });
 
 test("Codex keeps the session's PATH for each command, the app's openfilm first, after the person's own instructions", () => {
