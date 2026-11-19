@@ -336,6 +336,15 @@ test('native readiness includes a submitted compositor surface, with a bounded t
   await paintPage({ ...contents, capturePage: () => new Promise(() => {}) }, { paintTimeoutMs: 5 });
 });
 
+test('unavailable hidden capture does not prevent switching a ready project', async () => {
+  const contents = {
+    isDestroyed: () => false,
+    executeJavaScript: async () => true,
+    capturePage: async () => { throw new Error('Current display surface not available for capture'); },
+  };
+  await assert.doesNotReject(paintPage(contents, { readySelector: '[data-titlebar]' }));
+});
+
 test('an editor that never mounts is not presented as a ready destination', async () => {
   await assert.rejects(paintPage({
     isDestroyed: () => false,
