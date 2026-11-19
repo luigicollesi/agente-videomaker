@@ -84,7 +84,7 @@ function terminateChild(child){
  if(child.pid){try{process.kill(-child.pid,'SIGKILL');return}catch{/* group already ended */}}
  try{child.kill('SIGKILL')}catch{/* child already ended */}
 }
-function exec(name,args,timeout=30000,env=process.env){
+function exec(name,args,timeout=30000,env=process.env,acceptedCodes=[0]){
  return new Promise((resolve,reject)=>{
   const child=spawn(name,args,{stdio:['ignore','pipe','pipe'],env,detached:process.platform!=='win32'});
   activeChildren.add(child);
@@ -109,7 +109,7 @@ function exec(name,args,timeout=30000,env=process.env){
    clearTimeout(timer);
    activeChildren.delete(child);
    if(failure)return reject(failure);
-   if(code!==0)return reject(Error(Buffer.concat(err).toString().slice(0,600)||name+' failed'));
+   if(!acceptedCodes.includes(code))return reject(Error(Buffer.concat(err).toString().slice(0,600)||name+' failed'));
    resolve(Buffer.concat(out));
   });
  });
@@ -202,8 +202,15 @@ async function musicTool(name,args){
   cli=['analyze',input,'--output',output];
  } else {
   const file=await safePath(args?.path,analysisFiles);
-  cli=[name==='music_overview'?'overview':name==='music_context'?'context':'cues',file];
+  cli=[name==='music_validate'?'validate':name==='music_compare'?'compare':name==='music_overview'?'overview':name==='music_context'?'context':'cues',file];
   if(name==='music_context'||name==='music_cues')cli.push(...intervalArgs(args));
+  if(name==='music_compare'){
+   for(const suffix of ['a','b']){
+    const start=args?.['start_'+suffix],end=args?.['end_'+suffix];
+    if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start)throw Error('Invalid music comparison interval');
+    cli.push('--start-'+suffix,String(start),'--end-'+suffix,String(end));
+   }
+  }
   if(name==='music_cues'){
    const limit=args?.limit??30;
    if(!Number.isInteger(limit)||limit<1||limit>100)throw Error('Invalid cue limit');
@@ -229,7 +236,7 @@ async function musicTool(name,args){
    }finally{await rm(folder,{recursive:true,force:true})}
   });
  }
- const data=await exec(python,['-m','music_analyzer.cli',...cli],60000,musicRuntime());
+ const data=await exec(python,['-m','music_analyzer.cli',...cli],60000,musicRuntime(),name==='music_validate'?[0,2]:[0]);
  let output;
  try{output=JSON.parse(data.toString('utf8'))}catch{throw Error('Music analyzer returned invalid JSON')}
  return {content:[{type:'text',text:JSON.stringify(output)}]};
@@ -354,7 +361,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
+   case 'tools/call':result=msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
