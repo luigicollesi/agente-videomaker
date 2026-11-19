@@ -13,6 +13,7 @@ test('Media MCP lists native tools and denies paths outside assets', async () =>
  try {
   await mkdir(join(project,'assets'));
   await writeFile(join(project,'private.jpg'),Buffer.from('private'));
+  await writeFile(join(project,'assets','sample.mp4'),Buffer.from('fixture'));
   child=spawn(process.execPath,[script],{env:{...process.env,VIDEOMAKER_PROJECT:project},stdio:['pipe','pipe','pipe']});
   let buf='',pending=new Map();
   child.stdout.on('data',data=>{
@@ -37,8 +38,10 @@ test('Media MCP lists native tools and denies paths outside assets', async () =>
   assert.equal(denied.result.isError,true);
   const reverseDenied=await request(4,'tools/call',{name:'reverse_video',arguments:{path:'private.jpg',output:'assets/out.mp4'}});
   assert.equal(reverseDenied.result.isError,true);
-  const escapedOutput=await request(5,'tools/call',{name:'reverse_video',arguments:{path:'assets/nonexistent.mp4',output:'../escaped.mp4'}});
+  const escapedOutput=await request(5,'tools/call',{name:'reverse_video',arguments:{path:'assets/sample.mp4',output:'../escaped.mp4'}});
   assert.equal(escapedOutput.result.isError,true);
+  const badAudio=await request(6,'tools/call',{name:'reverse_video',arguments:{path:'assets/sample.mp4',output:'assets/new.mp4',audio:'invalid'}});
+  assert.equal(badAudio.result.isError,true);
  } finally {
   if(child){child.kill();child.stdin.destroy()}
   await rm(project,{recursive:true,force:true});
