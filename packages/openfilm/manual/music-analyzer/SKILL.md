@@ -15,6 +15,10 @@ When the local `videomaker-media` MCP is available, prefer `music_analyze` (WAV/
 
 `music_validate` validates existing acoustic JSONs and reports structured validity (invalid analyses return `valid: false`). `music_compare` compares two intervals using `start_a`, `end_a`, `start_b`, `end_b` on the same analysis. Prefer these compact native calls over loading the complete JSON or running equivalent CLI commands. The existing analyzer remains authoritative; do not confuse acoustic comparisons with lyric alignment.
 
+## Token-efficient MCP analysis
+
+`music_inspect` describes streams of WAV/MP3/MP4 inputs without a full analysis. `music_analyze` returns a short validated receipt with `output_path`; inspect that result with `music_overview`, `music_context`, `music_cues` or `music_compare` instead of dumping the stored analysis JSON. Use the existing CLI for unsupported options and avoid duplicate runs.
+
 ## Runtime
 
 Python 3.12+, FFmpeg and FFprobe are required. Desktop release builds include the analyzer's Python source but do not bundle a Python interpreter or third-party Python dependencies. Install the dependencies into the chosen interpreter. The source directory may be overridden with `VIDEOMAKER_MUSIC_ANALYZER_SRC`. For the MCP server, set `VIDEOMAKER_PYTHON` to the absolute path of the interpreter in the configured virtual environment (for example, `.../.venv/bin/python`); otherwise it uses `python3` on Unix or `python` on Windows. Configure the variable in the app/agent environment before starting a new MCP session. Do not automatically install Python packages. The `music-analyzer` executable becomes available after installing the package:
