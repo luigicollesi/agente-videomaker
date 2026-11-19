@@ -10,6 +10,10 @@ async function main(){
  if(job.kind==='text3d-command'){
   if(!Array.isArray(job.args)||!['font-add','register','apply'].includes(job.args[0])||job.args.length>4)
    throw Error('Unsupported Text3D action');
+  if(job.args[0]==='register'){
+   const { requireVerifiedPreview }=await import('./mcp/text3d-safety.mjs');
+   await requireVerifiedPreview(job.args[1]);
+  }
   const {text3DCommand}=await import('openfilm/text3d-cli');
   const done=await text3DCommand(job.args,job.args[0]==='apply'?{expectedRevision:job.revision}:{});
   if(!done.ok)throw Error((done.lines??[]).slice(0,4).join(' ').slice(0,900)||'Text3D command failed');
