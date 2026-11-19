@@ -277,7 +277,11 @@ async function musicTool(name,args){
   let cachePath;
   if(args?.use_cache===true){
    const projectRoot=await realpath(project);
-   const cacheDir=join(projectRoot,'.film','music-analyzer-cache');
+   const stateDir=join(projectRoot,'.film');
+   await mkdir(stateDir,{recursive:true});
+   const canonicalState=await realpath(stateDir);
+   if(canonicalState!==stateDir)throw Error('Music cache requires a local project .film directory');
+   const cacheDir=join(canonicalState,'music-analyzer-cache');
    await mkdir(cacheDir,{recursive:true});
    cachePath=await realpath(cacheDir);
    const rel=relative(projectRoot,cachePath);
