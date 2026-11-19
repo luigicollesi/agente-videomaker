@@ -44,12 +44,20 @@ test('real FFmpeg reversal and offline music analysis through MCP', {skip:!enabl
   const again=await call('reverse_video',{path:'assets/video.mp4',output:'assets/reversed.mp4'});
   assert.equal(again.result.isError,true);
   assert.deepEqual(await readFile(join(project,'assets','reversed.mp4')),before);
+  const stream=await call('music_inspect',{path:'assets/song.wav',audio_stream:0});
+  assert.notEqual(stream.result?.isError,true,JSON.stringify(stream.result));
+  const decoded=await call('music_decode',{path:'assets/song.wav',pcm_output:'assets/source.f32le',metadata_output:'assets/source-meta.json',audio_stream:0,sample_rate:16000});
+  assert.notEqual(decoded.result?.isError,true,JSON.stringify(decoded.result));
+  assert.ok((await stat(join(project,'assets','source.f32le'))).size>0);
+  assert.ok((await stat(join(project,'assets','source-meta.json'))).size>0);
   const analyzed=await call('music_analyze',{path:'assets/song.wav',output:'assets/analysis.json'});
   assert.notEqual(analyzed.result?.isError,true,JSON.stringify(analyzed.result));
   const json=JSON.parse(await readFile(join(project,'assets','analysis.json'),'utf8'));
   assert.equal(json.schema_version,'1.0.0');
   const overview=await call('music_overview',{path:'assets/analysis.json'});
   assert.notEqual(overview.result?.isError,true,JSON.stringify(overview.result));
+  const cues=await call('music_cues',{path:'assets/analysis.json',start:0,end:6,limit:10,categories:['beat','onset'],selection:'chronological',merge_coincident:true});
+  assert.notEqual(cues.result?.isError,true,JSON.stringify(cues.result));
  }finally{
   if(child){child.kill();child.stdin.destroy()}
   await rm(project,{recursive:true,force:true});
