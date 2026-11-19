@@ -142,7 +142,18 @@ test('Media MCP applies revision-guarded timeline edits to a real film', async (
   const denied=await request('tools/call',{name:'timeline_set_properties',arguments:{revision:locked.revision,edits:[{clip:'source-clip',prop:'at',value:8}]}});
   assert.equal(denied.result.isError,true);
   const unlocked=await call('timeline_apply_batch',{revision:locked.revision,steps:[{op:'track',track:0,field:'locked',value:false}]});
-  await call('timeline_set_properties',{revision:unlocked.revision,edits:[{clip:'source-clip',prop:'at',value:8}]});
+  const lastEdit=await call('timeline_set_properties',{revision:unlocked.revision,edits:[{clip:'source-clip',prop:'at',value:8}]});
+  const presets=await call('motion_presets',{slot:'in',limit:3});
+  assert.ok(presets.presets.length>0);
+  const selected=presets.presets[0].id;
+  const animated=await call('timeline_apply_motion_preset',{revision:lastEdit.revision,clip:'source-clip',slot:'in',preset_id:selected});
+  assert.notEqual(animated.revision,lastEdit.revision);
+  const afterMotion=await call('timeline_get_clip',{clip:'source-clip'});
+  assert.ok(afterMotion.clip.style.includes('motion-in-'));
+  const clear=await call('timeline_apply_motion_preset',{revision:animated.revision,clip:'source-clip',slot:'in',preset_id:null});
+  assert.ok(clear.revision);
+  const failedPreset=await request('tools/call',{name:'timeline_apply_motion_preset',arguments:{revision:clear.revision,clip:'source-clip',slot:'out',preset_id:'invalid'}});
+  assert.equal(failedPreset.result.isError,true);
   const old=await request('tools/call',{name:'timeline_set_playback',arguments:{clip:'source-clip',revision:duplicated.revision,field:'volume',value:0.5}});
   assert.equal(old.result.isError,true);
  } finally {
