@@ -6,6 +6,8 @@ import { join, resolve, extname, relative, isAbsolute } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
+import { readProjectFilm } from '../../../packages/openfilm/studio/server/film.mjs';
+import { kindOf } from '../../../packages/openfilm/src/film-doc.mjs';
 
 const project=resolve(process.env.VIDEOMAKER_PROJECT || process.cwd());
 const require=createRequire(import.meta.url);
@@ -15,6 +17,8 @@ const schema={type:'object',properties:{path:{type:'string',description:'Media p
 const tools=[
  {name:'inspect_image',description:'Inspect an image from this project Media. Returns visual image content, not a filename description.',inputSchema:schema},
  {name:'inspect_video',description:'Inspect a video from this project Media. Returns timestamped image frames. Sampled frames do not guarantee exact event boundaries.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',minimum:0},max_frames:{type:'integer',minimum:1,maximum:24}},required:['path']}},
+ {name:'timeline_overview',description:'Read-only overview of the current project film, its revision, stage and number of tracks/clips.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
+ {name:'timeline_clips',description:'Read-only bounded list of clips from the current film, with IDs, source, kind and timeline/source timing.',inputSchema:{type:'object',properties:{track:{type:'integer',minimum:0},limit:{type:'integer',minimum:1,maximum:100}},additionalProperties:false}},
  {name:'music_analyze',description:'Analyze an existing WAV, MP3 or MP4 in project/assets and save a new acoustic-analysis JSON in assets. Offline; may require Python analysis dependencies.',inputSchema:{type:'object',properties:{path:schema.properties.path,output:{type:'string',description:'New analysis JSON path inside project/assets'}},required:['path','output']}},
  {name:'music_overview',description:'Get compact BPM, dynamics and structure overview from an existing analysis JSON.',inputSchema:schema},
  {name:'music_context',description:'Get acoustic context of a time interval from an existing analysis JSON.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0}},required:['path','start','end']}},
@@ -133,6 +137,22 @@ async function musicTool(name,args){
  return {content:[{type:'text',text:JSON.stringify(output)}]};
 }
 
+
+async function timelineTool(name,args){
+ const {rev,value,problems}=await readProjectFilm(project);
+ if(!value)throw Error('Invalid film.html: '+problems.join('; ').slice(0,500));
+ const tracks=value.tracks??[];
+ const count=tracks.reduce((n,t)=>n+(t.clips?.length??0),0);
+ if(name==='timeline_overview')return {content:[{type:'text',text:JSON.stringify({revision:rev,stage:value.stage,track_count:tracks.length,clip_count:count,tracks:tracks.map((t,i)=>({index:i,clip_count:t.clips?.length??0,locked:!!t.locked,hidden:!!t.hidden,muted:!!t.muted}))})}]};
+ const track=args?.track;
+ const limit=args?.limit??50;
+ if(track!==undefined&&(!Number.isInteger(track)||track<0||track>=tracks.length))throw Error('Invalid track index');
+ if(!Number.isInteger(limit)||limit<1||limit>100)throw Error('Invalid limit');
+ const chosen=track===undefined?tracks.map((t,i)=>({t,i})): [{t:tracks[track],i:track}];
+ const all=chosen.flatMap(({t,i})=>(t.clips??[]).map(c=>({track:i,id:c.id??null,src:c.src??null,kind:kindOf(c),at:c.at??null,time:c.time??null,speed:c.speed??null})));
+ return {content:[{type:'text',text:JSON.stringify({revision:rev,total:all.length,returned:Math.min(limit,all.length),truncated:all.length>limit,clips:all.slice(0,limit)})}]};
+}
+
 function send(value){process.stdout.write(JSON.stringify(value)+'\n')}
 const rl=createInterface({input:process.stdin,crlfDelay:Infinity});
 rl.on('line',async line=>{
@@ -144,7 +164,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):await inspect(msg.params?.name,msg.params?.arguments);break;
+   case 'tools/call':result=['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
