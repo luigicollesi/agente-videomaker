@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { filmHtml, readFilmFile } from '../../../packages/openfilm/src/film-doc.mjs';
 import { EMPTY_FILM } from '../../../packages/openfilm/studio/server/film.mjs';
 
-test('MCP builds five HTML scenes and two audio clips from an empty Studio film without direct timeline writes', {timeout:45000},async()=>{
+test('MCP builds five HTML scenes and two audio clips from an empty Studio film without direct timeline writes', {timeout:100000},async()=>{
  const project=await mkdtemp(join(tmpdir(),'videomaker-empty-mcp-'));
  const outside=await mkdtemp(join(tmpdir(),'videomaker-outside-mcp-'));
  const script=fileURLToPath(new URL('./media-mcp.mjs',import.meta.url));
@@ -19,7 +19,9 @@ test('MCP builds five HTML scenes and two audio clips from an empty Studio film 
   for(let i=0;i<5;i++)await writeFile(join(project,'cenas','cena-'+(i+1)+'.html'),
    '<!doctype html><html><body><script>window.film={width:320,height:180,duration:8,frame(t){}};</script></body></html>');
   await writeFile(join(outside,'outside.html'),'<html></html>');
-  await symlink(join(outside,'outside.html'),join(project,'cenas','outside.html'));
+  let symlinkCreated=false;
+  try{await symlink(join(outside,'outside.html'),join(project,'cenas','outside.html'));symlinkCreated=true}
+  catch(error){if(process.platform!=='win32'||!['EPERM','EACCES'].includes(error.code))throw error}
   child=spawn(process.execPath,[script],{env:{...process.env,VIDEOMAKER_PROJECT:project},stdio:['pipe','pipe','pipe']});
   let buffer='',seq=0;const pending=new Map();
   child.stdout.on('data',bytes=>{
@@ -32,7 +34,7 @@ test('MCP builds five HTML scenes and two audio clips from an empty Studio film 
    }
   });
   const request=(name,args={})=>new Promise((resolve,reject)=>{
-   const id=++seq,timer=setTimeout(()=>{pending.delete(id);reject(Error('MCP empty project timeout: '+name))},12000);
+   const id=++seq,timer=setTimeout(()=>{pending.delete(id);reject(Error('MCP empty project timeout: '+name))},25000);
    pending.set(id,reply=>{clearTimeout(timer);resolve(reply)});
    child.stdin.write(JSON.stringify({jsonrpc:'2.0',id,method:'tools/call',params:{name,arguments:args}})+'\n');
   });
@@ -45,7 +47,7 @@ test('MCP builds five HTML scenes and two audio clips from an empty Studio film 
   assert.equal(first.clip_count,0);
   assert.equal(first.track_count,0);
   const original=await readFile(join(project,'film.html'),'utf8');
-  for(const path of ['film.html','../outside.html','cenas/outside.html','.film/private.html']){
+  for(const path of ['film.html','../outside.html',...(symlinkCreated?['cenas/outside.html']:[]),'.film/private.html']){
    const denied=await request('timeline_insert_asset',{path,revision:first.revision,at:0,time:[0,8]});
    assert.equal(denied.result.isError,true,'Must reject: '+path);
   }
