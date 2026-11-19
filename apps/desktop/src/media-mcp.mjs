@@ -250,7 +250,6 @@ async function musicTool(name,args){
   const options=musicDecodeOptions(args);
   return heavyJob(async()=>{
    const tmp=await mkdtemp(join(dirname(pcm),'.music-mcp-decode-'));
-   let published=false;
    try{
     const pcmTemp=join(tmp,'decoded.f32le'),metaTemp=join(tmp,'metadata.json');
     const response=await exec(pythonBinary(),['-m','music_analyzer.cli','decode',input,'--pcm-output',pcmTemp,'--metadata-output',metaTemp,...options],600000,musicRuntime());
@@ -262,7 +261,6 @@ async function musicTool(name,args){
     // Both final paths are exclusive. Undo first hardlink if second cannot be published.
     await link(pcmTemp,pcm);
     try{await link(metaTemp,metadata)}catch(e){await rm(pcm,{force:true});throw e}
-    published=true;
     return {content:[{type:'text',text:JSON.stringify({status:'decoded',pcm_path:relative(project,pcm),metadata_path:relative(project,metadata),pcm_bytes:pcmStats.size,metadata_bytes:metaStats.size,sample_rate:args?.sample_rate??22050,stream:args?.audio_stream??null,next:'PCM is kept on disk; use music_analyze for acoustic features'})}]};
    }finally{
     await rm(tmp,{recursive:true,force:true});
