@@ -9,7 +9,9 @@ import { verifyText3D } from './text3d-verify.mjs';
 import { validateText3D as validateText3DManifest } from './text3d-contract.mjs';
 import { builtInRoot } from '../studio/server/library.mjs';
 import { replacementEdits } from './text3d-replace.mjs';
-import { readProjectFilm, editProjectFilm } from '../studio/server/film.mjs';
+import { readProjectFilm, editProjectFilm, changeProjectFilm } from '../studio/server/film.mjs';
+import { applyOps } from '../studio/server/ops.mjs';
+import { readFilm } from './film-doc.mjs';
 import { takeSaved } from '../studio/server/saved.mjs';
 import { activeText3D, listText3D, registerText3D } from '../studio/server/text3d/registry.mjs';
 
@@ -102,7 +104,7 @@ export async function convertTrueTypeToTypeface(data){
  return {glyphs,familyName:font.names.fontFamily?.en??'Local Font',ascender:Math.round(font.ascender*scale),descender:Math.round(font.descender*scale),underlinePosition:0,underlineThickness:0,boundingBox:{yMin:-200,xMin:0,yMax:800,xMax:1000},resolution:1000,original_font_information:{}};
 }
 /** @param {string[]} args */
-export async function text3DCommand(args) {
+export async function text3DCommand(args, { expectedRevision } = {}) {
  const [action, ...rest]=args;
  const usage='videomaker text3d create <folder> | font-add <folder> <family> [weight] | preview <folder> | list [source-id] | inspect <source-id> | validate <folder> | register <folder> | apply <project-folder> <clip-id> <component-id>';
  try {
@@ -149,6 +151,7 @@ export async function text3DCommand(args) {
    const {rev,value}=await readProjectFilm(project);
    const clip=value?.tracks.flatMap(t=>t.clips).find(c=>c.id===clipId);
    if(!clip)throw new Error('Selected clip was not found');
+   if(expectedRevision && rev!==expectedRevision)throw new Error('Stale film revision; inspect again');
    if(clip.attrs?.['data-openfilm-content-type']==='text3d')throw new Error('Clip is already a Text3D component');
    // Plan and validate against the original Saved bundle BEFORE copying anything into the project.
    const library=join(savedRoot(),entry.bundlePath.slice('saved/'.length));
@@ -160,8 +163,24 @@ export async function text3DCommand(args) {
    // Confirm the imported page and bundled assets render at the project's actual path.
    await verifyText3D(join(project,dirname(taken.clip.src)),Number(clip.time?.[1]??10));
    const edits=replacementEdits(clip,taken.clip,entry.parameterMap);
-   await editProjectFilm(project,rev,[{op:'props',edits}]);
-   return {ok:true,lines:['Applied '+entry.componentId+' to clip '+clipId]};
+   let written;
+   if(expectedRevision){
+    written=await changeProjectFilm(project,(value,current)=>{
+     if(current.rev!==expectedRevision)throw new Error('Stale film revision; inspect again');
+     const track=value.tracks.find(t=>t.clips?.some(c=>c.id===clipId));
+     const latest=track?.clips.find(c=>c.id===clipId);
+     if(!latest)throw new Error('Clip disappeared while applying Text3D');
+     if(track.locked)throw new Error('Cannot edit a locked track');
+     if(latest.attrs?.['data-openfilm-content-type']==='text3d')throw new Error('Clip is already Text3D');
+     const updated=applyOps(value,[{op:'props',edits:replacementEdits(latest,taken.clip,entry.parameterMap)}]);
+     const checked=readFilm(updated);
+     if(!checked.doc)throw new Error(checked.problems.join('; '));
+     return {value:updated};
+    });
+   }else{
+    written=await editProjectFilm(project,rev,[{op:'props',edits}]);
+   }
+   return {ok:true,lines:['Applied '+entry.componentId+' to clip '+clipId],revision:written.rev};
   }
   if(action==='validate'&&rest[0]){
    const manifest=await validateText3D(rest[0]);
