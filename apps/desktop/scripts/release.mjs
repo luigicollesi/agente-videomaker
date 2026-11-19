@@ -168,7 +168,8 @@ await builder.build({
     asarUnpack: ['node_modules/openfilm/**', 'node_modules/@agentclientprotocol/**', 'node_modules/playwright-core/**'],
     files: ['src/**/*', 'shell/dist/**/*', 'package.json', 'node_modules/**/*'],
     /* ffmpeg and the headless browser (2b), as files of their own beside the archive: they run as programs */
-    extraResources: [{ from: runtime, to: 'runtime' }],
+    extraResources: [{ from: runtime, to: 'runtime' },
+      { from: resolve(protocol, '../music-analyzer/src'), to: 'music-analyzer/src' }],
     directories: { output: out, buildResources: join(desktop, 'build') },
     electronFuses: {
       runAsNode: true,
