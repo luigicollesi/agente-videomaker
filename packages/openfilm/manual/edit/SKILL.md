@@ -12,6 +12,10 @@ Start with the smallest native operation relevant to the request. Use `timeline_
 Treat a claim of exact duration as verified only when `film_audit` returns `duration_confirmed:true` and, when requested, `expected_duration_matches:true`. Unknown media/page durations need further inspection; never guess. A contact sheet or one screenshot verifies only the sampled moments, not every film frame. In your final response give meaningful plain words beside any Studio reference token: "climax (45–60 s) [[range:45-60]]", not a reference-only phrase.
 
 
+## Native construction from a blank timeline
+
+Studio initializes new projects with a valid `film.html` and `tracks: []`. Inspect with `timeline_overview`, create procedural `.html` pages in the project when required, then insert them with `timeline_insert_asset` or `timeline_apply_batch` using the latest film revision. The MCP accepts local HTML scenes anywhere in the regular project tree (except `film.html` and hidden tool folders); conventional media must still be inside `assets/`. When no track exists, **omit `track`** to let the existing Studio engine create it. After each write reuse the new revision. Don't edit `film.html` directly just to manufacture tracks; if a particular operation has no native representation, use code authoring as a documented fallback. Validate final duration with `film_audit`; check actual audio duration where necessary and visually review scenes with `film_preview_range`.
+
 ## The project
 
 A folder:
