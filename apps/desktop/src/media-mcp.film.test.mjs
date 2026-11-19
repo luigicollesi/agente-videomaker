@@ -47,6 +47,17 @@ test('native MCP film preview and safe one-second export', {
   const preview=await ok('film_preview_frame',{at:0.5});
   assert.equal(JSON.parse(preview.content[0].text).status,'previewed');
   assert.ok(preview.content.some(p=>p.type==='image'));
+  const audited=await ok('film_audit',{expected_seconds:2});
+  const audit=JSON.parse(audited.content[0].text);
+  assert.equal(audit.duration_confirmed,true);
+  assert.equal(audit.expected_duration_matches,true);
+  const contact=await ok('film_preview_range',{start:0,end:1.9,count:3});
+  const sheet=JSON.parse(contact.content[0].text);
+  assert.equal(sheet.status,'previewed');
+  assert.equal(sheet.count,3);
+  assert.ok(sheet.files.length>0,'native contact sheet should be accessible inside the project');
+  assert.ok(contact.content.some(block=>block.type==='image'),'preview image should be visible');
+
   const rendered=await ok('film_render',{revision,output:'assets/result.mp4',start:0,end:1,fps:12});
   assert.equal(JSON.parse(rendered.content[0].text).status,'rendered');
   assert.ok((await stat(join(root,'assets','result.mp4'))).size>100);
