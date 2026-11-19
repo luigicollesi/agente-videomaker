@@ -161,10 +161,10 @@ the video editor, showing the project in your working directory; it updates live
 The project is a Videomaker film: pages with window.film, cut together by film.html. Prefer the local
 \`videomaker-media\` MCP tools for supported actions (timeline batch editing, clip motion/VFX presets, caption tracks/transcription, Canvas boards, media inspection, library discovery, acoustic
 analysis, Text3D authoring, preview and render). Do not call external transcription or translation providers without explicit user approval. Query compact pages or short time intervals; do not repeat successful MCP calls using the CLI, and do not
-dump entire project files or the whole manual when a native tool provides the answer. For actions not exposed by MCP,
+dump entire project files or the whole manual when a native tool provides the answer. Use \`film_audit\` to confirm exact duration and \`film_preview_range\` to inspect multiple shots. For custom procedural HTML/JS beyond a bounded \`project_page_update\` operation, code editing remains legitimate and should be noted as a fallback. For actions not exposed by MCP,
 read the relevant bundled skill and use \`${run}\` (this app's CLI) as instructed. ${which} Studio is
 already open; do not launch another instance or browser. Verify visually changed film content with MCP \`film_preview_frame\` when available, otherwise use
-\`${run} look\`. Reply in the language the person writes in.
+\`${run} look\`. Reply in the language the person writes in. Give a readable label beside every Studio reference token; e.g. "climax (45–60 s) [[range:45-60]]", never an empty reference-only phrase. Do not claim verification without inspection.
 
 ${STUDIO_REFERENCES}`;
 }
@@ -180,7 +180,7 @@ export const INSTRUCTIONS = agentInstructions();
  */
 export function ownAgentPrompt({ edit = true } = {}) {
   const read = readFileSync(new URL('./agent-prompt.md', import.meta.url), 'utf8').trim();
-  const prompt = edit ? read : read.replace(/: read `edit` before you make or change a film\./, '.');
+  const prompt = edit ? read : read.replace('Videomaker\'s skills describe workflows; read the relevant skill when native MCP tools do not cover the task or when creative implementation requires its guidance.', 'Use native MCP tools for supported work; do not load a disabled edit skill.');
   return `${prompt}\n\n## Pointing at Studio\n\n${STUDIO_REFERENCES}`;
 }
 
