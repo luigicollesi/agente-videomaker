@@ -56,6 +56,10 @@ test('MCP reads canvas in compact pages and searches native library', {timeout:6
   assert.equal(node.edges.length,1);
   const missing=await call('canvas_nodes',{board:'missing'});
   assert.equal(missing.result.isError,true);
+  const invalidApply=await call('canvas_apply',{ops:[]});
+  assert.equal(invalidApply.result.isError,true);
+  const oversizedApply=await call('canvas_apply',{ops:[{op:'add',kind:'note',text:'x'.repeat(41000)}]});
+  assert.equal(oversizedApply.result.isError,true);
   const search=await ok('library_search',{kind:'effect',query:'glow',limit:3});
   assert.equal(search.kind,'effect');
   assert.ok(Array.isArray(search.results));
