@@ -1,6 +1,6 @@
 /** Local Media MCP server with read-only inspection and controlled video reversal. */
 import { createInterface } from 'node:readline';
-import { readFile, mkdtemp, rm, realpath, stat, lstat } from 'node:fs/promises';
+import { readFile, mkdtemp, rm, realpath, stat, lstat, link } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, extname, relative, isAbsolute } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -151,13 +151,28 @@ async function musicTool(name,args){
    cli.push('--limit',String(limit));
   }
  }
- const data=await (name==='music_analyze'?heavyJob(()=>exec(process.platform==='win32'?'python':'python3',['-m','music_analyzer.cli',...cli],600000,musicRuntime())):exec(process.platform==='win32'?'python':'python3',['-m','music_analyzer.cli',...cli],60000,musicRuntime()));
+ const python=process.platform==='win32'?'python':'python3';
+ if(name==='music_analyze'){
+  const destination=cli[3];
+  return heavyJob(async()=>{
+   const folder=await mkdtemp(join(dirname(destination),'.music-mcp-'));
+   try{
+    cli[3]=join(folder,'analysis.json');
+    const data=await exec(python,['-m','music_analyzer.cli',...cli],600000,musicRuntime());
+    let output;
+    try{output=JSON.parse(data.toString('utf8'))}catch{throw Error('Music analyzer returned invalid JSON')}
+    const validation=await exec(python,['-m','music_analyzer.cli','validate',cli[3]],60000,musicRuntime());
+    let checked;
+    try{checked=JSON.parse(validation.toString('utf8'))}catch{throw Error('Music analyzer validation returned invalid JSON')}
+    if(!checked.valid)throw Error('Music analysis failed validation');
+    await link(cli[3],destination);
+    return {content:[{type:'text',text:JSON.stringify({...output,output_path:relative(project,destination)})}]};
+   }finally{await rm(folder,{recursive:true,force:true})}
+  });
+ }
+ const data=await exec(python,['-m','music_analyzer.cli',...cli],60000,musicRuntime());
  let output;
  try{output=JSON.parse(data.toString('utf8'))}catch{throw Error('Music analyzer returned invalid JSON')}
- if(name==='music_analyze'){
-  const expected=relative(project,cli[3]);
-  return {content:[{type:'text',text:JSON.stringify({...output,output_path:expected})}]};
- }
  return {content:[{type:'text',text:JSON.stringify(output)}]};
 }
 
