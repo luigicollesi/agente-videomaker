@@ -8,6 +8,10 @@ license: MIT
 
 Use the existing local analyzer in `packages/music-analyzer/`. This skill is provided to the editing agent by default; it is not a transcript or lyrics aligner.
 
+## Native MCP tools
+
+When the local `videomaker-media` MCP is available, prefer `music_analyze` (WAV/MP3/MP4 input and new JSON output in `assets/`), `music_overview`, `music_context` and `music_cues` (queries of that JSON). These tools run the same Python analyzer, not a second implementation. Install the Python dependencies first; missing dependencies are reported as errors. Use short time ranges, validate timeline alignment before editing, and do not interpret acoustic cues as lyrics or verified song sections. Fall back to the CLI below only if these tools are unavailable.
+
 ## Runtime
 
 Python 3.12+, FFmpeg and FFprobe are required. The `music-analyzer` executable becomes available after installing the package:
