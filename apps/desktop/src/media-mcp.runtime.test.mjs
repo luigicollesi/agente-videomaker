@@ -17,6 +17,7 @@ test('Media MCP honors Python override and limits subprocess output', {skip:proc
   await writeFile(python,[
    '#!/usr/bin/env node',
    'if(process.argv.includes("context")) process.stdout.write("x".repeat(5*1024*1024));',
+   'else if(process.argv.includes("validate")) {console.log(JSON.stringify({valid:false,errors:["bad timestamps"]}));process.exitCode=2;}',
    'else console.log(JSON.stringify({interpreter:"configured"}));',
    ''
   ].join('\n'));
@@ -45,6 +46,13 @@ test('Media MCP honors Python override and limits subprocess output', {skip:proc
   const tooLarge=await request('music_context',{path:'assets/music.json',start:0,end:1});
   assert.equal(tooLarge.result?.isError,true);
   assert.match(tooLarge.result.content[0].text,/output exceeded limit/);
+  const comparison=await request('music_compare',{path:'assets/music.json',start_a:0,end_a:1,start_b:2,end_b:3});
+  assert.notEqual(comparison.result?.isError,true,JSON.stringify(comparison.result));
+  const badCompare=await request('music_compare',{path:'assets/music.json',start_a:2,end_a:1,start_b:2,end_b:3});
+  assert.equal(badCompare.result.isError,true);
+  const validation=await request('music_validate',{path:'assets/music.json'});
+  assert.notEqual(validation.result?.isError,true,JSON.stringify(validation.result));
+  assert.equal(JSON.parse(validation.result.content[0].text).valid,false);
   const after=await request('music_overview',{path:'assets/music.json'});
   assert.notEqual(after.result?.isError,true,JSON.stringify(after.result));
  }finally{
