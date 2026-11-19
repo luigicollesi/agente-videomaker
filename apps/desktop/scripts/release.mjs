@@ -169,7 +169,7 @@ await builder.build({
     files: ['src/**/*', 'shell/dist/**/*', 'package.json', 'node_modules/**/*'],
     /* ffmpeg and the headless browser (2b), as files of their own beside the archive: they run as programs */
     extraResources: [{ from: runtime, to: 'runtime' },
-      { from: resolve(protocol, '../music-analyzer/src'), to: 'music-analyzer/src' }],
+      { from: resolve(desktop, '../../packages/music-analyzer/src'), to: 'music-analyzer/src' }],
     directories: { output: out, buildResources: join(desktop, 'build') },
     electronFuses: {
       runAsNode: true,
