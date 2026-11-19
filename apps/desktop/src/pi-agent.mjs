@@ -9,7 +9,8 @@
  * on; the chat switches between them with the session's `model` option, and a model's efforts with `effort`, for one
  * offering more than one; `auto` sends none), and its whole system prompt (agents.mjs ownAgentPrompt), in place of Pi's. Of the project's instructions only its own AGENTS.md (or CLAUDE.md) is read, not
  * the folders above it; no SYSTEM.md; of skills only OpenFilm's (`skills`: their folder and names, agent-skills.mjs). Besides Pi's read, bash, edit and write it has `ask`: questions for
- * the person, with options, shown in the chat as Claude Code's and Codex's are (an ACP form).
+ * the person, with options, shown in the chat as Claude Code's and Codex's are (an ACP form). The embedded Pi also receives
+ * `videomaker_tools` and `videomaker_call`: compact discovery and execution through the same stdio MCP server as ACP agents.
  *
  * A conversation's session is kept with the project it is about (chat-store.mjs: `.film/chat/agent/`), so it goes
  * where the project goes. Each prompt may name, in `_meta.openfilm`, the turn's log: each request to the model (its whole
