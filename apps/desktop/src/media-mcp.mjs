@@ -12,6 +12,7 @@ import { kindOf, readFilm, clipKind } from 'openfilm/film-doc';
 import { applyOps } from 'openfilm/studio-ops';
 import { listBoards, readCanvas } from 'openfilm/studio-canvas';
 import { searchLibrary, KINDS, LIBRARY_VERBS, libraryGet } from 'openfilm/library-search';
+import { listText3D } from 'openfilm/text3d-registry';
 
 const project=resolve(process.env.VIDEOMAKER_PROJECT || process.cwd());
 const require=createRequire(import.meta.url);
@@ -36,6 +37,10 @@ const tools=[
  {name:'timeline_duplicate_clip',description:'Duplicate an existing clip at a nonnegative timeline second using Studio, requiring an exact current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_move_clip',description:'Move one clip to a nonnegative timeline second using the Studio edit engine. Requires current revision returned by timeline_overview; stale revisions are refused.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_clips',description:'Read-only bounded list of clips from the current film, with IDs, source, kind and timeline/source timing.',inputSchema:{type:'object',properties:{track:{type:'integer',minimum:0},limit:{type:'integer',minimum:1,maximum:100},offset:{type:'integer',minimum:0}},additionalProperties:false}},
+ {name:'text3d_list',description:'List registered reusable 3D text components, with compact metadata and optional source filter.',inputSchema:{type:'object',properties:{source_id:{type:'string'},limit:{type:'integer',minimum:1,maximum:50},offset:{type:'integer',minimum:0}},additionalProperties:false}},
+ {name:'text3d_inspect',description:'Read registered Text3D component metadata and editable parameters without reading its bundled source files.',inputSchema:{type:'object',properties:{component_id:{type:'string'}},required:['component_id'],additionalProperties:false}},
+ {name:'text3d_validate',description:'Structurally validate a draft in this project .film/text3d-drafts directory without registering or modifying clips.',inputSchema:{type:'object',properties:{folder:{type:'string'}},required:['folder'],additionalProperties:false}},
+ {name:'music_inspect',description:'Inspect audio streams from source WAV/MP3/MP4 without running full acoustic analysis.',inputSchema:schema},
  {name:'music_validate',description:'Validate acoustic analysis JSON timestamps and structure; reports valid or invalid, does not modify file.',inputSchema:schema},
  {name:'music_compare',description:'Compact comparison of two time windows in an existing acoustic analysis.',inputSchema:{type:'object',properties:{path:schema.properties.path,start_a:{type:'number',minimum:0},end_a:{type:'number',exclusiveMinimum:0},start_b:{type:'number',minimum:0},end_b:{type:'number',exclusiveMinimum:0}},required:['path','start_a','end_a','start_b','end_b'],additionalProperties:false}},
  {name:'music_analyze',description:'Analyze an existing WAV, MP3 or MP4 in project/assets and save a new acoustic-analysis JSON in assets. Offline; may require Python analysis dependencies.',inputSchema:{type:'object',properties:{path:schema.properties.path,output:{type:'string',description:'New analysis JSON path inside project/assets'}},required:['path','output']}},
@@ -201,6 +206,12 @@ function intervalArgs(args){
 }
 async function musicTool(name,args){
  let cli;
+ if(name==='music_inspect'){
+  const input=await safePath(args?.path,musicSources);
+  const bytes=await exec(pythonBinary(),['-m','music_analyzer.cli','inspect',input],60000,musicRuntime());
+  let result;try{result=JSON.parse(bytes.toString('utf8'))}catch{throw Error('Music inspect returned invalid JSON')}
+  return {content:[{type:'text',text:JSON.stringify(result).slice(0,8500)}]};
+ }
  if(name==='music_analyze'){
   const input=await safePath(args?.path,musicSources);
   const output=await safeOutput(args?.output,'.json');
@@ -237,7 +248,7 @@ async function musicTool(name,args){
     try{checked=JSON.parse(validation.toString('utf8'))}catch{throw Error('Music analyzer validation returned invalid JSON')}
     if(!checked.valid)throw Error('Music analysis failed validation');
     await link(cli[3],destination);
-    return {content:[{type:'text',text:JSON.stringify({...output,output_path:relative(project,destination)})}]};
+    return {content:[{type:'text',text:JSON.stringify({status:output.status??'analyzed',validated:true,output_path:relative(project,destination),warnings:Array.isArray(output.warnings)?output.warnings.slice(0,4):[],next:'Use music_overview or music_context for compact results'})}]};
    }finally{await rm(folder,{recursive:true,force:true})}
   });
  }
@@ -272,6 +283,34 @@ async function libraryTake(args){
  if(response.code!==0)throw Error(response.lines?.join(' ').slice(0,600)||'Library import failed');
  return {content:[{type:'text',text:JSON.stringify({status:'completed',kind:args.kind,id:args.id,details:(response.lines??[]).slice(0,8).map(line=>line.slice(0,500))})}]};
 }
+async function text3dTool(name,args){
+ if(name==='text3d_validate'){
+  if(typeof args?.folder!=='string'||!args.folder.trim())throw Error('Invalid Text3D draft folder');
+  const base=await realpath(join(project,'.film','text3d-drafts'));
+  const target=await realpath(resolve(project,args.folder));
+  const rel=relative(base,target);
+  if(!rel||rel==='..'||rel.startsWith('..'+sep)||isAbsolute(rel))throw Error('Text3D drafts must be inside .film/text3d-drafts');
+  if(!(await stat(target)).isDirectory())throw Error('Text3D draft is not a directory');
+  const { text3DCommand }=await import('openfilm/text3d-cli');
+  const validation=await text3DCommand(['validate',target]);
+  if(!validation.ok)throw Error((validation.lines??[]).join(' ').slice(0,700));
+  return {content:[{type:'text',text:JSON.stringify({valid:true,folder:relative(project,target),message:(validation.lines??[]).join(' ').slice(0,450)})}]};
+ }
+ const entries=await listText3D();
+ if(name==='text3d_inspect'){
+  if(typeof args?.component_id!=='string'||!args.component_id.trim())throw Error('Invalid Text3D component ID');
+  const entry=entries.find(e=>e.componentId===args.component_id);
+  if(!entry)throw Error('Text3D component not found');
+  return {content:[{type:'text',text:JSON.stringify({component_id:entry.componentId,source_id:entry.source2DId,display_name:entry.displayName,parameter_map:entry.parameterMap??{},bundle_path:entry.bundlePath,active:entry.active})}]};
+ }
+ if(args?.source_id!==undefined&&(typeof args.source_id!=='string'||args.source_id.length>150))throw Error('Invalid source filter');
+ const limit=args?.limit??12,offset=args?.offset??0;
+ if(!Number.isInteger(limit)||limit<1||limit>50||!Number.isInteger(offset)||offset<0)throw Error('Invalid Text3D pagination');
+ const chosen=args?.source_id?entries.filter(e=>e.source2DId===args.source_id):entries;
+ const results=chosen.slice(offset,offset+limit).map(e=>({component_id:e.componentId,source_id:e.source2DId,display_name:e.displayName,active:e.active}));
+ return {content:[{type:'text',text:JSON.stringify({total:chosen.length,offset,returned:results.length,next_offset:offset+limit<chosen.length?offset+limit:null,components:results})}]};
+}
+
 async function timelineGetClip(args){
  if(typeof args?.clip!=='string'||!args.clip.trim())throw Error('Invalid clip id');
  const {rev,value,problems}=await readProjectFilm(project);
@@ -425,7 +464,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
+   case 'tools/call':result=msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
