@@ -6,8 +6,9 @@ import { join, resolve, extname, relative, isAbsolute } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
-import { readProjectFilm, editProjectFilm } from '../../../packages/openfilm/studio/server/film.mjs';
-import { kindOf } from '../../../packages/openfilm/src/film-doc.mjs';
+import { readProjectFilm, changeProjectFilm } from '../../../packages/openfilm/studio/server/film.mjs';
+import { kindOf, readFilm } from '../../../packages/openfilm/src/film-doc.mjs';
+import { applyOps } from '../../../packages/openfilm/studio/server/ops.mjs';
 
 const project=resolve(process.env.VIDEOMAKER_PROJECT || process.cwd());
 const require=createRequire(import.meta.url);
@@ -146,8 +147,16 @@ async function timelineMove(args){
  if(current.rev!==args.revision)throw Error('Stale timeline revision; inspect again');
  const exists=current.value.tracks.some(t=>t.clips?.some(c=>c.id===args.clip));
  if(!exists)throw Error('Clip not found');
- const result=await editProjectFilm(project,args.revision,[{op:'move',clip:args.clip,at:args.at}]);
- return {content:[{type:'text',text:JSON.stringify({status:'updated',revision:result.rev,rebased:result.rebased,clip:args.clip,at:args.at})}]};
+ const ops=[{op:'move',clip:args.clip,at:args.at}];
+ const result=await changeProjectFilm(project,(value,latest)=>{
+  if(latest.rev!==args.revision)throw Error('Stale timeline revision; inspect again');
+  if(!latest.value)throw Error('Invalid film.html');
+  const edited=applyOps(value,ops);
+  const checked=readFilm(edited);
+  if(!checked.doc)throw Error(checked.problems.join('; '));
+  return {value:edited};
+ },{ops});
+ return {content:[{type:'text',text:JSON.stringify({status:'updated',revision:result.rev,clip:args.clip,at:args.at})}]};
 }
 
 async function timelineTool(name,args){
