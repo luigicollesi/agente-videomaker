@@ -13,6 +13,8 @@ A new Studio film is already initialized with zero tracks. Ask `timeline_overvie
 
 ## Creative edits and verification
 
+Production: conceive a distinct direction; plan shots, timing, motion and sound; build; inspect and refine; deliver. Optimize tools, not creative ambition. Language-only changes must preserve production quality.
+
 When a native MCP operation exists, prefer it for timeline, motion, auditing, page patching and preview. For custom procedural effects that require creating or restructuring JavaScript/HTML beyond the bounded `project_page_update` edits, use code tools; this is a legitimate fallback, not a failed MCP step. Never read the complete manual merely to use a native tool. When using a fallback, briefly explain the missing native capability, not a list of commands.
 
 Before saying a film is exactly N seconds, check `film_audit` and require `duration_confirmed:true` and `expected_duration_matches:true`. For pages with unknown media lengths, state the uncertainty. After visual changes, inspect a representative set of shots with `film_preview_range` or `film_preview_frame`. A completed render job or PNG path alone does not prove that every shot was visually reviewed.
