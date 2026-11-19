@@ -21,6 +21,7 @@ import { captionActions } from './mcp/caption-actions.mjs';
 import { manageBoard } from './mcp/canvas-boards.mjs';
 import { motionPresetList, motionPresetOps } from './mcp/motion-presets.mjs';
 import { draftPath, draftFingerprint, recordPreview, requireVerifiedPreview } from './mcp/text3d-safety.mjs';
+import { musicAudioStream, musicAnalysisOptions, musicCueOptions, musicDecodeOptions } from './mcp/music-options.mjs';
 
 const project=resolve(process.env.VIDEOMAKER_PROJECT || process.cwd());
 const require=createRequire(import.meta.url);
@@ -68,13 +69,14 @@ const tools=[
  {name:'text3d_register',description:'Publish an unchanged preview-verified Text3D draft to Saved. Requires explicit visual approval. Never call automatically after preview.',inputSchema:{type:'object',properties:{folder:{type:'string'},visual_approved:{type:'boolean'}},required:['folder','visual_approved'],additionalProperties:false}},
  {name:'text3d_apply',description:'Apply an already registered Text3D component to a specific unlocked clip with exact film revision; verifies imported bundle.',inputSchema:{type:'object',properties:{revision:{type:'string'},clip:{type:'string'},component_id:{type:'string'}},required:['revision','clip','component_id'],additionalProperties:false}},
  {name:'text3d_validate',description:'Structurally validate a draft in this project .film/text3d-drafts directory without registering or modifying clips.',inputSchema:{type:'object',properties:{folder:{type:'string'}},required:['folder'],additionalProperties:false}},
- {name:'music_inspect',description:'Inspect audio streams from source WAV/MP3/MP4 without running full acoustic analysis.',inputSchema:schema},
+ {name:'music_inspect',description:'Inspect available audio streams from local WAV/MP3/MP4 without full acoustic analysis.',inputSchema:{type:'object',properties:{...schema.properties,audio_stream:{type:'integer',minimum:0,maximum:64}},required:['path'],additionalProperties:false}},
  {name:'music_validate',description:'Validate acoustic analysis JSON timestamps and structure; reports valid or invalid, does not modify file.',inputSchema:schema},
  {name:'music_compare',description:'Compact comparison of two time windows in an existing acoustic analysis.',inputSchema:{type:'object',properties:{path:schema.properties.path,start_a:{type:'number',minimum:0},end_a:{type:'number',exclusiveMinimum:0},start_b:{type:'number',minimum:0},end_b:{type:'number',exclusiveMinimum:0}},required:['path','start_a','end_a','start_b','end_b'],additionalProperties:false}},
- {name:'music_analyze',description:'Analyze an existing WAV, MP3 or MP4 in project/assets and save a new acoustic-analysis JSON in assets. Offline; may require Python analysis dependencies.',inputSchema:{type:'object',properties:{path:schema.properties.path,output:{type:'string',description:'New analysis JSON path inside project/assets'}},required:['path','output']}},
+ {name:'music_analyze',description:'Offline acoustic analysis to new JSON; optionally select audio stream, reuse local cache or enable experimental structural matching.',inputSchema:{type:'object',properties:{path:schema.properties.path,output:{type:'string',description:'New JSON in project/assets'},audio_stream:{type:'integer',minimum:0,maximum:64},use_cache:{type:'boolean'},experimental_structure_v3:{type:'boolean'}},required:['path','output'],additionalProperties:false}},
+ {name:'music_decode',description:'Decode a local audio source to new mono f32le PCM + metadata JSON in assets. Returns paths and sizes only; never includes PCM bytes.',inputSchema:{type:'object',properties:{path:schema.properties.path,pcm_output:{type:'string'},metadata_output:{type:'string'},audio_stream:{type:'integer',minimum:0,maximum:64},sample_rate:{type:'integer',minimum:8000,maximum:48000}},required:['path','pcm_output','metadata_output'],additionalProperties:false}},
  {name:'music_overview',description:'Get compact BPM, dynamics and structure overview from an existing analysis JSON.',inputSchema:schema},
  {name:'music_context',description:'Get acoustic context of a time interval from an existing analysis JSON.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0}},required:['path','start','end']}},
- {name:'music_cues',description:'Get bounded editing cues for an interval from an analysis JSON.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0},limit:{type:'integer',minimum:1,maximum:100}},required:['path','start','end']}},
+ {name:'music_cues',description:'Select and merge bounded acoustic editing cues by category, strength, and representative/chronological order.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0},limit:{type:'integer',minimum:1,maximum:100},categories:{type:'array',items:{type:'string',enum:['beat','onset','strong_onset','energy','harmonic_change','structure_boundary']},minItems:1,maxItems:6},selection:{type:'string',enum:['representative','chronological']},min_relative_strength:{type:'number',minimum:0,maximum:1},merge_coincident:{type:'boolean'},merge_window_ms:{type:'number',minimum:0,maximum:250}},required:['path','start','end'],additionalProperties:false}},
  {name:'reverse_video',description:'Reverse an existing video into a NEW MP4 in project/assets. Does not overwrite files. Uses the existing video reverse implementation; audio can be muted, reversed or kept.',inputSchema:{type:'object',properties:{path:schema.properties.path,output:{type:'string',description:'New .mp4 path inside project/assets'},start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0},audio:{type:'string',enum:['mute','reverse','keep']}},required:['path','output']}}
 ];
 async function safePath(raw,extensions){
@@ -236,14 +238,52 @@ async function musicTool(name,args){
  let cli;
  if(name==='music_inspect'){
   const input=await safePath(args?.path,musicSources);
-  const bytes=await exec(pythonBinary(),['-m','music_analyzer.cli','inspect',input],60000,musicRuntime());
+  const bytes=await exec(pythonBinary(),['-m','music_analyzer.cli','inspect',input,...musicAudioStream(args)],60000,musicRuntime());
   let result;try{result=JSON.parse(bytes.toString('utf8'))}catch{throw Error('Music inspect returned invalid JSON')}
   return {content:[{type:'text',text:JSON.stringify(result).slice(0,8500)}]};
+ }
+ if(name==='music_decode'){
+  const input=await safePath(args?.path,musicSources);
+  const pcm=await safeOutput(args?.pcm_output,'.f32le');
+  const metadata=await safeOutput(args?.metadata_output,'.json');
+  if(pcm===metadata)throw Error('PCM and metadata must have separate file paths');
+  const options=musicDecodeOptions(args);
+  return heavyJob(async()=>{
+   const tmp=await mkdtemp(join(dirname(pcm),'.music-mcp-decode-'));
+   let published=false;
+   try{
+    const pcmTemp=join(tmp,'decoded.f32le'),metaTemp=join(tmp,'metadata.json');
+    const response=await exec(pythonBinary(),['-m','music_analyzer.cli','decode',input,'--pcm-output',pcmTemp,'--metadata-output',metaTemp,...options],600000,musicRuntime());
+    let result;
+    try{result=JSON.parse(response.toString('utf8'))}catch{throw Error('Music decode returned invalid JSON')}
+    if(result.status!=='decoded_only')throw Error('Music decoder returned unexpected status');
+    const [pcmStats,metaStats]=await Promise.all([stat(pcmTemp),stat(metaTemp)]);
+    if(pcmStats.size<4||pcmStats.size>512*1024*1024||metaStats.size<2||metaStats.size>256*1024)throw Error('Decoded PCM/metadata failed size validation');
+    // Both final paths are exclusive. Undo first hardlink if second cannot be published.
+    await link(pcmTemp,pcm);
+    try{await link(metaTemp,metadata)}catch(e){await rm(pcm,{force:true});throw e}
+    published=true;
+    return {content:[{type:'text',text:JSON.stringify({status:'decoded',pcm_path:relative(project,pcm),metadata_path:relative(project,metadata),pcm_bytes:pcmStats.size,metadata_bytes:metaStats.size,sample_rate:args?.sample_rate??22050,stream:args?.audio_stream??null,next:'PCM is kept on disk; use music_analyze for acoustic features'})}]};
+   }finally{
+    await rm(tmp,{recursive:true,force:true});
+   }
+  });
  }
  if(name==='music_analyze'){
   const input=await safePath(args?.path,musicSources);
   const output=await safeOutput(args?.output,'.json');
   cli=['analyze',input,'--output',output];
+  // Only a private cache folder under the project is permitted.
+  let cachePath;
+  if(args?.use_cache===true){
+   const projectRoot=await realpath(project);
+   const cacheDir=join(projectRoot,'.film','music-analyzer-cache');
+   await mkdir(cacheDir,{recursive:true});
+   cachePath=await realpath(cacheDir);
+   const rel=relative(projectRoot,cachePath);
+   if(!rel||rel==='..'||rel.startsWith('..'+sep)||isAbsolute(rel))throw Error('Analyzer cache must stay in this project');
+  }
+  cli.push(...musicAnalysisOptions(args,cachePath));
  } else {
   const file=await safePath(args?.path,analysisFiles);
   cli=[name==='music_validate'?'validate':name==='music_compare'?'compare':name==='music_overview'?'overview':name==='music_context'?'context':'cues',file];
@@ -259,6 +299,7 @@ async function musicTool(name,args){
    const limit=args?.limit??30;
    if(!Number.isInteger(limit)||limit<1||limit>100)throw Error('Invalid cue limit');
    cli.push('--limit',String(limit));
+   cli.push(...musicCueOptions(args));
   }
  }
  const python=pythonBinary();
@@ -718,7 +759,7 @@ rl.on('line',async line=>{
   (msg.params.name==='caption_tracks'&&msg.params.arguments?.action==='translate')?
   await heavyJob(()=>captionActions(project,msg.params.name,msg.params?.arguments)):
   await captionActions(project,msg.params.name,msg.params?.arguments)
- )}]}:['text3d_font_add','text3d_register','text3d_apply'].includes(msg.params?.name)?await runText3D(msg.params.name,msg.params?.arguments):msg.params?.name==='motion_presets'?{content:[{type:'text',text:JSON.stringify(await motionPresetList(msg.params?.arguments))}]}:msg.params?.name==='timeline_apply_motion_preset'?await timelineMotionPreset(msg.params?.arguments):['captions_list','captions_style','captions_correct_line'].includes(msg.params?.name)?{content:[{type:'text',text:JSON.stringify(await captionTool(project,msg.params.name,msg.params?.arguments))}]}:msg.params?.name==='timeline_get_motion'?await timelineGetMotion(msg.params?.arguments):['timeline_set_properties','timeline_apply_batch'].includes(msg.params?.name)?await timelineAdvanced(msg.params.name,msg.params?.arguments):['film_preview_frame','film_render'].includes(msg.params?.name)?await filmTool(msg.params.name,msg.params?.arguments):msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate','text3d_create','text3d_preview'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
+ )}]}:['text3d_font_add','text3d_register','text3d_apply'].includes(msg.params?.name)?await runText3D(msg.params.name,msg.params?.arguments):msg.params?.name==='motion_presets'?{content:[{type:'text',text:JSON.stringify(await motionPresetList(msg.params?.arguments))}]}:msg.params?.name==='timeline_apply_motion_preset'?await timelineMotionPreset(msg.params?.arguments):['captions_list','captions_style','captions_correct_line'].includes(msg.params?.name)?{content:[{type:'text',text:JSON.stringify(await captionTool(project,msg.params.name,msg.params?.arguments))}]}:msg.params?.name==='timeline_get_motion'?await timelineGetMotion(msg.params?.arguments):['timeline_set_properties','timeline_apply_batch'].includes(msg.params?.name)?await timelineAdvanced(msg.params.name,msg.params?.arguments):['film_preview_frame','film_render'].includes(msg.params?.name)?await filmTool(msg.params.name,msg.params?.arguments):msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate','text3d_create','text3d_preview'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_decode','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
