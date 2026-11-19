@@ -19,6 +19,7 @@ const tools=[
  {name:'inspect_image',description:'Inspect an image from this project Media. Returns visual image content, not a filename description.',inputSchema:schema},
  {name:'inspect_video',description:'Inspect a video from this project Media. Returns timestamped image frames. Sampled frames do not guarantee exact event boundaries.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',minimum:0},max_frames:{type:'integer',minimum:1,maximum:24}},required:['path']}},
  {name:'timeline_overview',description:'Read-only overview of the current project film, its revision, stage and number of tracks/clips.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
+ {name:'timeline_duplicate_clip',description:'Duplicate an existing clip at a nonnegative timeline second using Studio, requiring an exact current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_move_clip',description:'Move one clip to a nonnegative timeline second using the Studio edit engine. Requires current revision returned by timeline_overview; stale revisions are refused.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_clips',description:'Read-only bounded list of clips from the current film, with IDs, source, kind and timeline/source timing.',inputSchema:{type:'object',properties:{track:{type:'integer',minimum:0},limit:{type:'integer',minimum:1,maximum:100}},additionalProperties:false}},
  {name:'music_analyze',description:'Analyze an existing WAV, MP3 or MP4 in project/assets and save a new acoustic-analysis JSON in assets. Offline; may require Python analysis dependencies.',inputSchema:{type:'object',properties:{path:schema.properties.path,output:{type:'string',description:'New analysis JSON path inside project/assets'}},required:['path','output']}},
@@ -140,14 +141,14 @@ async function musicTool(name,args){
 }
 
 
-async function timelineMove(args){
+async function timelineEdit(name,args){
  if(typeof args?.clip!=='string'||!args.clip.trim()||typeof args?.revision!=='string'||!/^[a-f0-9]{16}$/.test(args.revision)||!Number.isFinite(args.at)||args.at<0)throw Error('Invalid timeline move arguments');
  const current=await readProjectFilm(project);
  if(!current.value)throw Error('Invalid film.html');
  if(current.rev!==args.revision)throw Error('Stale timeline revision; inspect again');
  const exists=current.value.tracks.some(t=>t.clips?.some(c=>c.id===args.clip));
  if(!exists)throw Error('Clip not found');
- const ops=[{op:'move',clip:args.clip,at:args.at}];
+ const ops=[name==='timeline_duplicate_clip'?{op:'insert',from:args.clip,at:args.at}:{op:'move',clip:args.clip,at:args.at}];
  const result=await changeProjectFilm(project,(value,latest)=>{
   if(latest.rev!==args.revision)throw Error('Stale timeline revision; inspect again');
   if(!latest.value)throw Error('Invalid film.html');
@@ -156,7 +157,7 @@ async function timelineMove(args){
   if(!checked.doc)throw Error(checked.problems.join('; '));
   return {value:edited};
  },{ops});
- return {content:[{type:'text',text:JSON.stringify({status:'updated',revision:result.rev,clip:args.clip,at:args.at})}]};
+ return {content:[{type:'text',text:JSON.stringify({status:'updated',operation:name,revision:result.rev,clip:args.clip,at:args.at})}]};
 }
 
 async function timelineTool(name,args){
@@ -185,7 +186,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=msg.params?.name==='timeline_move_clip'?await timelineMove(msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):await inspect(msg.params?.name,msg.params?.arguments);break;
+   case 'tools/call':result=['timeline_move_clip','timeline_duplicate_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
