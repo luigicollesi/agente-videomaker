@@ -43,6 +43,7 @@ const tools=[
  {name:'text3d_list',description:'List registered reusable 3D text components, with compact metadata and optional source filter.',inputSchema:{type:'object',properties:{source_id:{type:'string'},limit:{type:'integer',minimum:1,maximum:50},offset:{type:'integer',minimum:0}},additionalProperties:false}},
  {name:'text3d_inspect',description:'Read registered Text3D component metadata and editable parameters without reading its bundled source files.',inputSchema:{type:'object',properties:{component_id:{type:'string'}},required:['component_id'],additionalProperties:false}},
  {name:'text3d_create',description:'Create a scoped Text3D draft under .film/text3d-drafts with the existing authoring engine.',inputSchema:{type:'object',properties:{name:{type:'string',maxLength:50}},required:['name'],additionalProperties:false}},
+ {name:'text3d_preview',description:'Bundle and verify a Text3D draft with native Three.js preview pipeline. Does not register it.',inputSchema:{type:'object',properties:{folder:{type:'string'}},required:['folder'],additionalProperties:false}},
  {name:'text3d_validate',description:'Structurally validate a draft in this project .film/text3d-drafts directory without registering or modifying clips.',inputSchema:{type:'object',properties:{folder:{type:'string'}},required:['folder'],additionalProperties:false}},
  {name:'music_inspect',description:'Inspect audio streams from source WAV/MP3/MP4 without running full acoustic analysis.',inputSchema:schema},
  {name:'music_validate',description:'Validate acoustic analysis JSON timestamps and structure; reports valid or invalid, does not modify file.',inputSchema:schema},
@@ -302,6 +303,27 @@ async function text3dTool(name,args){
   if(!made.ok)throw Error((made.lines??[]).join(' ').slice(0,500));
   return {content:[{type:'text',text:JSON.stringify({status:'created',folder:relative(project,folder),next:'Edit draft, then call text3d_validate'})}]};
  }
+ if(name==='text3d_preview'){
+  if(typeof args?.folder!=='string'||!args.folder.trim())throw Error('Invalid Text3D draft folder');
+  const root=await realpath(project),base=await realpath(join(project,'.film','text3d-drafts'));
+  const baseRel=relative(root,base);
+  if(!baseRel||baseRel==='..'||baseRel.startsWith('..'+sep)||isAbsolute(baseRel))throw Error('Text3D drafts directory escapes project');
+  const target=await realpath(resolve(project,args.folder));
+  const rel=relative(base,target);
+  if(!rel||rel==='..'||rel.startsWith('..'+sep)||isAbsolute(rel)||!(await stat(target)).isDirectory())throw Error('Text3D draft must be a directory inside .film/text3d-drafts');
+  return heavyJob(async()=>{
+   const job={kind:'text3d-preview',root:project,source:target};
+   const worker=fileURLToPath(new URL('./film-mcp-worker.mjs',import.meta.url));
+   const bytes=await exec(process.execPath,[worker,JSON.stringify(job)],240000,{...process.env,ELECTRON_RUN_AS_NODE:'1',OPENFILM_NO_BROWSER:'1'},[0],project);
+   const log=bytes.toString('utf8'),marker='MCP_FILM_RESULT=',pos=log.lastIndexOf(marker);
+   if(pos<0)throw Error('Text3D preview worker returned no receipt');
+   let result;try{result=JSON.parse(log.slice(pos+marker.length).split('\n')[0])}catch{throw Error('Invalid Text3D preview receipt')}
+   const page=await realpath(result.preview);
+   const relativePage=relative(root,page);
+   if(relativePage==='..'||relativePage.startsWith('..'+sep)||isAbsolute(relativePage))throw Error('Text3D preview escapes project');
+   return {content:[{type:'text',text:JSON.stringify({status:'preview_bundled',preview_page:relativePage,notes:(result.lines??[]).slice(0,3).map(v=>String(v).slice(0,250)),next:'Inspect rendered frames before registering'})}]};
+  });
+ }
  if(name==='text3d_validate'){
   if(typeof args?.folder!=='string'||!args.folder.trim())throw Error('Invalid Text3D draft folder');
   const base=await realpath(join(project,'.film','text3d-drafts'));
@@ -548,7 +570,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=['film_preview_frame','film_render'].includes(msg.params?.name)?await filmTool(msg.params.name,msg.params?.arguments):msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate','text3d_create'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
+   case 'tools/call':result=['film_preview_frame','film_render'].includes(msg.params?.name)?await filmTool(msg.params.name,msg.params?.arguments):msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate','text3d_create','text3d_preview'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
