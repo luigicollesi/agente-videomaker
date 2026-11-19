@@ -15,6 +15,10 @@ const schema={type:'object',properties:{path:{type:'string',description:'Media p
 const tools=[
  {name:'inspect_image',description:'Inspect an image from this project Media. Returns visual image content, not a filename description.',inputSchema:schema},
  {name:'inspect_video',description:'Inspect a video from this project Media. Returns timestamped image frames. Sampled frames do not guarantee exact event boundaries.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',minimum:0},max_frames:{type:'integer',minimum:1,maximum:24}},required:['path']}},
+ {name:'music_analyze',description:'Analyze an existing WAV, MP3 or MP4 in project/assets and save a new acoustic-analysis JSON in assets. Offline; may require Python analysis dependencies.',inputSchema:{type:'object',properties:{path:schema.properties.path,output:{type:'string',description:'New analysis JSON path inside project/assets'}},required:['path','output']}},
+ {name:'music_overview',description:'Get compact BPM, dynamics and structure overview from an existing analysis JSON.',inputSchema:schema},
+ {name:'music_context',description:'Get acoustic context of a time interval from an existing analysis JSON.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0}},required:['path','start','end']}},
+ {name:'music_cues',description:'Get bounded editing cues for an interval from an analysis JSON.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0},limit:{type:'integer',minimum:1,maximum:100}},required:['path','start','end']}},
  {name:'reverse_video',description:'Reverse an existing video into a NEW MP4 in project/assets. Does not overwrite files. Uses the existing video reverse implementation; audio can be muted, reversed or kept.',inputSchema:{type:'object',properties:{path:schema.properties.path,output:{type:'string',description:'New .mp4 path inside project/assets'},start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0},audio:{type:'string',enum:['mute','reverse','keep']}},required:['path','output']}}
 ];
 async function safePath(raw,extensions){
@@ -26,9 +30,9 @@ async function safePath(raw,extensions){
  if(!(await stat(file)).isFile())throw Error('Not a file');
  return file;
 }
-function exec(name,args,timeout=30000){
+function exec(name,args,timeout=30000,env=process.env){
  return new Promise((yes,no)=>{
-  const child=spawn(name,args,{stdio:['ignore','pipe','pipe']});
+  const child=spawn(name,args,{stdio:['ignore','pipe','pipe'],env});
   const out=[],err=[];
   const timer=setTimeout(()=>child.kill('SIGKILL'),timeout);
   child.stdout.on('data',d=>out.push(d));child.stderr.on('data',d=>err.push(d));
@@ -63,11 +67,11 @@ async function inspect(name,args){
  }finally{await rm(folder,{recursive:true,force:true})}
 }
 
-async function safeOutput(raw){
+async function safeOutput(raw,extension='.mp4'){
  if(typeof raw!=='string'||!raw.trim())throw Error('Missing output path');
  const base=await realpath(join(project,'assets'));
  const dest=resolve(project,raw);
- if(extname(dest).toLowerCase()!=='.mp4')throw Error('Output must be an MP4');
+ if(extname(dest).toLowerCase()!==extension)throw Error('Output must be '+extension);
  const parent=await realpath(dirname(dest));
  const rel=relative(base,dest);
  if(rel.startsWith('..')||isAbsolute(rel)||!rel||parent!==base&&(!relative(base,parent)||relative(base,parent).startsWith('..')||isAbsolute(relative(base,parent))))throw Error('Output must be inside project/assets');
@@ -91,6 +95,44 @@ async function reverseVideo(args){
  return {content:[{type:'text',text:JSON.stringify({status:'created',path:relative(project,output),audio})}]};
 }
 
+
+const musicSources=new Set(['.wav','.mp3','.mp4']);
+const analysisFiles=new Set(['.json']);
+function musicRuntime(){
+ const src=resolve(dirname(require.resolve('openfilm/skills')),'../../music-analyzer/src');
+ const existing=process.env.PYTHONPATH;
+ return { ...process.env, PYTHONPATH:existing?[src,existing].join(process.platform==='win32'?';':':'):src };
+}
+function intervalArgs(args){
+ if(!Number.isFinite(args?.start)||!Number.isFinite(args?.end)||args.start<0||args.end<=args.start)throw Error('Invalid interval');
+ return ['--start',String(args.start),'--end',String(args.end)];
+}
+async function musicTool(name,args){
+ let cli;
+ if(name==='music_analyze'){
+  const input=await safePath(args?.path,musicSources);
+  const output=await safeOutput(args?.output,'.json');
+  cli=['analyze',input,'--output',output];
+ } else {
+  const file=await safePath(args?.path,analysisFiles);
+  cli=[name==='music_overview'?'overview':name==='music_context'?'context':'cues',file];
+  if(name==='music_context'||name==='music_cues')cli.push(...intervalArgs(args));
+  if(name==='music_cues'){
+   const limit=args?.limit??30;
+   if(!Number.isInteger(limit)||limit<1||limit>100)throw Error('Invalid cue limit');
+   cli.push('--limit',String(limit));
+  }
+ }
+ const data=await exec(process.platform==='win32'?'python':'python3',['-m','music_analyzer.cli',...cli],600000,musicRuntime());
+ let output;
+ try{output=JSON.parse(data.toString('utf8'))}catch{throw Error('Music analyzer returned invalid JSON')}
+ if(name==='music_analyze'){
+  const expected=relative(project,cli[3]);
+  return {content:[{type:'text',text:JSON.stringify({...output,output_path:expected})}]};
+ }
+ return {content:[{type:'text',text:JSON.stringify(output)}]};
+}
+
 function send(value){process.stdout.write(JSON.stringify(value)+'\n')}
 const rl=createInterface({input:process.stdin,crlfDelay:Infinity});
 rl.on('line',async line=>{
@@ -102,7 +144,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):await inspect(msg.params?.name,msg.params?.arguments);break;
+   case 'tools/call':result=msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
