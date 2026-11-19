@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "apps/desktop/src/media-mcp*.mjs"
+      - "apps/desktop/src/film-mcp-worker.mjs"
       - "packages/openfilm/manual/media/scripts/reverse-video.py"
       - "packages/music-analyzer/**"
       - "packages/openfilm/package.json"
@@ -16,6 +17,7 @@ on:
   pull_request:
     paths:
       - "apps/desktop/src/media-mcp*.mjs"
+      - "apps/desktop/src/film-mcp-worker.mjs"
       - "packages/openfilm/manual/media/scripts/reverse-video.py"
       - "packages/music-analyzer/**"
       - "packages/openfilm/package.json"
@@ -44,8 +46,11 @@ jobs:
           cache: pnpm
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
-      - name: Check MCP server syntax
-        run: node --check apps/desktop/src/media-mcp.mjs
+      - name: Check MCP server and worker syntax
+        run: >-
+          node --check apps/desktop/src/media-mcp.mjs
+      - name: Check worker syntax
+        run: node --check apps/desktop/src/film-mcp-worker.mjs
       - name: MCP protocol, timeline, runtime and locking tests
         run: >-
           node --test
@@ -54,6 +59,7 @@ jobs:
           apps/desktop/src/media-mcp.runtime.test.mjs
           apps/desktop/src/media-mcp.lock.test.mjs
           apps/desktop/src/media-mcp.discovery.test.mjs
+          apps/desktop/src/media-mcp.film.test.mjs
       - uses: actions/setup-python@v5
         if: runner.os == 'Linux'
         with:
