@@ -23,6 +23,7 @@ import { motionPresetList, motionPresetOps } from './mcp/motion-presets.mjs';
 import { draftPath, draftFingerprint, recordPreview, requireVerifiedPreview } from './mcp/text3d-safety.mjs';
 import { musicAudioStream, musicAnalysisOptions, musicCueOptions, musicDecodeOptions } from './mcp/music-options.mjs';
 import { auditFilm } from './mcp/film-audit.mjs';
+import { projectPage } from './mcp/project-pages.mjs';
 
 const project=resolve(process.env.VIDEOMAKER_PROJECT || process.cwd());
 const require=createRequire(import.meta.url);
@@ -54,6 +55,7 @@ const tools=[
  {name:'timeline_get_clip',description:'Read a single timeline clip with fields and current revision without dumping film.html.',inputSchema:{type:'object',properties:{clip:{type:'string'}},required:['clip'],additionalProperties:false}},
  {name:'timeline_insert_asset',description:'Insert an existing asset from project/assets into a timeline track at a nonnegative second, guarded by project revision.',inputSchema:{type:'object',properties:{path:{type:'string'},revision:{type:'string'},at:{type:'number',minimum:0},track:{type:'integer',minimum:0},time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['path','revision','at'],additionalProperties:false}},
  {name:'timeline_remove_clip',description:'Remove one clip from the timeline with strict revision check; does not delete its source asset.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'}},required:['clip','revision'],additionalProperties:false}},
+ {name:'project_page_update',description:'Inspect SHA-256/linked clips or make 1-8 exact source replacements in an existing procedural HTML page used by the film. Refuses locked tracks, stale content and external paths.',inputSchema:{type:'object',properties:{action:{type:'string',enum:['inspect','replace']},path:{type:'string'},expected_sha256:{type:'string'},changes:{type:'array',minItems:1,maxItems:8,items:{type:'object',properties:{find:{type:'string'},replace:{type:'string'}},required:['find','replace'],additionalProperties:false}}},required:['action','path'],additionalProperties:false}},
  {name:'film_audit',description:'Read-only film integrity check: verified explicit durations, unknown durations, missing sources, and optional expected duration. Never guesses media length.',inputSchema:{type:'object',properties:{expected_seconds:{type:'number',minimum:0,maximum:86400}},additionalProperties:false}},
  {name:'film_preview_range',description:'Native deterministic contact-sheet inspection across a bounded timeline range. Returns verified PNG and warnings; render requires browser/FFmpeg.',inputSchema:{type:'object',properties:{start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0},count:{type:'integer',minimum:2,maximum:12}},required:['start','end'],additionalProperties:false}},
  {name:'film_preview_frame',description:'Render one frame of the current film using native look; returns concise checks and one PNG when small enough. Requires an openable browser/FFmpeg.',inputSchema:{type:'object',properties:{at:{type:'number',minimum:0}},required:['at'],additionalProperties:false}},
@@ -773,7 +775,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=msg.params?.name==='film_audit'?{content:[{type:'text',text:JSON.stringify(await (async()=>{
+   case 'tools/call':result=msg.params?.name==='project_page_update'?{content:[{type:'text',text:JSON.stringify(await projectPage(project,msg.params?.arguments))}]}:msg.params?.name==='film_audit'?{content:[{type:'text',text:JSON.stringify(await (async()=>{
   const film=await readProjectFilm(project);
   if(!film.value)throw Error('Invalid film.html');
   return auditFilm(project,film.value,film.rev,msg.params?.arguments?.expected_seconds);
