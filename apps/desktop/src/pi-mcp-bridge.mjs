@@ -30,8 +30,9 @@ export class PiMcpBridge{
   this.child=child;
   let diagnostic='';
   child.stderr.on('data',bytes=>{diagnostic=(diagnostic+bytes.toString()).slice(-800)});
-  child.once('error',error=>this._abort(error));
-  child.once('close',code=>this._abort(Error('MCP server exited ('+code+'): '+diagnostic)));
+  // Events from an old subprocess must never kill a restarted MCP session.
+  child.once('error',error=>{if(this.child===child)this._abort(error)});
+  child.once('close',code=>{if(this.child===child)this._abort(Error('MCP server exited ('+code+'): '+diagnostic))});
   this.reader=createInterface({input:child.stdout,crlfDelay:Infinity});
   this.reader.on('line',line=>{
    if(line.length>MAX_LINE){this._abort(Error('MCP response exceeded limit'));return}
