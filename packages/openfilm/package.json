@@ -39,6 +39,7 @@
     "./studio-film": "./studio/server/film.mjs",
     "./studio-ops": "./studio/server/ops.mjs",
     "./studio-canvas": "./studio/server/canvas.mjs",
+    "./studio-client": "./studio/client.mjs",
     "./library-search": "./src/library-search.mjs",
     "./desktop-account": "./studio/server/account.mjs",
     "./studio-ui/*": "./studio/ui/src/*",
