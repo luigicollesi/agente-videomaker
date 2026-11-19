@@ -162,7 +162,7 @@ async function reverseVideo(args){
  if(!['mute','reverse','keep'].includes(audio))throw Error('Invalid audio mode');
  const modulePath=require.resolve('openfilm/skills');
  const archiveScript=resolve(dirname(modulePath),'../manual/media/scripts/reverse-video.py');
- const unpackedScript=archiveScript.replace(/([\\/])app\\.asar([\\/])/, '$1app.asar.unpacked$2');
+ const unpackedScript=archiveScript.replace(/([\\/])app\.asar([\\/])/, '$1app.asar.unpacked$2');
  const script=unpackedScript!==archiveScript && existsSync(unpackedScript)?unpackedScript:archiveScript;
  const cli=[script,input,output,'--audio',audio];
  if(args?.start!==undefined)cli.push('--start',String(args.start));
