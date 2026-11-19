@@ -15,6 +15,7 @@ import { listBoards, readCanvas } from 'openfilm/studio-canvas';
 import { searchLibrary, KINDS, LIBRARY_VERBS, libraryGet } from 'openfilm/library-search';
 import { listText3D } from 'openfilm/text3d-registry';
 import { propertyEdits, batchOps } from './mcp/timeline-actions.mjs';
+import { readMotion } from 'openfilm/clip-motion';
 
 const project=resolve(process.env.VIDEOMAKER_PROJECT || process.cwd());
 const require=createRequire(import.meta.url);
@@ -32,6 +33,7 @@ const tools=[
  {name:'library_take',description:'Import one free library asset into this project, using the built-in get --take engine. Does not insert into timeline.',inputSchema:{type:'object',properties:{kind:{type:'string',enum:['music','sound','transition','effect','filter','sticker','text','template']},id:{type:'string',minLength:1,maxLength:500}},required:['kind','id'],additionalProperties:false}},
  {name:'timeline_set_properties',description:'Atomically edit 1-30 whitelisted clip properties (trim, position, box, fade, volume, speed, motion) with current revision; rejects invalid steps.',inputSchema:{type:'object',properties:{revision:{type:'string'},edits:{type:'array',minItems:1,maxItems:30,items:{type:'object',properties:{clip:{type:'string'},prop:{type:'string'},value:{}},required:['clip','prop','value'],additionalProperties:false}}},required:['revision','edits'],additionalProperties:false}},
  {name:'timeline_apply_batch',description:'Atomically apply 1-25 validated timeline steps: move, duplicate, remove, insert_asset, props, track flags and stage. Rollback on any failure; current revision required.',inputSchema:{type:'object',properties:{revision:{type:'string'},steps:{type:'array',minItems:1,maxItems:25,items:{type:'object'}}},required:['revision','steps'],additionalProperties:false}},
+ {name:'timeline_get_motion',description:'Read one clip’s translate/scale/rotate/opacity keyframes compactly with current film revision.',inputSchema:{type:'object',properties:{clip:{type:'string'}},required:['clip'],additionalProperties:false}},
  {name:'timeline_get_clip',description:'Read a single timeline clip with fields and current revision without dumping film.html.',inputSchema:{type:'object',properties:{clip:{type:'string'}},required:['clip'],additionalProperties:false}},
  {name:'timeline_insert_asset',description:'Insert an existing asset from project/assets into a timeline track at a nonnegative second, guarded by project revision.',inputSchema:{type:'object',properties:{path:{type:'string'},revision:{type:'string'},at:{type:'number',minimum:0},track:{type:'integer',minimum:0},time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['path','revision','at'],additionalProperties:false}},
  {name:'timeline_remove_clip',description:'Remove one clip from the timeline with strict revision check; does not delete its source asset.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'}},required:['clip','revision'],additionalProperties:false}},
@@ -438,6 +440,14 @@ async function timelineAdvanced(name,args){
  return guardedTimelineOps(args.revision,ops,{operation:name,operations:ops.length});
 }
 
+async function timelineGetMotion(args){
+ if(typeof args?.clip!=='string'||!args.clip.trim())throw Error('Invalid clip id');
+ const {rev,value}=await readProjectFilm(project);
+ if(!value)throw Error('Invalid film.html');
+ const clip=value.tracks.flatMap(t=>t.clips??[]).find(c=>c.id===args.clip);
+ if(!clip)throw Error('Clip not found');
+ return {content:[{type:'text',text:JSON.stringify({revision:rev,clip:clip.id,motion:readMotion(clip,value.keyframes)})}]};
+}
 async function timelineGetClip(args){
  if(typeof args?.clip!=='string'||!args.clip.trim())throw Error('Invalid clip id');
  const {rev,value,problems}=await readProjectFilm(project);
@@ -618,7 +628,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=['timeline_set_properties','timeline_apply_batch'].includes(msg.params?.name)?await timelineAdvanced(msg.params.name,msg.params?.arguments):['film_preview_frame','film_render'].includes(msg.params?.name)?await filmTool(msg.params.name,msg.params?.arguments):msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate','text3d_create','text3d_preview'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
+   case 'tools/call':result=msg.params?.name==='timeline_get_motion'?await timelineGetMotion(msg.params?.arguments):['timeline_set_properties','timeline_apply_batch'].includes(msg.params?.name)?await timelineAdvanced(msg.params.name,msg.params?.arguments):['film_preview_frame','film_render'].includes(msg.params?.name)?await filmTool(msg.params.name,msg.params?.arguments):msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate','text3d_create','text3d_preview'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
