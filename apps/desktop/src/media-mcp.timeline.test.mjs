@@ -105,6 +105,9 @@ test('Media MCP applies revision-guarded timeline edits to a real film', async (
     {clip:'source-clip',prop:'fade',value:[0.3,0.3]},
     {clip:'source-clip',prop:'motion',value:{rotate:[{t:0,v:0},{t:2,v:45,ease:'ease-out'}]}}
   ]});
+  const motion=await call('timeline_get_motion',{clip:'source-clip'});
+  assert.equal(motion.revision,changed.revision);
+  assert.equal(motion.motion.rotate.at(-1).v,45);
   let advanced=readFilmFile(await readFile(join(project,'film.html'),'utf8'));
   assert.ok(advanced.doc,advanced.problems.join('; '));
   assert.equal(advanced.value.tracks.flatMap(t=>t.clips).find(c=>c.id==='source-clip').box.r,15);
