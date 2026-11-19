@@ -30,6 +30,7 @@
  *   POST /api/canvas { folder, ops?, by? } → { ok: true, canvas, added } or { ok: false, text }
  */
 import { mkdir, open, readFile, readdir, rename, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { basename, dirname, join, resolve } from 'node:path';
 import { FILM_FILE } from '../../src/film-doc.mjs';
 import { WRITING_ATTACHMENT_LIMIT, writingAttachmentKind } from '../../src/canvas-attachments.mjs';
@@ -45,6 +46,7 @@ export const CANVAS_FILE = `${TOOL_DIR}/canvas.json`;
 /** the project's other boards, and the first one's id */
 export const BOARDS_DIR = `${TOOL_DIR}/canvases`;
 export const MAIN_BOARD = 'main';
+export const canvasRevision = canvas => createHash('sha256').update(JSON.stringify(canvas)).digest('hex').slice(0,16);
 const BOARD_ID = /^[a-z0-9]{1,32}$/;
 const BOARDS_MAX = 100;
 const MAX_NODES = 2000;
@@ -574,20 +576,25 @@ function settle(nodes, added) {
  */
 export async function agentCanvasRoute(req, res, changed) {
   if (req.method !== 'POST') throw new HttpError(404, 'no such API');
-  const body = /** @type {{ folder?: unknown, ops?: unknown, by?: unknown }} */ (await readJson(req));
+  const body = /** @type {{ folder?: unknown, ops?: unknown, by?: unknown, board?: unknown, revision?: unknown }} */ (await readJson(req));
   const root = resolve(String(body.folder ?? ''));
   if (!(await stat(join(root, FILM_FILE)).catch(() => null))?.isFile()) return json(res, 200, { ok: false, code: 2, text: `${root} is not a project; \`openfilm open\` makes one` });
-  /* the board the person has in front of them */
+  /* Explicit board is authoritative for MCP; legacy CLI still follows the board shown in Studio. */
   const showing = shown.get(root);
-  const board = showing && (await isBoard(root, showing)) ? showing : MAIN_BOARD;
+  if(body.board!==undefined && (typeof body.board!=='string'||!(await isBoard(root,body.board))))
+   return json(res,200,{ok:false,code:2,text:'Canvas board not found'});
+  const board = body.board ?? (showing && (await isBoard(root, showing)) ? showing : MAIN_BOARD);
   const canvas = await readCanvas(root, board);
-  if (body.ops === undefined) return json(res, 200, { ok: true, canvas, added: [] });
+  const revision=canvasRevision(canvas);
+  if(body.revision!==undefined && body.revision!==revision)
+   return json(res,200,{ok:false,code:409,text:'Canvas changed; inspect the board again',revision});
+  if (body.ops === undefined) return json(res, 200, { ok: true, canvas, added: [], revision });
   try {
     const exists = async (/** @type {string} */ path) => Boolean((await stat(join(root, path)).catch(() => null))?.isFile());
     const after = await applyCanvasOps(canvas, body.ops, { by: body.by, exists });
     const kept = await writeCanvas(root, after.canvas, board);
     changed(root);
-    return json(res, 200, { ok: true, canvas: kept, added: after.added });
+    return json(res, 200, { ok: true, canvas: kept, added: after.added, revision: canvasRevision(kept), board });
   } catch (e) {
     if (!(e instanceof CanvasOpError)) throw e;
     return json(res, 200, { ok: false, code: 2, text: e.message });
