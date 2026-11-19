@@ -41,6 +41,7 @@ export function propertyEdit(entry){
 }
 export function propertyEdits(edits){
  if(!Array.isArray(edits)||edits.length<1||edits.length>30)fail('Expected 1 to 30 property edits');
+ if(Buffer.byteLength(JSON.stringify(edits))>25000)fail('Clip property edit exceeds 25 KB');
  return edits.map(propertyEdit);
 }
 export async function batchOps(steps,safeAsset){
