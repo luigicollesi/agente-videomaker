@@ -397,10 +397,11 @@ async function filmTool(name,args){
     return {content:[{type:'text',text:JSON.stringify({status:'rendered',revision,output:relative(project,output),bytes:size,encoder:finished.encoder,notes:(finished.lines??[]).slice(1,5).map(line=>String(line).slice(0,180))})}]};
    }
    const files=[];
+   const canonicalProject=await realpath(project);
    for(const candidate of finished.files??[]){
     try{
      const file=await realpath(candidate);
-     const rel=relative(project,file);
+     const rel=relative(canonicalProject,file);
      if(rel==='..'||rel.startsWith('..'+sep)||isAbsolute(rel)||extname(file).toLowerCase()!=='.png')continue;
      files.push({path:rel,file});
     }catch{/* no image available */}
