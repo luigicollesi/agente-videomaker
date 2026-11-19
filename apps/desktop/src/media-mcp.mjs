@@ -39,14 +39,33 @@ async function safePath(raw,extensions){
  if(!(await stat(file)).isFile())throw Error('Not a file');
  return file;
 }
+const MAX_OUTPUT_BYTES=4*1024*1024;
+let activeHeavyJob=false;
+async function heavyJob(work){
+ if(activeHeavyJob)throw Error('A media processing job is already running');
+ activeHeavyJob=true;
+ try{return await work()}finally{activeHeavyJob=false}
+}
 function exec(name,args,timeout=30000,env=process.env){
  return new Promise((yes,no)=>{
   const child=spawn(name,args,{stdio:['ignore','pipe','pipe'],env});
   const out=[],err=[];
-  const timer=setTimeout(()=>child.kill('SIGKILL'),timeout);
-  child.stdout.on('data',d=>out.push(d));child.stderr.on('data',d=>err.push(d));
-  child.on('error',e=>{clearTimeout(timer);no(e)});
-  child.on('close',code=>{clearTimeout(timer);code===0?yes(Buffer.concat(out)):no(Error(Buffer.concat(err).toString().slice(0,600)||name+' failed'))});
+  let bytes=0,finished=false;
+  const finish=(error,data)=>{
+   if(finished)return;
+   finished=true;clearTimeout(timer);
+   if(error)no(error);else yes(data);
+  };
+  const timer=setTimeout(()=>{child.kill('SIGKILL');finish(Error(name+' timed out'))},timeout);
+  const consume=(parts,chunk)=>{
+   bytes+=chunk.length;
+   if(bytes>MAX_OUTPUT_BYTES){child.kill('SIGKILL');finish(Error(name+' output exceeded limit'));return}
+   parts.push(chunk);
+  };
+  child.stdout.on('data',d=>consume(out,d));
+  child.stderr.on('data',d=>consume(err,d));
+  child.on('error',e=>finish(e));
+  child.on('close',code=>finish(code===0?null:Error(Buffer.concat(err).toString().slice(0,600)||name+' failed'),Buffer.concat(out)));
  });
 }
 const image=(data,mime)=>({type:'image',mimeType:mime,data:data.toString('base64')});
@@ -100,7 +119,7 @@ async function reverseVideo(args){
  const cli=[script,input,output,'--audio',audio];
  if(args?.start!==undefined)cli.push('--start',String(args.start));
  if(args?.end!==undefined)cli.push('--end',String(args.end));
- await exec(process.platform==='win32'?'python':'python3',cli,600000);
+ await heavyJob(()=>exec(process.platform==='win32'?'python':'python3',cli,600000));
  return {content:[{type:'text',text:JSON.stringify({status:'created',path:relative(project,output),audio})}]};
 }
 
@@ -132,7 +151,7 @@ async function musicTool(name,args){
    cli.push('--limit',String(limit));
   }
  }
- const data=await exec(process.platform==='win32'?'python':'python3',['-m','music_analyzer.cli',...cli],600000,musicRuntime());
+ const data=await (name==='music_analyze'?heavyJob(()=>exec(process.platform==='win32'?'python':'python3',['-m','music_analyzer.cli',...cli],600000,musicRuntime())):exec(process.platform==='win32'?'python':'python3',['-m','music_analyzer.cli',...cli],60000,musicRuntime()));
  let output;
  try{output=JSON.parse(data.toString('utf8'))}catch{throw Error('Music analyzer returned invalid JSON')}
  if(name==='music_analyze'){
