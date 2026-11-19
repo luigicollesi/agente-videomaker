@@ -16,6 +16,10 @@ When the person wants a service that is not built in to make pictures, clips or 
 
 Use `library_search` for searching local music, sounds, transitions, effects, filters, stickers, text and templates, supplying `kind`, `query` and a small `limit` (3–8). It returns compact names and canonical IDs without printing a full library listing. Use the existing `videomaker get <verb> --take <id>` only for the take/import step until the equivalent tool is exposed; `library_search` does not copy files into the project. Do not run an identical CLI search after a successful MCP search.
 
+## Native asset import (MCP preferred)
+
+Use `library_search` to find canonical item IDs, then `library_take` with the same `kind` and `id` to import the selected free asset or obtain placement instructions. This reuses the existing library `get --take` engine; results can contain clips, files or Studio-only instructions. It does **not** place the result on the timeline. Use `timeline_insert_asset` if a file was imported and a timeline insert is intended. Do not repeat a successful import with a CLI command.
+
 ## Reverse video
 
 For reverse playback, run `python packages/openfilm/manual/media/scripts/reverse-video.py INPUT OUTPUT` from the repository root (or use the script's absolute path). Run `--help` for `--start`, `--end` and `--audio mute|reverse|keep` (default: mute). Save output under the film project's `assets/`; keep the original unchanged. Use the existing timeline controls for trims, speed and placement. FFmpeg and FFprobe are required; no paid service.
