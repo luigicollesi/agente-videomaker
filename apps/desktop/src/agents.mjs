@@ -163,8 +163,8 @@ The project is a Videomaker film: pages with window.film, cut together by film.h
 analysis, Text3D authoring, preview and render). Query compact pages or short time intervals; do not repeat successful MCP calls using the CLI, and do not
 dump entire project files or the whole manual when a native tool provides the answer. For actions not exposed by MCP,
 read the relevant bundled skill and use \`${run}\` (this app's CLI) as instructed. ${which} Studio is
-already open; do not launch another instance or browser. Verify visually changed film content with
-\`${run} look\` until MCP preview is available. Reply in the language the person writes in.
+already open; do not launch another instance or browser. Verify visually changed film content with MCP `film_preview_frame` when available, otherwise use
+\`${run} look\`. Reply in the language the person writes in.
 
 ${STUDIO_REFERENCES}`;
 }
