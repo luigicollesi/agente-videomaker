@@ -46,6 +46,8 @@ test('Media MCP applies revision-guarded timeline edits to a real film', async (
   assert.notEqual(moved.revision,current.revision);
   const speed=await call('timeline_set_playback',{clip:'source-clip',revision:moved.revision,field:'speed',value:2});
   const duplicated=await call('timeline_duplicate_clip',{clip:'source-clip',revision:speed.revision,at:12});
+  assert.ok(duplicated.new_clip_id);
+  assert.notEqual(duplicated.new_clip_id,'source-clip');
   const firstPage=await call('timeline_clips',{limit:1,offset:0});
   assert.equal(firstPage.total,2);
   assert.equal(firstPage.returned,1);
@@ -64,7 +66,11 @@ test('Media MCP applies revision-guarded timeline edits to a real film', async (
   let clips=film.value.tracks.flatMap(t=>t.clips);
   assert.equal(clips.length,2);
   assert.ok(clips.some(c=>c.id==='source-clip'&&c.at===2&&c.speed===2));
-  const split=await call('timeline_split_clip',{clip:'source-clip',revision:duplicated.revision,at:4.5,left_time:[0,5],right_time:[5,10]});
+  const split=await call('timeline_split_clip',{clip:'source-clip',revision:duplicated.revision,at:4.5});
+  assert.deepEqual(split.left_time,[0,5]);
+  assert.deepEqual(split.right_time,[5,10]);
+  assert.ok(split.right_clip_id);
+  assert.notEqual(split.right_clip_id,duplicated.new_clip_id);
   assert.notEqual(split.revision,duplicated.revision);
   film=readFilmFile(await readFile(join(project,'film.html'),'utf8'));
   assert.ok(film.doc,film.problems.join('; '));
