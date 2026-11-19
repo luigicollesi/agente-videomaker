@@ -7,12 +7,16 @@ on:
       - "apps/desktop/src/media-mcp*.mjs"
       - "packages/openfilm/manual/media/scripts/reverse-video.py"
       - "packages/music-analyzer/**"
+      - "packages/openfilm/package.json"
+      - "apps/desktop/scripts/release.mjs"
       - ".github/workflows/media-mcp.yml"
   pull_request:
     paths:
       - "apps/desktop/src/media-mcp*.mjs"
       - "packages/openfilm/manual/media/scripts/reverse-video.py"
       - "packages/music-analyzer/**"
+      - "packages/openfilm/package.json"
+      - "apps/desktop/scripts/release.mjs"
       - ".github/workflows/media-mcp.yml"
   workflow_dispatch:
 
