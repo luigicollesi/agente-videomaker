@@ -744,10 +744,21 @@ async function timelineTool(name,args){
 }
 
 function send(value){process.stdout.write(JSON.stringify(value)+'\n')}
+// Opt-in performance diagnostics. Never print arguments, file paths, credentials or returned content.
+function measure(method,name,started,response){
+ if(process.env.VIDEOMAKER_MCP_METRICS!=='1')return;
+ const elapsedMs=Math.round(Number(process.hrtime.bigint()-started)/1e6*10)/10;
+ const outputBytes=Buffer.byteLength(JSON.stringify(response??{}));
+ process.stderr.write('MCP_METRIC '+JSON.stringify({
+  method,tool:method==='tools/call'?String(name??'unknown').slice(0,64):null,
+  ok:!response?.isError,elapsed_ms:elapsedMs,response_bytes:outputBytes
+ })+'\n');
+}
 const rl=createInterface({input:process.stdin,crlfDelay:Infinity});
 rl.on('line',async line=>{
  let msg;try{msg=JSON.parse(line)}catch{return}
  if(msg.id===undefined)return;
+ const started=process.hrtime.bigint();
  try{
   let result;
   switch(msg.method){
@@ -765,5 +776,10 @@ rl.on('line',async line=>{
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
- }catch(e){send({jsonrpc:'2.0',id:msg.id,result:{isError:true,content:[{type:'text',text:String(e.message||e)}]}})}
+  measure(msg.method,msg.params?.name,started,result);
+ }catch(e){
+  const failure={isError:true,content:[{type:'text',text:String(e.message||e)}]};
+  send({jsonrpc:'2.0',id:msg.id,result:failure});
+  measure(msg.method,msg.params?.name,started,failure);
+ }
 });
