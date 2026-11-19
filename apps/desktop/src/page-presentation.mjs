@@ -121,8 +121,15 @@ export async function paintPage(contents, { paintTimeoutMs = 500, readySelector 
 export function waitForPageFrame(timeoutMs, readySelector = null) {
   return new Promise((resolve) => {
     let frame, count = 0;
-    const finish = (painted) => { clearTimeout(timer); cancelAnimationFrame(frame); resolve(painted); };
+    let pollTimer;
+    const finish = (painted) => { clearTimeout(timer); if (pollTimer) clearTimeout(pollTimer); cancelAnimationFrame(frame); resolve(painted); };
     const timer = setTimeout(() => finish(false), timeoutMs);
+    // Hidden Chromium views can stop animation frames even when their DOM is ready.
+    const poll = () => {
+      if (document.querySelector(readySelector)) finish(true);
+      else pollTimer = setTimeout(poll, 100);
+    };
+    if (readySelector) pollTimer = setTimeout(poll, 100);
     const tick = () => {
       if (readySelector && !document.querySelector(readySelector)) count = 0;
       else if (++count === 2) { finish(true); return; }
