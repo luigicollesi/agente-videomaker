@@ -3,11 +3,16 @@ import { resolve } from 'node:path';
 
 async function main(){
  const job=JSON.parse(process.argv[2]??'null');
- if(!job||!['look','render'].includes(job.kind)||typeof job.root!=='string')throw Error('Invalid film worker request');
+ if(!job||!['look','render','text3d-preview'].includes(job.kind)||typeof job.root!=='string')throw Error('Invalid film worker request');
  const root=resolve(job.root);
  process.chdir(root);
  let result;
- if(job.kind==='look'){
+ if(job.kind==='text3d-preview'){
+  const {text3DCommand}=await import('openfilm/text3d-cli');
+  const done=await text3DCommand(['preview',job.source]);
+  if(!done.ok)throw Error((done.lines??[]).slice(0,5).join(' ').slice(0,900)||'Text3D preview failed');
+  result={preview:job.source+'-preview/files/index.html',lines:(done.lines??[]).slice(0,5)};
+ }else if(job.kind==='look'){
   const {look}=await import('openfilm/look');
   result=await look(['.',String(job.at)],{root,count:1,offline:true,network:false});
   if(!result.ok)throw Error((result.lines??[]).slice(0,5).join(' ').slice(0,1000)||'Film preview failed');
