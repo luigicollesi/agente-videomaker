@@ -8,6 +8,9 @@ on:
       - "apps/desktop/src/film-mcp-worker.mjs"
       - "apps/desktop/src/mcp/**"
       - "packages/openfilm/src/clip-motion.mjs"
+      - "packages/openfilm/studio/server/captions.mjs"
+      - "packages/openfilm/studio/server/film-subtitle.mjs"
+      - "packages/openfilm/library/catalogs/motions.json"
       - "packages/openfilm/manual/media/scripts/reverse-video.py"
       - "packages/music-analyzer/**"
       - "packages/openfilm/package.json"
@@ -22,6 +25,9 @@ on:
       - "apps/desktop/src/film-mcp-worker.mjs"
       - "apps/desktop/src/mcp/**"
       - "packages/openfilm/src/clip-motion.mjs"
+      - "packages/openfilm/studio/server/captions.mjs"
+      - "packages/openfilm/studio/server/film-subtitle.mjs"
+      - "packages/openfilm/library/catalogs/motions.json"
       - "packages/openfilm/manual/media/scripts/reverse-video.py"
       - "packages/music-analyzer/**"
       - "packages/openfilm/package.json"
@@ -60,6 +66,7 @@ jobs:
           node --test
           apps/desktop/src/media-mcp.test.mjs
           apps/desktop/src/media-mcp.batch.test.mjs
+          apps/desktop/src/media-mcp.captions-motion.test.mjs
           apps/desktop/src/media-mcp.timeline.test.mjs
           apps/desktop/src/media-mcp.runtime.test.mjs
           apps/desktop/src/media-mcp.lock.test.mjs
