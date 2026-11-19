@@ -87,7 +87,7 @@ export function registerSkillsIpc(ipcMain, { trusted, projects, dataDir, mine, p
     const allowed = new Set(store.allowed(agent));
     return {
       /* installed and on (Studio's Skills) */
-      openfilm: (await offered(cwd)).usable.map(shown),
+      openfilm: (await offered(cwd)).given.map(shown),
       own: { agent, filtered: FILTERED_AGENTS.includes(agent), skills: (await agentOwn(agent, cwd)).map((s) => ({ name: s.name, description: s.description, folder: s.folder, allowed: allowed.has(s.name) })) },
       mine,
     };
