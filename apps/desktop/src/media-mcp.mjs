@@ -1,11 +1,12 @@
 /** Local Media MCP server with read-only inspection and controlled video reversal. */
 import { createInterface } from 'node:readline';
-import { readFile, mkdtemp, rm, realpath, stat, lstat, link } from 'node:fs/promises';
+import { readFile, mkdtemp, rm, realpath, stat, lstat, link, open } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, extname, relative, isAbsolute } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
+import { unlinkSync } from 'node:fs';
 import { readProjectFilm, changeProjectFilm } from '../../../packages/openfilm/studio/server/film.mjs';
 import { kindOf, readFilm } from '../../../packages/openfilm/src/film-doc.mjs';
 import { applyOps } from '../../../packages/openfilm/studio/server/ops.mjs';
@@ -42,16 +43,37 @@ async function safePath(raw,extensions){
 }
 const MAX_OUTPUT_BYTES=4*1024*1024;
 const activeChildren=new Set();
+const HEAVY_LOCK=join(project,'.videomaker-mcp-heavy.lock');
 let activeHeavyJob=false;
+let ownsHeavyLock=false;
 async function heavyJob(work){
  if(activeHeavyJob)throw Error('A media processing job is already running');
  activeHeavyJob=true;
- try{return await work()}finally{activeHeavyJob=false}
+ let lock;
+ try{
+  try{lock=await open(HEAVY_LOCK,'wx',0o600)}
+  catch(error){
+   if(error?.code==='EEXIST')throw Error('Another MCP instance is processing media in this project; if it crashed, verify the process is gone before deleting .videomaker-mcp-heavy.lock');
+   throw error;
+  }
+  ownsHeavyLock=true;
+  await lock.writeFile(JSON.stringify({pid:process.pid,started:new Date().toISOString()})+'\n');
+  return await work();
+ }finally{
+  if(lock){
+   await lock.close().catch(()=>{});
+   try{await rm(HEAVY_LOCK)}catch(error){if(error?.code!=='ENOENT')process.stderr.write('MCP lock cleanup failed: '+String(error)+'\n')}
+   ownsHeavyLock=false;
+  }
+  activeHeavyJob=false;
+ }
 }
 function terminateChild(child){
- if(process.platform!=='win32'&&child.pid){
-  try{process.kill(-child.pid,'SIGKILL');return}catch{/* child group already ended */}
+ if(process.platform==='win32' && child.pid){
+  try{const killer=spawn('taskkill',['/PID',String(child.pid),'/T','/F'],{stdio:'ignore',windowsHide:true});killer.on('error',()=>{});killer.unref()}catch{/* process already ended */}
+  return;
  }
+ if(child.pid){try{process.kill(-child.pid,'SIGKILL');return}catch{/* group already ended */}}
  try{child.kill('SIGKILL')}catch{/* child already ended */}
 }
 function exec(name,args,timeout=30000,env=process.env){
@@ -84,7 +106,12 @@ function exec(name,args,timeout=30000,env=process.env){
   });
  });
 }
-process.on('exit',()=>{for(const child of activeChildren)terminateChild(child)});
+process.on('exit',()=>{
+ for(const child of activeChildren)terminateChild(child);
+ if(ownsHeavyLock){try{unlinkSync(HEAVY_LOCK)}catch{/* already removed */}}
+});
+process.once('SIGTERM',()=>process.exit(143));
+process.once('SIGINT',()=>process.exit(130));
 
 const image=(data,mime)=>({type:'image',mimeType:mime,data:data.toString('base64')});
 async function inspect(name,args){
@@ -265,7 +292,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):await inspect(msg.params?.name,msg.params?.arguments);break;
+   case 'tools/call':result=['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
