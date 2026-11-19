@@ -52,6 +52,8 @@ test('motion presets use native keyframes and enforce clip duration',async()=>{
  assert.equal(result.ops[0].op,'keyframes');
  assert.equal(result.ops[1].op,'props');
  assert.ok(result.ops[1].edits[0].value.includes('motion-in-'));
+ const sound={tracks:[{clips:[{id:'music-a',src:'assets/track.wav',at:0,time:[0,3]}]}]};
+ await assert.rejects(motionPresetOps(sound,{clip:'music-a',slot:'in',preset_id:id}));
  const cleared=await motionPresetOps(film,{clip:'image-a',slot:'in',preset_id:null});
  assert.equal(cleared.ops.length,1);
  await assert.rejects(motionPresetOps(film,{clip:'image-a',slot:'in',preset_id:id,seconds:4}));
