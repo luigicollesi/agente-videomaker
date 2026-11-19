@@ -31,6 +31,8 @@ const tools=[
  {name:'timeline_get_clip',description:'Read a single timeline clip with fields and current revision without dumping film.html.',inputSchema:{type:'object',properties:{clip:{type:'string'}},required:['clip'],additionalProperties:false}},
  {name:'timeline_insert_asset',description:'Insert an existing asset from project/assets into a timeline track at a nonnegative second, guarded by project revision.',inputSchema:{type:'object',properties:{path:{type:'string'},revision:{type:'string'},at:{type:'number',minimum:0},track:{type:'integer',minimum:0},time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['path','revision','at'],additionalProperties:false}},
  {name:'timeline_remove_clip',description:'Remove one clip from the timeline with strict revision check; does not delete its source asset.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'}},required:['clip','revision'],additionalProperties:false}},
+ {name:'film_preview_frame',description:'Render one frame of the current film using native look; returns concise checks and one PNG when small enough. Requires an openable browser/FFmpeg.',inputSchema:{type:'object',properties:{at:{type:'number',minimum:0}},required:['at'],additionalProperties:false}},
+ {name:'film_render',description:'Render the project with native renderer into a NEW file in assets. Requires revision; atomic exclusive publication. Heavy operation.',inputSchema:{type:'object',properties:{revision:{type:'string'},output:{type:'string'},start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0},fps:{type:'number',minimum:1,maximum:60}},required:['revision','output'],additionalProperties:false}},
  {name:'timeline_overview',description:'Read-only overview of the current project film, its revision, stage and number of tracks/clips.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
  {name:'timeline_split_clip',description:'Split one clip using explicit source-time intervals and timeline second, as required by Studio. Current revision required. Source timings must be provided accurately.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},at:{type:'number',exclusiveMinimum:0},left_time:{type:'array',items:{type:'number'},minItems:2,maxItems:2},right_time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['clip','revision','at'],additionalProperties:false}},
  {name:'timeline_set_playback',description:'Set clip playback speed (0.1..100) or volume (0..4) using Studio. Requires current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},field:{type:'string',enum:['speed','volume']},value:{type:'number'}},required:['clip','revision','field','value'],additionalProperties:false}},
@@ -95,9 +97,9 @@ function terminateChild(child){
  if(child.pid){try{process.kill(-child.pid,'SIGKILL');return}catch{/* group already ended */}}
  try{child.kill('SIGKILL')}catch{/* child already ended */}
 }
-function exec(name,args,timeout=30000,env=process.env,acceptedCodes=[0]){
+function exec(name,args,timeout=30000,env=process.env,acceptedCodes=[0],cwd=undefined){
  return new Promise((resolve,reject)=>{
-  const child=spawn(name,args,{stdio:['ignore','pipe','pipe'],env,detached:process.platform!=='win32'});
+  const child=spawn(name,args,{stdio:['ignore','pipe','pipe'],env,cwd,detached:process.platform!=='win32'});
   activeChildren.add(child);
   const out=[],err=[];
   let bytes=0,failure=null;
@@ -329,6 +331,69 @@ async function text3dTool(name,args){
  return {content:[{type:'text',text:JSON.stringify({total:chosen.length,offset,returned:results.length,next_offset:offset+limit<chosen.length?offset+limit:null,components:results})}]};
 }
 
+async function filmTool(name,args){
+ if(!(await stat(join(project,'film.html')).catch(()=>null))?.isFile())throw Error('A film.html project is required');
+ const worker=new URL('./film-mcp-worker.mjs',import.meta.url);
+ const isRender=name==='film_render';
+ let output,revision,job,staging;
+ if(isRender){
+  if(typeof args?.revision!=='string'||!/^[a-f0-9]{16}$/.test(args.revision))throw Error('Invalid film revision');
+  if(typeof args?.output!=='string'||!['.mp4','.webm','.mov'].includes(extname(args.output).toLowerCase()))throw Error('Output must be a new MP4, WebM or MOV');
+  const hasRange=args.start!==undefined||args.end!==undefined;
+  if(hasRange&&(!Number.isFinite(args.start)||!Number.isFinite(args.end)||args.start<0||args.end<=args.start))throw Error('Invalid export interval');
+  if(args?.fps!==undefined&&(!Number.isFinite(args.fps)||args.fps<1||args.fps>60))throw Error('Invalid export FPS');
+  const current=await readProjectFilm(project);
+  if(!current.value||current.rev!==args.revision)throw Error('Stale or invalid film revision; inspect again');
+  revision=current.rev;
+  output=await safeOutput(args.output,extname(args.output).toLowerCase());
+  job={kind:'render',root:project,range:hasRange?[args.start,args.end]:null,fps:args.fps??30};
+ }else{
+  if(!Number.isFinite(args?.at)||args.at<0)throw Error('Invalid preview time');
+  job={kind:'look',root:project,at:args.at};
+ }
+ return heavyJob(async()=>{
+  try{
+   if(isRender){
+    // Render into a private sibling; link only after validation so a competing file cannot be replaced.
+    staging=await mkdtemp(join(dirname(output),'.film-mcp-render-'));
+    job.out=join(staging,'output'+extname(output).toLowerCase());
+   }
+   const bytes=await exec(process.execPath,[worker.pathname,JSON.stringify(job)],isRender?3600000:180000,{...process.env,ELECTRON_RUN_AS_NODE:'1',OPENFILM_NO_BROWSER:'1'},[0],project);
+   const log=bytes.toString('utf8');
+   const marker='MCP_FILM_RESULT=';
+   const offset=log.lastIndexOf(marker);
+   if(offset<0)throw Error('Film worker returned no completion receipt');
+   let finished;
+   try{finished=JSON.parse(log.slice(offset+marker.length).split('\n')[0])}catch{throw Error('Film worker receipt was not JSON')}
+   if(isRender){
+    const size=(await stat(job.out)).size;
+    if(size===0)throw Error('Rendered file is empty');
+    const current=await readProjectFilm(project);
+    if(current.rev!==revision)throw Error('Film changed while rendering; render result not published');
+    await link(job.out,output);
+    return {content:[{type:'text',text:JSON.stringify({status:'rendered',revision,output:relative(project,output),bytes:size,encoder:finished.encoder,notes:(finished.lines??[]).slice(1,5).map(line=>String(line).slice(0,180))})}]};
+   }
+   const files=[];
+   for(const candidate of finished.files??[]){
+    try{
+     const file=await realpath(candidate);
+     const rel=relative(project,file);
+     if(rel==='..'||rel.startsWith('..'+sep)||isAbsolute(rel)||extname(file).toLowerCase()!=='.png')continue;
+     files.push({path:rel,file});
+    }catch{/* no image available */}
+   }
+   const content=[{type:'text',text:JSON.stringify({status:'previewed',at:job.at,files:files.map(f=>f.path).slice(0,2),notes:(finished.lines??[]).slice(0,8).map(line=>String(line).slice(0,180))})}];
+   if(files.length){
+    const size=(await stat(files[0].file)).size;
+    if(size>0&&size<=1500000)content.push({type:'image',data:(await readFile(files[0].file)).toString('base64'),mimeType:'image/png'});
+   }
+   return {content};
+  }finally{
+   if(staging)await rm(staging,{recursive:true,force:true});
+  }
+ });
+}
+
 async function timelineGetClip(args){
  if(typeof args?.clip!=='string'||!args.clip.trim())throw Error('Invalid clip id');
  const {rev,value,problems}=await readProjectFilm(project);
@@ -482,7 +547,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate','text3d_create'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
+   case 'tools/call':result=['film_preview_frame','film_render'].includes(msg.params?.name)?await filmTool(msg.params.name,msg.params?.arguments):msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate','text3d_create'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
