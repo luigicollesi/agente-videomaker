@@ -27,6 +27,9 @@ on:
       - "apps/desktop/src/pi-mcp-bridge.test.mjs"
       - "apps/desktop/scripts/bench-mcp-discovery.mjs"
       - "apps/desktop/src/agent-prompt.md"
+      - "apps/desktop/src/agent-prompt.test.mjs"
+      - "packages/openfilm/manual/edit/SKILL.md"
+      - "packages/openfilm/src/film-doc.mjs"
       - ".github/workflows/media-mcp.yml"
   pull_request:
     paths:
@@ -53,6 +56,9 @@ on:
       - "apps/desktop/src/pi-mcp-bridge.test.mjs"
       - "apps/desktop/scripts/bench-mcp-discovery.mjs"
       - "apps/desktop/src/agent-prompt.md"
+      - "apps/desktop/src/agent-prompt.test.mjs"
+      - "packages/openfilm/manual/edit/SKILL.md"
+      - "packages/openfilm/src/film-doc.mjs"
       - ".github/workflows/media-mcp.yml"
   workflow_dispatch:
 
@@ -83,6 +89,10 @@ jobs:
         run: |
           node --check apps/desktop/src/pi-mcp-bridge.mjs
           node --check apps/desktop/src/pi-agent.mjs
+      - name: Check P1 film auditing and procedural patch syntax
+        run: |
+          node --check apps/desktop/src/mcp/film-audit.mjs
+          node --check apps/desktop/src/mcp/project-pages.mjs
       - name: Check advanced music options
         run: node --check apps/desktop/src/mcp/music-options.mjs
       - name: Check Text3D helper syntax
@@ -105,6 +115,9 @@ jobs:
           apps/desktop/src/media-mcp.music-advanced.test.mjs
           apps/desktop/src/pi-mcp-bridge.test.mjs
           apps/desktop/src/media-mcp.metrics.test.mjs
+          apps/desktop/src/media-mcp.p1.test.mjs
+          apps/desktop/src/agent-prompt.test.mjs
+          apps/desktop/src/agent-refs.test.mjs
       - uses: actions/setup-python@v5
         if: runner.os == 'Linux'
         with:
