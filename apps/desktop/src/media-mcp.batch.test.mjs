@@ -11,7 +11,7 @@ test('MCP accepts bounded official Studio clip properties',()=>{
   {clip:'intro',prop:'motion',value:{rotate:[{t:0,v:0},{t:2,v:45,ease:'ease-out'}]}}
  ]);
  assert.equal(properties.length,5);
- assert.equal(properties[4].value.motion,undefined);
+ assert.equal(properties[4].value.rotate.at(-1).v,45);
  for(const bad of [
   {clip:'intro',prop:'src',value:'../../private.txt'},
   {clip:'intro',prop:'style',value:'background:red'},
