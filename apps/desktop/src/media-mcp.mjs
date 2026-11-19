@@ -563,6 +563,7 @@ async function guardedTimelineOps(revision,ops,summary){
    if(!Array.isArray(op.time)||!Array.isArray(op.restTime)||Math.abs(clip.time[0]-op.time[0])>0.002||Math.abs(clip.time[1]-op.restTime[1])>0.002||Math.abs(op.time[1]-sourceCut)>0.002||Math.abs(op.restTime[0]-sourceCut)>0.002)throw Error('Split must match clip source trim, speed and timeline time');
   }
   const clipTrack=new Map(value.tracks.flatMap((track,index)=>(track.clips??[]).map(clip=>[clip.id,index])));
+  const newlyLocked=new Set(ops.filter(op=>op.op==='track'&&op.field==='locked'&&op.value===true).map(op=>op.track));
   const initialIds=new Set(clipTrack.keys());
   const insertedIds=new Set();
   for(const op of ops){
@@ -570,18 +571,19 @@ async function guardedTimelineOps(revision,ops,summary){
    for(const clipId of touched){
     const index=clipTrack.get(clipId);
     if(index===undefined && !insertedIds.has(clipId))throw Error('Clip not found: '+clipId);
-    if(index!==undefined && value.tracks[index].locked)throw Error('Track is locked: '+index);
+    if(index!==undefined && (value.tracks[index].locked||newlyLocked.has(index)))throw Error('Track is locked: '+index);
    }
    if(op.op==='insert'){
     if(op.from!==undefined&&!initialIds.has(op.from))throw Error('Source clip not found');
-    if(op.track!==undefined&&(!value.tracks[op.track]||value.tracks[op.track].locked))throw Error('Target track missing or locked');
+    if(op.track===undefined&&value.tracks.some(track=>track.locked))throw Error('Specify an unlocked destination track when the project has locked tracks');
+    if(op.track!==undefined&&(!value.tracks[op.track]||value.tracks[op.track].locked||newlyLocked.has(op.track)))throw Error('Target track missing or locked');
     const newId=op.clip?.id;
     if(newId!==undefined){
      if(initialIds.has(newId)||insertedIds.has(newId))throw Error('New clip ID already in use');
      insertedIds.add(newId);
     }
    }
-   if(op.op==='move'&&op.track!==undefined&&(!value.tracks[op.track]||value.tracks[op.track].locked))throw Error('Target track missing or locked');
+   if(op.op==='move'&&op.track!==undefined&&(!value.tracks[op.track]||value.tracks[op.track].locked||newlyLocked.has(op.track)))throw Error('Target track missing or locked');
    if(op.op==='track'){
     const track=value.tracks[op.track];
     if(!track)throw Error('Track not found');
