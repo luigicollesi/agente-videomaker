@@ -14,7 +14,7 @@ When the person wants a service that is not built in to make pictures, clips or 
 
 ## Native library discovery (MCP preferred)
 
-Use `library_search` for searching local music, sounds, transitions, effects, filters, stickers, text and templates, supplying `kind`, `query` and a small `limit` (3–8). It returns compact names and canonical IDs without printing a full library listing. Use the existing `videomaker get <verb> --take <id>` only for the take/import step until the equivalent tool is exposed; `library_search` does not copy files into the project. Do not run an identical CLI search after a successful MCP search.
+Use `library_search` for searching local music, sounds, transitions, effects, filters, stickers, text and templates, supplying `kind`, `query` and a small `limit` (3–8). It returns compact names and canonical IDs without printing a full library listing. Use `library_take` with the item `kind` and `id` returned by `library_search` to import it when supported; `library_search` only finds assets. Use the CLI only if native import is unavailable. Do not run an identical CLI search after a successful MCP search.
 
 ## Native asset import (MCP preferred)
 
