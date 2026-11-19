@@ -64,6 +64,15 @@ test('MCP reads canvas in compact pages and searches native library', {timeout:6
   assert.equal(search.kind,'effect');
   assert.ok(Array.isArray(search.results));
   assert.ok(search.results.length<=3);
+  const invalidTake=await call('library_take',{kind:'effect',id:'nonexistent/not-a-real-library-item'});
+  assert.equal(invalidTake.result.isError,true);
+  const registered=await ok('text3d_list',{limit:3});
+  assert.ok(Array.isArray(registered.components));
+  assert.ok(registered.components.length<=3);
+  const missingText3D=await call('text3d_inspect',{component_id:'missing/text3d'});
+  assert.equal(missingText3D.result.isError,true);
+  const invalidDraft=await call('text3d_create',{name:'../escape'});
+  assert.equal(invalidDraft.result.isError,true);
   const invalid=await call('library_search',{kind:'invalid',query:'glow'});
   assert.equal(invalid.result.isError,true);
  }finally{
