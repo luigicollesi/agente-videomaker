@@ -6,10 +6,10 @@ import { join, resolve, extname, relative, isAbsolute } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
-import { unlinkSync } from 'node:fs';
-import { readProjectFilm, changeProjectFilm } from '../../../packages/openfilm/studio/server/film.mjs';
-import { kindOf, readFilm } from '../../../packages/openfilm/src/film-doc.mjs';
-import { applyOps } from '../../../packages/openfilm/studio/server/ops.mjs';
+import { unlinkSync, existsSync } from 'node:fs';
+import { readProjectFilm, changeProjectFilm } from 'openfilm/studio-film';
+import { kindOf, readFilm } from 'openfilm/film-doc';
+import { applyOps } from 'openfilm/studio-ops';
 
 const project=resolve(process.env.VIDEOMAKER_PROJECT || process.cwd());
 const require=createRequire(import.meta.url);
@@ -172,7 +172,9 @@ async function reverseVideo(args){
 const musicSources=new Set(['.wav','.mp3','.mp4']);
 const analysisFiles=new Set(['.json']);
 function musicRuntime(){
- const src=resolve(dirname(require.resolve('openfilm/skills')),'../../music-analyzer/src');
+ const bundled=process.resourcesPath && join(process.resourcesPath,'music-analyzer','src');
+ const development=resolve(dirname(require.resolve('openfilm/skills')),'../../music-analyzer/src');
+ const src=process.env.VIDEOMAKER_MUSIC_ANALYZER_SRC || (bundled && existsSync(bundled)?bundled:development);
  const existing=process.env.PYTHONPATH;
  return { ...process.env, PYTHONPATH:existing?[src,existing].join(process.platform==='win32'?';':':'):src };
 }
