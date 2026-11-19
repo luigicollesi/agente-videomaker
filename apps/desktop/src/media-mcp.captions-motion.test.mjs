@@ -42,7 +42,7 @@ test('official motion catalog is paginated and output is compact',async()=>{
  assert.equal(data.returned,3);
  assert.ok(data.presets.every(v=>v.slots.includes('in')));
  assert.ok(data.presets.every(v=>typeof v.id==='string'));
- assert.throws(()=>motionPresetList({slot:'invalid'}));
+ await assert.rejects(motionPresetList({slot:'invalid'}));
 });
 test('motion presets use native keyframes and enforce clip duration',async()=>{
  const film={tracks:[{clips:[{id:'image-a',src:'assets/frame.png',at:0,time:[0,3]}]}]};
