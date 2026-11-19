@@ -2,7 +2,7 @@
  * This edits source text only: executing/rendering the page remains the native look engine's job.
  */
 import { createHash, randomUUID } from 'node:crypto';
-import { open, readFile, realpath, rename, rm, stat } from 'node:fs/promises';
+import { open, readFile, realpath, rename, rm, stat, chmod } from 'node:fs/promises';
 import { resolve, relative, isAbsolute, sep, extname, dirname, basename, join } from 'node:path';
 import { readProjectFilm } from 'openfilm/studio-film';
 import { kindOf } from 'openfilm/film-doc';
@@ -14,6 +14,7 @@ const inside=(root,path)=>{
  return !!rel&&rel!=='..'&&!rel.startsWith('..'+sep)&&!isAbsolute(rel);
 };
 const validHash=s=>typeof s==='string'&&/^[a-f0-9]{64}$/.test(s);
+const validFilmRevision=s=>typeof s==='string'&&/^[a-f0-9]{16}$/.test(s);
 
 export function applyPageReplacements(text,changes){
  if(!Array.isArray(changes)||changes.length<1||changes.length>8)throw Error('Expected 1 to 8 exact replacements');
@@ -32,22 +33,24 @@ export function applyPageReplacements(text,changes){
 export async function projectPage(project,args={}){
  if(typeof args.path!=='string'||!args.path||args.path.length>260||
     !['inspect','replace'].includes(args.action))throw Error('Invalid procedural page request');
- if(args.action==='replace'&&(!validHash(args.expected_sha256)||!Array.isArray(args.changes)))
+ if(args.action==='replace'&&(!validHash(args.expected_sha256)||!validFilmRevision(args.revision)||!Array.isArray(args.changes)))
   throw Error('A valid expected_sha256 and replacement list are required');
  const film=await readProjectFilm(project);
  if(!film.value)throw Error('Cannot edit a page without a valid film.html');
+ if(args.action==='replace'&&film.rev!==args.revision)throw Error('Film changed; inspect page again');
  const root=await realpath(project),lexical=resolve(root,args.path);
  if(extname(lexical).toLowerCase()!=='.html'||!inside(root,lexical)||basename(lexical)==='film.html'||
     args.path.split(/[\/\\]/).some(piece=>piece==='.film'||piece==='..'))throw Error('Only linked procedural pages within the project are allowed');
  const canonical=await realpath(lexical);
- if(canonical!==lexical||!inside(root,canonical)||(await stat(canonical)).size>MAX_FILE)throw Error('Page must be a regular local HTML file up to 256 KB');
+ const originalStat=await stat(canonical);
+ if(canonical!==lexical||!inside(root,canonical)||!originalStat.isFile()||originalStat.size>MAX_FILE)throw Error('Page must be a regular local HTML file up to 256 KB');
  const links=film.value.tracks.flatMap((track,index)=>(track.clips??[]).filter(c=>
   kindOf(c)==='page'&&resolve(root,String(c.src??'').split('#')[0].split('?')[0])===canonical
  ).map(c=>({clip:c.id,track:index,locked:!!track.locked})));
  if(!links.length)throw Error('Only pages referenced by film.html can be edited');
  const original=await readFile(canonical,'utf8');
  const digest=hash(original);
- if(args.action==='inspect')return {path:relative(root,canonical).split(sep).join('/'),sha256:digest,bytes:Buffer.byteLength(original),clips:links};
+ if(args.action==='inspect')return {path:relative(root,canonical).split(sep).join('/'),sha256:digest,film_revision:film.rev,bytes:Buffer.byteLength(original),clips:links};
  if(links.some(link=>link.locked))throw Error('A linked clip is on a locked track');
  if(digest!==args.expected_sha256)throw Error('Page changed; inspect it again before editing');
  const next=applyPageReplacements(original,args.changes);
@@ -59,6 +62,9 @@ export async function projectPage(project,args={}){
   handle=await open(temporary,'wx',0o600);
   await handle.writeFile(next);
   await handle.close();handle=null;
+  await chmod(temporary,originalStat.mode&0o777);
+  const currentFilm=await readProjectFilm(project);
+  if(!currentFilm.value||currentFilm.rev!==args.revision)throw Error('Film changed during page edit');
   if(hash(await readFile(canonical,'utf8'))!==digest)throw Error('Page changed during editing; retry with new hash');
   await rename(temporary,canonical);
  }finally{
