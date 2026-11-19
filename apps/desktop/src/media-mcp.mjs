@@ -2,7 +2,7 @@
 import { createInterface } from 'node:readline';
 import { readFile, mkdtemp, rm, realpath, stat, lstat, link, open } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve, extname, relative, isAbsolute } from 'node:path';
+import { join, resolve, extname, relative, isAbsolute, basename, sep } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
@@ -145,11 +145,12 @@ async function inspect(name,args){
 async function safeOutput(raw,extension='.mp4'){
  if(typeof raw!=='string'||!raw.trim())throw Error('Missing output path');
  const base=await realpath(join(project,'assets'));
- const dest=resolve(project,raw);
- if(extname(dest).toLowerCase()!==extension)throw Error('Output must be '+extension);
- const parent=await realpath(dirname(dest));
- const rel=relative(base,dest);
- if(rel.startsWith('..')||isAbsolute(rel)||!rel||parent!==base&&(!relative(base,parent)||relative(base,parent).startsWith('..')||isAbsolute(relative(base,parent))))throw Error('Output must be inside project/assets');
+ const lexical=resolve(project,raw);
+ if(extname(lexical).toLowerCase()!==extension)throw Error('Output must be '+extension);
+ const parent=await realpath(dirname(lexical));
+ const rel=relative(base,parent);
+ if(rel==='..'||rel.startsWith('..'+sep)||isAbsolute(rel))throw Error('Output must be inside project/assets');
+ const dest=join(parent,basename(lexical));
  try{await lstat(dest);throw Error('Output already exists')}catch(e){if(e?.code!=='ENOENT')throw e}
  return dest;
 }
