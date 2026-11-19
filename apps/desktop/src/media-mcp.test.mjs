@@ -33,7 +33,7 @@ test('Media MCP lists native tools and denies paths outside assets', async () =>
   const init=await request(1,'initialize',{});
   assert.equal(init.result.serverInfo.name,'videomaker-media');
   const listed=await request(2,'tools/list');
-  assert.deepEqual(listed.result.tools.map(t=>t.name),['inspect_image','inspect_video','timeline_overview','timeline_set_playback','timeline_duplicate_clip','timeline_move_clip','timeline_clips','music_analyze','music_overview','music_context','music_cues','reverse_video']);
+  assert.deepEqual(listed.result.tools.map(t=>t.name),['inspect_image','inspect_video','timeline_overview','timeline_split_clip','timeline_set_playback','timeline_duplicate_clip','timeline_move_clip','timeline_clips','music_analyze','music_overview','music_context','music_cues','reverse_video']);
   const denied=await request(3,'tools/call',{name:'inspect_image',arguments:{path:'private.jpg'}});
   assert.equal(denied.result.isError,true);
   const reverseDenied=await request(4,'tools/call',{name:'reverse_video',arguments:{path:'private.jpg',output:'assets/out.mp4'}});
@@ -52,6 +52,10 @@ test('Media MCP lists native tools and denies paths outside assets', async () =>
   assert.equal(badSpeed.result.isError,true);
   const staleVolume=await request(13,'tools/call',{name:'timeline_set_playback',arguments:{clip:'missing',revision:'0000000000000000',field:'volume',value:1}});
   assert.equal(staleVolume.result.isError,true);
+  const invalidSplit=await request(14,'tools/call',{name:'timeline_split_clip',arguments:{clip:'x',revision:'0000000000000000',at:5,left_time:[0,5],right_time:[6,10]}});
+  assert.equal(invalidSplit.result.isError,true);
+  const missingSplit=await request(15,'tools/call',{name:'timeline_split_clip',arguments:{clip:'x',revision:'0000000000000000',at:5,left_time:[0,5],right_time:[5,10]}});
+  assert.equal(missingSplit.result.isError,true);
   const badMusicSource=await request(7,'tools/call',{name:'music_analyze',arguments:{path:'private.jpg',output:'assets/analysis.json'}});
   assert.equal(badMusicSource.result.isError,true);
   const invalidInterval=await request(8,'tools/call',{name:'music_cues',arguments:{path:'assets/sample.mp4',start:10,end:2}});
