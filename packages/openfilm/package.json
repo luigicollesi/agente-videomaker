@@ -28,6 +28,7 @@
   },
   "exports": {
     "./film-doc": "./src/film-doc.mjs",
+    "./clip-motion": "./src/clip-motion.mjs",
     "./host": "./src/host.mjs",
     "./shared": "./src/shared.mjs",
     "./look": "./src/look.mjs",
