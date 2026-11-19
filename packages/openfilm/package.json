@@ -29,6 +29,7 @@
   "exports": {
     "./film-doc": "./src/film-doc.mjs",
     "./clip-motion": "./src/clip-motion.mjs",
+    "./motions-catalog": "./library/catalogs/motions.json",
     "./host": "./src/host.mjs",
     "./shared": "./src/shared.mjs",
     "./look": "./src/look.mjs",
