@@ -14,6 +14,7 @@ import { applyOps } from 'openfilm/studio-ops';
 import { listBoards, readCanvas } from 'openfilm/studio-canvas';
 import { searchLibrary, KINDS, LIBRARY_VERBS, libraryGet } from 'openfilm/library-search';
 import { listText3D } from 'openfilm/text3d-registry';
+import { propertyEdits, batchOps } from './mcp/timeline-actions.mjs';
 
 const project=resolve(process.env.VIDEOMAKER_PROJECT || process.cwd());
 const require=createRequire(import.meta.url);
@@ -29,6 +30,8 @@ const tools=[
  {name:'canvas_apply',description:'Apply up to 30 validated canvas operations through the running Studio; visible immediately. Does not bypass Studio API.',inputSchema:{type:'object',properties:{ops:{type:'array',items:{type:'object'},minItems:1,maxItems:30}},required:['ops'],additionalProperties:false}},
  {name:'canvas_nodes',description:'Read a board as compact paged node summaries, or one full node and its connections by id.',inputSchema:{type:'object',properties:{board:{type:'string'},node:{type:'string'},limit:{type:'integer',minimum:1,maximum:50},offset:{type:'integer',minimum:0}},additionalProperties:false}},
  {name:'library_take',description:'Import one free library asset into this project, using the built-in get --take engine. Does not insert into timeline.',inputSchema:{type:'object',properties:{kind:{type:'string',enum:['music','sound','transition','effect','filter','sticker','text','template']},id:{type:'string',minLength:1,maxLength:500}},required:['kind','id'],additionalProperties:false}},
+ {name:'timeline_set_properties',description:'Atomically edit 1-30 whitelisted clip properties (trim, position, box, fade, volume, speed, motion) with current revision; rejects invalid steps.',inputSchema:{type:'object',properties:{revision:{type:'string'},edits:{type:'array',minItems:1,maxItems:30,items:{type:'object',properties:{clip:{type:'string'},prop:{type:'string'},value:{}},required:['clip','prop','value'],additionalProperties:false}}},required:['revision','edits'],additionalProperties:false}},
+ {name:'timeline_apply_batch',description:'Atomically apply 1-25 validated timeline steps: move, duplicate, remove, insert_asset, props, track flags and stage. Rollback on any failure; current revision required.',inputSchema:{type:'object',properties:{revision:{type:'string'},steps:{type:'array',minItems:1,maxItems:25,items:{type:'object'}}},required:['revision','steps'],additionalProperties:false}},
  {name:'timeline_get_clip',description:'Read a single timeline clip with fields and current revision without dumping film.html.',inputSchema:{type:'object',properties:{clip:{type:'string'}},required:['clip'],additionalProperties:false}},
  {name:'timeline_insert_asset',description:'Insert an existing asset from project/assets into a timeline track at a nonnegative second, guarded by project revision.',inputSchema:{type:'object',properties:{path:{type:'string'},revision:{type:'string'},at:{type:'number',minimum:0},track:{type:'integer',minimum:0},time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['path','revision','at'],additionalProperties:false}},
  {name:'timeline_remove_clip',description:'Remove one clip from the timeline with strict revision check; does not delete its source asset.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'}},required:['clip','revision'],additionalProperties:false}},
@@ -418,6 +421,23 @@ async function filmTool(name,args){
  });
 }
 
+async function timelineAdvanced(name,args){
+ if(typeof args?.revision!=='string'||!/^[a-f0-9]{16}$/.test(args.revision))throw Error('Invalid timeline revision');
+ let ops;
+ if(name==='timeline_set_properties'){
+  ops=[{op:'props',edits:propertyEdits(args.edits)}];
+ }else{
+  const extensions=new Set(['.mp4','.mov','.webm','.mkv','.avi','.m4v','.wav','.mp3','.m4a','.flac','.ogg','.png','.jpg','.jpeg','.webp','.gif','.html']);
+  ops=await batchOps(args.steps,async path=>{
+   const file=await safePath(path,extensions);
+   const src=relative(project,file).split(sep).join('/');
+   if(!clipKind(src))throw Error('Unsupported clip kind');
+   return src;
+  });
+ }
+ return guardedTimelineOps(args.revision,ops,{operation:name,operations:ops.length});
+}
+
 async function timelineGetClip(args){
  if(typeof args?.clip!=='string'||!args.clip.trim())throw Error('Invalid clip id');
  const {rev,value,problems}=await readProjectFilm(project);
@@ -532,6 +552,32 @@ async function guardedTimelineOps(revision,ops,summary){
    }
    if(!Array.isArray(op.time)||!Array.isArray(op.restTime)||Math.abs(clip.time[0]-op.time[0])>0.002||Math.abs(clip.time[1]-op.restTime[1])>0.002||Math.abs(op.time[1]-sourceCut)>0.002||Math.abs(op.restTime[0]-sourceCut)>0.002)throw Error('Split must match clip source trim, speed and timeline time');
   }
+  const clipTrack=new Map(value.tracks.flatMap((track,index)=>(track.clips??[]).map(clip=>[clip.id,index])));
+  const initialIds=new Set(clipTrack.keys());
+  const insertedIds=new Set();
+  for(const op of ops){
+   const touched=op.op==='props'?op.edits.map(edit=>edit.clip):['set','move','remove','split'].includes(op.op)?[op.clip]:[];
+   for(const clipId of touched){
+    const index=clipTrack.get(clipId);
+    if(index===undefined && !insertedIds.has(clipId))throw Error('Clip not found: '+clipId);
+    if(index!==undefined && value.tracks[index].locked)throw Error('Track is locked: '+index);
+   }
+   if(op.op==='insert'){
+    if(op.from!==undefined&&!initialIds.has(op.from))throw Error('Source clip not found');
+    if(op.track!==undefined&&(!value.tracks[op.track]||value.tracks[op.track].locked))throw Error('Target track missing or locked');
+    const newId=op.clip?.id;
+    if(newId!==undefined){
+     if(initialIds.has(newId)||insertedIds.has(newId))throw Error('New clip ID already in use');
+     insertedIds.add(newId);
+    }
+   }
+   if(op.op==='move'&&op.track!==undefined&&(!value.tracks[op.track]||value.tracks[op.track].locked))throw Error('Target track missing or locked');
+   if(op.op==='track'){
+    const track=value.tracks[op.track];
+    if(!track)throw Error('Track not found');
+    if(track.locked && !(op.field==='locked'&&op.value===false))throw Error('Track is locked: '+op.track);
+   }
+  }
   const edited=applyOps(value,ops);
   const checked=readFilm(edited);
   if(!checked.doc)throw Error(checked.problems.join('; '));
@@ -540,7 +586,8 @@ async function guardedTimelineOps(revision,ops,summary){
  const beforeIds=new Set((result.current.value?.tracks??[]).flatMap(t=>t.clips??[]).map(c=>c.id));
  const created=result.value.tracks.flatMap(t=>t.clips??[]).find(c=>!beforeIds.has(c.id));
  const details=ops[0]?.op==='insert'?{new_clip_id:created?.id??null}:ops[0]?.op==='split'?{right_clip_id:created?.id??null,left_time:ops[0].time,right_time:ops[0].restTime}:{};
- return {content:[{type:'text',text:JSON.stringify({status:'updated',revision:result.rev,...summary,...details})}]};
+ const newClipIds=result.value.tracks.flatMap(t=>t.clips??[]).filter(c=>!beforeIds.has(c.id)).map(c=>c.id).slice(0,25);
+ return {content:[{type:'text',text:JSON.stringify({status:'updated',revision:result.rev,...summary,...details,...(summary.operation==='timeline_apply_batch'?{new_clip_ids:newClipIds}:{})})}]};
 }
 
 async function timelineTool(name,args){
@@ -571,7 +618,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=['film_preview_frame','film_render'].includes(msg.params?.name)?await filmTool(msg.params.name,msg.params?.arguments):msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate','text3d_create','text3d_preview'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
+   case 'tools/call':result=['timeline_set_properties','timeline_apply_batch'].includes(msg.params?.name)?await timelineAdvanced(msg.params.name,msg.params?.arguments):['film_preview_frame','film_render'].includes(msg.params?.name)?await filmTool(msg.params.name,msg.params?.arguments):msg.params?.name==='library_take'?await libraryTake(msg.params?.arguments):['text3d_list','text3d_inspect','text3d_validate','text3d_create','text3d_preview'].includes(msg.params?.name)?await text3dTool(msg.params.name,msg.params?.arguments):msg.params?.name==='timeline_get_clip'?await timelineGetClip(msg.params?.arguments):['timeline_insert_asset','timeline_remove_clip'].includes(msg.params?.name)?await timelineAssetEdit(msg.params.name,msg.params?.arguments):msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):msg.params?.name==='canvas_apply'?await canvasApply(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues','music_validate','music_compare','music_inspect'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
