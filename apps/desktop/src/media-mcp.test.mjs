@@ -33,7 +33,7 @@ test('Media MCP lists native tools and denies paths outside assets', async () =>
   const init=await request(1,'initialize',{});
   assert.equal(init.result.serverInfo.name,'videomaker-media');
   const listed=await request(2,'tools/list');
-  assert.deepEqual(listed.result.tools.map(t=>t.name),['inspect_image','inspect_video','timeline_overview','timeline_clips','music_analyze','music_overview','music_context','music_cues','reverse_video']);
+  assert.deepEqual(listed.result.tools.map(t=>t.name),['inspect_image','inspect_video','timeline_overview','timeline_move_clip','timeline_clips','music_analyze','music_overview','music_context','music_cues','reverse_video']);
   const denied=await request(3,'tools/call',{name:'inspect_image',arguments:{path:'private.jpg'}});
   assert.equal(denied.result.isError,true);
   const reverseDenied=await request(4,'tools/call',{name:'reverse_video',arguments:{path:'private.jpg',output:'assets/out.mp4'}});
@@ -44,6 +44,8 @@ test('Media MCP lists native tools and denies paths outside assets', async () =>
   assert.equal(badAudio.result.isError,true);
   const noFilm=await request(9,'tools/call',{name:'timeline_overview',arguments:{}});
   assert.equal(noFilm.result.isError,true);
+  const badMove=await request(10,'tools/call',{name:'timeline_move_clip',arguments:{clip:'missing',at:-1,revision:'invalid'}});
+  assert.equal(badMove.result.isError,true);
   const badMusicSource=await request(7,'tools/call',{name:'music_analyze',arguments:{path:'private.jpg',output:'assets/analysis.json'}});
   assert.equal(badMusicSource.result.isError,true);
   const invalidInterval=await request(8,'tools/call',{name:'music_cues',arguments:{path:'assets/sample.mp4',start:10,end:2}});
