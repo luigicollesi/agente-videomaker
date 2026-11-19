@@ -77,6 +77,8 @@ test('MCP reads canvas in compact pages and searches native library', {timeout:6
   assert.equal(verified.valid,true);
   const secondDraft=await call('text3d_create',{name:'mcp-sample'});
   assert.equal(secondDraft.result.isError,true);
+  const invalidPreview=await call('text3d_preview',{folder:'../outside-draft'});
+  assert.equal(invalidPreview.result.isError,true);
   const invalidDraft=await call('text3d_create',{name:'../escape'});
   assert.equal(invalidDraft.result.isError,true);
   const invalid=await call('library_search',{kind:'invalid',query:'glow'});
