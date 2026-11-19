@@ -234,6 +234,7 @@ export async function canvasRoute(req, res, root, rest) {
     const body = /** @type {{ name?: unknown, from?: unknown }} */ (await readJson(req));
     if ((await listBoards(root)).length >= BOARDS_MAX) throw new HttpError(409, `a project has at most ${BOARDS_MAX} canvases`);
     const from = typeof body.from === 'string' && (await isBoard(root, body.from)) ? await readCanvas(root, body.from) : { nodes: [], edges: [] };
+    if(body.from_revision!==undefined && canvasRevision(from)!==body.from_revision)throw new HttpError(409,'Source board changed; inspect again');
     /* its id goes up with each made, so the list is in the order they were made */
     lastMade = Math.max(Date.now(), lastMade + 1);
     const made = `${lastMade.toString(36)}${Math.random().toString(36).slice(2, 6).padEnd(4, '0')}`;
@@ -248,12 +249,15 @@ export async function canvasRoute(req, res, root, rest) {
     const body = /** @type {{ name?: unknown }} */ (await readJson(req));
     const name = typeof body.name === 'string' ? body.name.trim().slice(0, NAME_MAX) : '';
     const now = await readCanvas(root, board);
+    if(body.revision!==undefined&&canvasRevision(now)!==body.revision)throw new HttpError(409,'Canvas board changed; inspect again');
     const { name: _old, ...rest } = now;
     await writeCanvas(root, name ? { ...rest, name } : rest, board);
     json(res, 200, { id: board, ...(name ? { name } : {}) });
     return true;
   }
   if (req.method === 'DELETE') {
+    const body = await readJson(req).catch(()=>({}));
+    if(body?.revision!==undefined&&canvasRevision(await readCanvas(root,board))!==body.revision)throw new HttpError(409,'Canvas board changed; inspect again');
     const boards = await listBoards(root);
     if (boards.length < 2) throw new HttpError(409, 'the only canvas stays');
     const file = boardFile(root, board);
