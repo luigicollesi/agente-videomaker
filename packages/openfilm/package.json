@@ -62,6 +62,7 @@
     "!library/vectors.i8",
     "!library/vectors.json",
     "examples-index",
+    "examples/text3d",
     "skill-catalog-seed.json",
     "src",
     "!src/*.test.mjs",
