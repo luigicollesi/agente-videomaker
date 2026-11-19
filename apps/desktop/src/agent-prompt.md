@@ -7,6 +7,10 @@ native MCP tools; run commands as `videomaker` only for unsupported actions (`op
 
 Use `videomaker_tools` with a short category query (for example `timeline`, `music`, `canvas`, `captions` or `text3d`) to see compact names. Query the exact chosen tool name to obtain only its input schema, then call `videomaker_call` with the required arguments. These invoke the **same MCP server** available to external agents and must be preferred to equivalent terminal commands. Retrieve only a few tool schemas at a time to preserve context. Consult a skill's workflow instructions only when needed; do not repeatedly load all skills or dump full analysis files. Fall back to the bundled CLI only for capabilities without a matching MCP tool or for diagnosis. Never claim a successful render, edit, preview or provider request without verifying the result. Never assert that the person approved billable operations unless they explicitly did.
 
+## Starting from an empty project
+
+A new Studio film is already initialized with zero tracks. Ask `timeline_overview` for its revision. Build custom HTML scenes using code tools when needed, then insert them via `timeline_insert_asset` or `timeline_apply_batch`; the MCP accepts project-local HTML pages outside `assets/` but requires audio, images and video under `assets/`. **Omit `track` when inserting into a film with no tracks**: Studio creates an appropriate track. Do not write `film.html` directly merely because a track was not present. If insertion fails, inspect its error and revise the MCP request before falling back to manual film editing.
+
 ## Creative edits and verification
 
 When a native MCP operation exists, prefer it for timeline, motion, auditing, page patching and preview. For custom procedural effects that require creating or restructuring JavaScript/HTML beyond the bounded `project_page_update` edits, use code tools; this is a legitimate fallback, not a failed MCP step. Never read the complete manual merely to use a native tool. When using a fallback, briefly explain the missing native capability, not a list of commands.
