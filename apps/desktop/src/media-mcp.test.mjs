@@ -15,7 +15,10 @@ test('Media MCP lists native tools and denies paths outside assets', async () =>
   await writeFile(join(project,'private.jpg'),Buffer.from('private'));
   await writeFile(join(project,'assets','sample.mp4'),Buffer.from('fixture'));
   await writeFile(join(project,'assets','existing.mp4'),Buffer.from('existing'));
-  if(process.platform!=='win32')await symlink(join(project,'private.jpg'),join(project,'assets','linked.mp4'));
+  if(process.platform!=='win32'){
+   await symlink(join(project,'private.jpg'),join(project,'assets','linked.mp4'));
+   await symlink(project,join(project,'assets','escape-dir'),'dir');
+  }
   child=spawn(process.execPath,[script],{env:{...process.env,VIDEOMAKER_PROJECT:project},stdio:['pipe','pipe','pipe']});
   let buf='',pending=new Map();
   child.stdout.on('data',data=>{
@@ -47,6 +50,8 @@ test('Media MCP lists native tools and denies paths outside assets', async () =>
   if(process.platform!=='win32'){
    const linked=await request(17,'tools/call',{name:'reverse_video',arguments:{path:'assets/sample.mp4',output:'assets/linked.mp4'}});
    assert.equal(linked.result.isError,true);
+   const parentEscape=await request(19,'tools/call',{name:'reverse_video',arguments:{path:'assets/sample.mp4',output:'assets/escape-dir/escaped.mp4'}});
+   assert.equal(parentEscape.result.isError,true);
   }
   const escapedMusic=await request(18,'tools/call',{name:'music_analyze',arguments:{path:'assets/sample.mp4',output:'../music.json'}});
   assert.equal(escapedMusic.result.isError,true);
