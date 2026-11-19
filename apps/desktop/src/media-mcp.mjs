@@ -1,6 +1,6 @@
-/** Local, read-only Media vision MCP server. No external dependencies. */
+/** Local Media MCP server with read-only inspection and controlled video reversal. */
 import { createInterface } from 'node:readline';
-import { readFile, mkdtemp, rm, realpath, stat, access } from 'node:fs/promises';
+import { readFile, mkdtemp, rm, realpath, stat, lstat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, extname, relative, isAbsolute } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -71,7 +71,7 @@ async function safeOutput(raw){
  const parent=await realpath(dirname(dest));
  const rel=relative(base,dest);
  if(rel.startsWith('..')||isAbsolute(rel)||!rel||parent!==base&&(!relative(base,parent)||relative(base,parent).startsWith('..')||isAbsolute(relative(base,parent))))throw Error('Output must be inside project/assets');
- try{await access(dest);throw Error('Output already exists')}catch(e){if(e?.code!=='ENOENT')throw e}
+ try{await lstat(dest);throw Error('Output already exists')}catch(e){if(e?.code!=='ENOENT')throw e}
  return dest;
 }
 async function reverseVideo(args){
