@@ -132,6 +132,12 @@ test('Media MCP applies revision-guarded timeline edits to a real film', async (
   assert.equal(await readFile(join(project,'film.html'),'utf8'),snapshot);
   const invalidProperty=await request('tools/call',{name:'timeline_set_properties',arguments:{revision:batch.revision,edits:[{clip:'source-clip',prop:'src',value:'../../secret'}]}});
   assert.equal(invalidProperty.result.isError,true);
+  const conflictingLock=await request('tools/call',{name:'timeline_apply_batch',arguments:{revision:batch.revision,steps:[
+    {op:'track',track:0,field:'locked',value:true},
+    {op:'move',clip:'source-clip',at:9}
+  ]}});
+  assert.equal(conflictingLock.result.isError,true);
+  assert.equal(await readFile(join(project,'film.html'),'utf8'),snapshot);
   const locked=await call('timeline_apply_batch',{revision:batch.revision,steps:[{op:'track',track:0,field:'locked',value:true}]});
   const denied=await request('tools/call',{name:'timeline_set_properties',arguments:{revision:locked.revision,edits:[{clip:'source-clip',prop:'at',value:8}]}});
   assert.equal(denied.result.isError,true);
