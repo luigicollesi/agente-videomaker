@@ -23,3 +23,7 @@ For visual questions about Media, use `python packages/openfilm/manual/media/scr
 ## Native visual tools (ACP/MCP)
 
 When available, prefer the built-in `videomaker-media` MCP tools `inspect_image` and `inspect_video` for files under this project's `assets/`. These tools return actual image content (video frames also include timestamps), so interpret only what is visible. Keep `max_frames` small (12 by default; 24 maximum), and narrow `start`/`end` for detailed temporal questions. Sampling does not prove exact event boundaries. If MCP is unsupported, use the script above and an actual image-reading tool. If the connected agent cannot consume image content, report the limitation and never invent a visual description. Both workflows are read-only and do not add files to Media.
+
+## Native reverse tool (MCP)
+
+When `videomaker-media` exposes `reverse_video`, use it before running the reverse script manually. Pass `path` (existing video in `assets/`), `output` (new `.mp4` path in `assets/`), optional `start`/`end` seconds and `audio` (`mute`, `reverse`, `keep`). The tool will not overwrite an existing output. It creates an asset but does not automatically insert it into the timeline. If the tool is not available, use the existing CLI procedure described above.
