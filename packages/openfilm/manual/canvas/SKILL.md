@@ -17,6 +17,10 @@ once, and the person sees it at once. Its `--help` lists the steps.
 
 When `videomaker-media` MCP is available, first use `canvas_list` for board names, then `canvas_nodes` with `board`, `limit` and `offset` for compact node browsing; request one full node with `node` only when needed. Use `canvas_apply` with the desired `board` ID, the `revision` returned by `canvas_nodes`, and the existing Studio `ops` list to add, update, wire or remove nodes. The MCP targets that exact board and rejects stale revisions, returning the new revision and a compact edit receipt. If there is only one board, `board` may be omitted; for multiple boards, specify it. If Studio is not running, edits fail safely rather than writing Canvas files directly. Keep each request to at most 30 operations and inspect the resulting board when necessary. Fall back to the `videomaker canvas` CLI only when the MCP tool is unavailable. Do not duplicate steps by calling both methods.
 
+## Native board management
+
+Use `canvas_manage_board` to create a named board (`action:"create"`, optionally `from` and `from_revision` to duplicate an existing board), rename a board (`action:"rename"`), or move one to the Studio trash (`action:"delete"`). For rename/delete provide the exact `board` and `revision` returned by `canvas_nodes`; deletion also requires `confirm_delete:true` and should be requested only after the person approves deletion. Never use raw Canvas file writes for these actions. Board creation/renaming/trashing requires a running, authenticated Studio.
+
 ## Laying out what the person asks for
 
 - **A storyboard or shots**: one row per shot, left to right: a note (what happens, in the person's words), a picture
