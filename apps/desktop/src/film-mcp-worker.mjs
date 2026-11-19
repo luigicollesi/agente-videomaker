@@ -1,5 +1,8 @@
 /** Isolated native film preview/render worker. The parent MCP owns input validation, timeouts and publishing. */
-import { resolve } from 'node:path';
+import { resolve, join, relative, isAbsolute, sep, extname } from 'node:path';
+import { realpath, mkdir, stat, copyFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 
 async function main(){
  const job=JSON.parse(process.argv[2]??'null');
@@ -40,6 +43,28 @@ async function main(){
   const times=job.range?[job.range.join('-')]:[];
   result=await render(['.',...times],{root,out:job.out,fps:job.fps,workers:1,hardware:false});
   result={out:result.out,encoder:result.encoder,lines:(result.lines??[]).slice(0,8)};
+ }
+ // Native look may save its files in an application data folder. Publish verified
+ // PNG previews under the active project's hidden tool cache so the MCP can inspect them.
+ if(['look','look-range'].includes(job.kind)&&Array.isArray(result.files)){
+  const realRoot=await realpath(root);
+  const state=join(realRoot,'.film');
+  await mkdir(state,{recursive:true});
+  if(await realpath(state)!==state)throw Error('Project .film must be local');
+  const folder=join(state,'mcp-previews');
+  await mkdir(folder,{recursive:true});
+  if(await realpath(folder)!==folder)throw Error('Preview cache must stay in project');
+  const saved=[];
+  for(const input of result.files.slice(0,2)){
+   if(typeof input!=='string'||extname(input).toLowerCase()!=='.png')continue;
+   const source=await realpath(input);
+   const info=await stat(source);
+   if(!info.isFile()||info.size<20||info.size>12*1024*1024)continue;
+   const dest=join(folder,randomUUID()+'.png');
+   await copyFile(source,dest,constants.COPYFILE_EXCL);
+   saved.push(dest);
+  }
+  result.files=saved;
  }
  process.stdout.write('\nMCP_FILM_RESULT='+JSON.stringify(result)+'\n');
 }
