@@ -2,6 +2,7 @@
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { withPreset } from 'openfilm/clip-motion';
+import { kindOf } from 'openfilm/film-doc';
 const require=createRequire(import.meta.url);
 let catalogPromise;
 async function catalog(){
@@ -27,7 +28,7 @@ export async function motionPresetOps(value,params){
    ||seconds!==undefined&&(!(typeof seconds==='number'&&Number.isFinite(seconds))||seconds<0.05||seconds>60))throw Error('Invalid motion preset parameters');
  const found=value.tracks.flatMap(t=>t.clips??[]).find(c=>c.id===clip);
  if(!found)throw Error('Clip not found');
- if(/\.(?:mp3|wav|m4a|flac|ogg)(?:#|$)/i.test(found.src))throw Error('Audio clips cannot use visual motion presets');
+ if(!['video','still','page'].includes(kindOf(found)))throw Error('Only visual clips can use motion presets');
  const item=preset_id===null?null:(await catalog()).find(p=>p.id===preset_id);
  if(preset_id!==null&&(!item||!item.motion?.[slot]))throw Error('Motion preset does not support selected slot');
  const preset=item?{...item.motion[slot],...(seconds!==undefined?{secs:seconds}:{})}:null;
