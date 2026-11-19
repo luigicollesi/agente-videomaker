@@ -6,6 +6,7 @@ import { join, resolve, extname, relative, isAbsolute, basename, sep } from 'nod
 import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { unlinkSync, existsSync } from 'node:fs';
 import { readProjectFilm, changeProjectFilm } from 'openfilm/studio-film';
 import { kindOf, readFilm, clipKind } from 'openfilm/film-doc';
@@ -358,7 +359,7 @@ async function filmTool(name,args){
     staging=await mkdtemp(join(dirname(output),'.film-mcp-render-'));
     job.out=join(staging,'output'+extname(output).toLowerCase());
    }
-   const bytes=await exec(process.execPath,[worker.pathname,JSON.stringify(job)],isRender?3600000:180000,{...process.env,ELECTRON_RUN_AS_NODE:'1',OPENFILM_NO_BROWSER:'1'},[0],project);
+   const bytes=await exec(process.execPath,[fileURLToPath(worker),JSON.stringify(job)],isRender?3600000:180000,{...process.env,ELECTRON_RUN_AS_NODE:'1',OPENFILM_NO_BROWSER:'1'},[0],project);
    const log=bytes.toString('utf8');
    const marker='MCP_FILM_RESULT=';
    const offset=log.lastIndexOf(marker);
