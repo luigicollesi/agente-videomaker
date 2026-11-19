@@ -24,6 +24,7 @@ import { draftPath, draftFingerprint, recordPreview, requireVerifiedPreview } fr
 import { musicAudioStream, musicAnalysisOptions, musicCueOptions, musicDecodeOptions } from './mcp/music-options.mjs';
 import { auditFilm } from './mcp/film-audit.mjs';
 import { projectPage } from './mcp/project-pages.mjs';
+import { timelineSource } from './mcp/timeline-source.mjs';
 
 const project=resolve(process.env.VIDEOMAKER_PROJECT || process.cwd());
 const require=createRequire(import.meta.url);
@@ -53,7 +54,7 @@ const tools=[
  {name:'captions_style',description:'Get subtitle style and style revision or patch allowed style fields via the authenticated Studio. action=get|patch; patch requires style_revision.',inputSchema:{type:'object',properties:{action:{type:'string',enum:['get','patch']},style_revision:{type:'string'},changes:{type:'object'}},required:['action'],additionalProperties:false}},
  {name:'captions_correct_line',description:'Correct one source transcript line/segment via Studio. Requires film revision, source/line ID and expected current text; keeps word timing.',inputSchema:{type:'object',properties:{revision:{type:'string'},src:{type:'string'},line:{type:'integer',minimum:0},part:{type:'integer',minimum:0},text:{type:'string'},expected_text:{type:'string'},language:{type:'string'}},required:['revision','src','line','text','expected_text'],additionalProperties:false}},
  {name:'timeline_get_clip',description:'Read a single timeline clip with fields and current revision without dumping film.html.',inputSchema:{type:'object',properties:{clip:{type:'string'}},required:['clip'],additionalProperties:false}},
- {name:'timeline_insert_asset',description:'Insert an existing asset from project/assets into a timeline track at a nonnegative second, guarded by project revision.',inputSchema:{type:'object',properties:{path:{type:'string'},revision:{type:'string'},at:{type:'number',minimum:0},track:{type:'integer',minimum:0},time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['path','revision','at'],additionalProperties:false}},
+ {name:'timeline_insert_asset',description:'Insert an existing media file from assets/ or a project-local HTML scene; omit track for automatic track creation. Guarded by film revision.',inputSchema:{type:'object',properties:{path:{type:'string'},revision:{type:'string'},at:{type:'number',minimum:0},track:{type:'integer',minimum:0},time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['path','revision','at'],additionalProperties:false}},
  {name:'timeline_remove_clip',description:'Remove one clip from the timeline with strict revision check; does not delete its source asset.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'}},required:['clip','revision'],additionalProperties:false}},
  {name:'project_page_update',description:'Inspect SHA-256/linked clips or make 1-8 exact source replacements in an existing procedural HTML page used by the film. Refuses locked tracks, stale content and external paths.',inputSchema:{type:'object',properties:{action:{type:'string',enum:['inspect','replace']},path:{type:'string'},expected_sha256:{type:'string'},revision:{type:'string'},changes:{type:'array',minItems:1,maxItems:8,items:{type:'object',properties:{find:{type:'string'},replace:{type:'string'}},required:['find','replace'],additionalProperties:false}}},required:['action','path'],additionalProperties:false}},
  {name:'film_audit',description:'Read-only film integrity check: verified explicit durations, unknown durations, missing sources, and optional expected duration. Never guesses media length.',inputSchema:{type:'object',properties:{expected_seconds:{type:'number',minimum:0,maximum:86400}},additionalProperties:false}},
@@ -551,16 +552,19 @@ async function timelineMotionPreset(args){
  const receipt=await guardedTimelineOps(rev,ops,{operation:'timeline_apply_motion_preset',clip:args.clip,slot:args.slot,preset_id:applied,seconds});
  return receipt;
 }
+const TIMELINE_EXTENSIONS=new Set(['.mp4','.mov','.webm','.mkv','.avi','.m4v','.wav','.mp3','.m4a','.flac','.ogg','.png','.jpg','.jpeg','.webp','.gif','.html']);
+async function timelineClipSource(path){
+ return timelineSource(project,path,raw=>safePath(raw,TIMELINE_EXTENSIONS));
+}
+
 async function timelineAdvanced(name,args){
  if(typeof args?.revision!=='string'||!/^[a-f0-9]{16}$/.test(args.revision))throw Error('Invalid timeline revision');
  let ops;
  if(name==='timeline_set_properties'){
   ops=[{op:'props',edits:propertyEdits(args.edits)}];
  }else{
-  const extensions=new Set(['.mp4','.mov','.webm','.mkv','.avi','.m4v','.wav','.mp3','.m4a','.flac','.ogg','.png','.jpg','.jpeg','.webp','.gif','.html']);
   ops=await batchOps(args.steps,async path=>{
-   const file=await safePath(path,extensions);
-   const src=relative(project,file).split(sep).join('/');
+   const src=await timelineClipSource(path);
    if(!clipKind(src))throw Error('Unsupported clip kind');
    return src;
   });
@@ -595,14 +599,12 @@ async function timelineAssetEdit(name,args){
  if(typeof args?.path!=='string'||!args.path.trim()||!Number.isFinite(args.at)||args.at<0)throw Error('Invalid asset insert parameters');
  if(args.track!==undefined&&(!Number.isInteger(args.track)||args.track<0))throw Error('Invalid track index');
  if(args.time!==undefined&&(!Array.isArray(args.time)||args.time.length!==2||!args.time.every(Number.isFinite)||args.time[0]<0||args.time[1]<=args.time[0]))throw Error('Invalid asset time interval');
- const extensions=new Set(['.mp4','.mov','.webm','.mkv','.avi','.m4v','.wav','.mp3','.m4a','.flac','.ogg','.png','.jpg','.jpeg','.webp','.gif','.html']);
- const fullPath=await safePath(args.path,extensions);
- const src=relative(project,fullPath).split(sep).join('/');
+ const src=await timelineClipSource(args.path);
  if(!clipKind(src))throw Error('Unsupported clip kind');
  const doc=await readProjectFilm(project);
  if(!doc.value)throw Error('Invalid film.html');
  if(doc.rev!==args.revision)throw Error('Stale timeline revision; inspect again');
- if(args.track!==undefined&&args.track>=doc.value.tracks.length)throw Error('Track does not exist');
+ if(args.track!==undefined&&args.track>=doc.value.tracks.length)throw Error('Target track does not exist. Omit track to let Studio create a track automatically'+(doc.value.tracks.length===0?' in this empty project':'')+'.');
  const clip={src,...(args.time?{time:args.time}:{})};
  const op={op:'insert',clip,at:args.at,...(args.track!==undefined?{track:args.track}:{})};
  return guardedTimelineOps(args.revision,[op],{operation:name,source:src,at:args.at});
@@ -710,7 +712,7 @@ async function guardedTimelineOps(revision,ops,summary){
    if(op.op==='insert'){
     if(op.from!==undefined&&!initialIds.has(op.from))throw Error('Source clip not found');
     if(op.track===undefined&&value.tracks.some(track=>track.locked))throw Error('Specify an unlocked destination track when the project has locked tracks');
-    if(op.track!==undefined&&(!value.tracks[op.track]||value.tracks[op.track].locked||newlyLocked.has(op.track)))throw Error('Target track missing or locked');
+    if(op.track!==undefined&&(!value.tracks[op.track]||value.tracks[op.track].locked||newlyLocked.has(op.track)))throw Error('Target track missing or locked. Omit track to let Studio select or create an appropriate unlocked track.');
     const newId=op.clip?.id;
     if(newId!==undefined){
      if(initialIds.has(newId)||insertedIds.has(newId))throw Error('New clip ID already in use');
