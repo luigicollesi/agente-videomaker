@@ -10,6 +10,8 @@ import { unlinkSync, existsSync } from 'node:fs';
 import { readProjectFilm, changeProjectFilm } from 'openfilm/studio-film';
 import { kindOf, readFilm } from 'openfilm/film-doc';
 import { applyOps } from 'openfilm/studio-ops';
+import { listBoards, readCanvas } from 'openfilm/studio-canvas';
+import { searchLibrary, KINDS } from 'openfilm/library-search';
 
 const project=resolve(process.env.VIDEOMAKER_PROJECT || process.cwd());
 const require=createRequire(import.meta.url);
@@ -20,12 +22,17 @@ const schema={type:'object',properties:{path:{type:'string',description:'Media p
 const tools=[
  {name:'inspect_image',description:'Inspect an image from this project Media. Returns visual image content, not a filename description.',inputSchema:schema},
  {name:'inspect_video',description:'Inspect a video from this project Media. Returns timestamped image frames. Sampled frames do not guarantee exact event boundaries.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',minimum:0},max_frames:{type:'integer',minimum:1,maximum:24}},required:['path']}},
+ {name:'library_search',description:'Search built-in free offline media library; concise ranked results, no terminal or copied assets.',inputSchema:{type:'object',properties:{kind:{type:'string',enum:['music','sound','transition','effect','filter','sticker','text','template']},query:{type:'string',minLength:1},limit:{type:'integer',minimum:1,maximum:20},duration:{type:'number',minimum:0}},required:['kind','query'],additionalProperties:false}},
+ {name:'canvas_list',description:'List canvas boards with compact node counts.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
+ {name:'canvas_nodes',description:'Read a board as compact paged node summaries, or one full node and its connections by id.',inputSchema:{type:'object',properties:{board:{type:'string'},node:{type:'string'},limit:{type:'integer',minimum:1,maximum:50},offset:{type:'integer',minimum:0}},additionalProperties:false}},
  {name:'timeline_overview',description:'Read-only overview of the current project film, its revision, stage and number of tracks/clips.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
  {name:'timeline_split_clip',description:'Split one clip using explicit source-time intervals and timeline second, as required by Studio. Current revision required. Source timings must be provided accurately.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},at:{type:'number',exclusiveMinimum:0},left_time:{type:'array',items:{type:'number'},minItems:2,maxItems:2},right_time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['clip','revision','at'],additionalProperties:false}},
  {name:'timeline_set_playback',description:'Set clip playback speed (0.1..100) or volume (0..4) using Studio. Requires current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},field:{type:'string',enum:['speed','volume']},value:{type:'number'}},required:['clip','revision','field','value'],additionalProperties:false}},
  {name:'timeline_duplicate_clip',description:'Duplicate an existing clip at a nonnegative timeline second using Studio, requiring an exact current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_move_clip',description:'Move one clip to a nonnegative timeline second using the Studio edit engine. Requires current revision returned by timeline_overview; stale revisions are refused.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_clips',description:'Read-only bounded list of clips from the current film, with IDs, source, kind and timeline/source timing.',inputSchema:{type:'object',properties:{track:{type:'integer',minimum:0},limit:{type:'integer',minimum:1,maximum:100},offset:{type:'integer',minimum:0}},additionalProperties:false}},
+ {name:'music_validate',description:'Validate acoustic analysis JSON timestamps and structure; reports valid or invalid, does not modify file.',inputSchema:schema},
+ {name:'music_compare',description:'Compact comparison of two time windows in an existing acoustic analysis.',inputSchema:{type:'object',properties:{path:schema.properties.path,start_a:{type:'number',minimum:0},end_a:{type:'number',exclusiveMinimum:0},start_b:{type:'number',minimum:0},end_b:{type:'number',exclusiveMinimum:0}},required:['path','start_a','end_a','start_b','end_b'],additionalProperties:false}},
  {name:'music_analyze',description:'Analyze an existing WAV, MP3 or MP4 in project/assets and save a new acoustic-analysis JSON in assets. Offline; may require Python analysis dependencies.',inputSchema:{type:'object',properties:{path:schema.properties.path,output:{type:'string',description:'New analysis JSON path inside project/assets'}},required:['path','output']}},
  {name:'music_overview',description:'Get compact BPM, dynamics and structure overview from an existing analysis JSON.',inputSchema:schema},
  {name:'music_context',description:'Get acoustic context of a time interval from an existing analysis JSON.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0}},required:['path','start','end']}},
@@ -229,6 +236,44 @@ async function musicTool(name,args){
 }
 
 
+async function libraryTool(args){
+ if(!Object.hasOwn(KINDS,args?.kind)||typeof args?.query!=='string'||!args.query.trim()||args.query.length>500)throw Error('Invalid library category or query');
+ const limit=args?.limit??6;
+ if(!Number.isInteger(limit)||limit<1||limit>20)throw Error('Invalid library result limit');
+ if(args?.duration!==undefined&&(!Number.isFinite(args.duration)||args.duration<0||args.duration>3600))throw Error('Invalid requested duration');
+ const found=await searchLibrary(args.kind,args.query.trim(),{limit,duration:args.duration});
+ const results=found.found.map(({item})=>({
+  id:item.id,name:item.name?.en??item.id,kind:item.kind,
+  ...(item.durationMs!=null?{duration_seconds:Math.round(item.durationMs/1000*10)/10}:{}),
+  ...(item.bpm!=null?{bpm:item.bpm}:{}),
+  ...(item.energy!=null?{energy:item.energy}:{}),
+  ...(item.loop!=null?{loop:item.loop}:{})
+ }));
+ return {content:[{type:'text',text:JSON.stringify({kind:args.kind,query:args.query,worded:found.worded,count:results.length,results})}]};
+}
+async function canvasTool(name,args){
+ if(!(await stat(join(project,'film.html')).catch(()=>null))?.isFile())throw Error('A film.html project is required');
+ const boards=await listBoards(project);
+ if(name==='canvas_list')return {content:[{type:'text',text:JSON.stringify({boards})}]};
+ const board=args?.board??'main';
+ if(typeof board!=='string'||!boards.some(b=>b.id===board))throw Error('Canvas board not found');
+ const canvas=await readCanvas(project,board);
+ if(args?.node!==undefined){
+  if(typeof args.node!=='string'||!args.node)throw Error('Invalid node id');
+  const node=canvas.nodes.find(n=>n.id===args.node);
+  if(!node)throw Error('Canvas node not found');
+  return {content:[{type:'text',text:JSON.stringify({board,node,edges:canvas.edges.filter(e=>e.from===node.id||e.to===node.id)})}]};
+ }
+ const limit=args?.limit??20,offset=args?.offset??0;
+ if(!Number.isInteger(limit)||limit<1||limit>50||!Number.isInteger(offset)||offset<0)throw Error('Invalid canvas pagination');
+ const all=canvas.nodes;
+ const nodes=all.slice(offset,offset+limit).map(n=>({
+  id:n.id,kind:n.make??(n.cut?'cut':n.group!==undefined?'group':n.path?'file':'note'),
+  ...(n.title?{title:n.title}:{}),...(n.text?{text:n.text.slice(0,140)}:{}),
+  ...(n.path?{path:n.path}:{}),...(n.parent?{parent:n.parent}:{})
+ }));
+ return {content:[{type:'text',text:JSON.stringify({board,total:all.length,edge_count:canvas.edges.length,offset,returned:nodes.length,next_offset:offset+limit<all.length?offset+limit:null,nodes})}]};
+}
 async function timelineEdit(name,args){
  if(name==='timeline_split_clip'){
   const validRange=t=>Array.isArray(t)&&t.length===2&&t.every(v=>Number.isFinite(v)&&v>=0)&&t[1]>t[0];
@@ -309,7 +354,7 @@ rl.on('line',async line=>{
    case 'initialize':result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'videomaker-media',version:'1.0.0'}};break;
    case 'ping':result={};break;
    case 'tools/list':result={tools};break;
-   case 'tools/call':result=['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
+   case 'tools/call':result=msg.params?.name==='library_search'?await libraryTool(msg.params?.arguments):['canvas_list','canvas_nodes'].includes(msg.params?.name)?await canvasTool(msg.params.name,msg.params?.arguments):['timeline_move_clip','timeline_duplicate_clip','timeline_set_playback','timeline_split_clip'].includes(msg.params?.name)?await timelineEdit(msg.params.name,msg.params?.arguments):['timeline_overview','timeline_clips'].includes(msg.params?.name)?await timelineTool(msg.params.name,msg.params?.arguments):msg.params?.name==='reverse_video'?await reverseVideo(msg.params?.arguments):['music_analyze','music_overview','music_context','music_cues'].includes(msg.params?.name)?await musicTool(msg.params.name,msg.params?.arguments):msg.params?.name==='inspect_video'?await heavyJob(()=>inspect(msg.params.name,msg.params?.arguments)):await inspect(msg.params?.name,msg.params?.arguments);break;
    default:send({jsonrpc:'2.0',id:msg.id,error:{code:-32601,message:'Method not found'}});return;
   }
   send({jsonrpc:'2.0',id:msg.id,result});
