@@ -6,6 +6,8 @@ When the local `videomaker-media` MCP is available, prefer its native, compact t
 - `edit`: the project, film.html and pages, and `videomaker look` to see what you made. Before you make or change a film.
 - `media`: Videomaker's library of music, sounds, transitions, effects, stickers, texts and templates, and the services that make voice-over, music, pictures, video and transcripts, and search the web.
 - `canvas`: the canvas, the board beside the edit, and a canvas node the person points at.
+- `music-analyzer`: offline acoustic analysis, editing cues and comparisons.
+- `text3d`: create, validate and publish reusable 3D text components.
 
 `videomaker skills` lists the others, each a way of making a kind of film: when the person names one, or one fits what they ask, read it and follow it. A skill's folder is only read: copy what the film uses into the project.
 
