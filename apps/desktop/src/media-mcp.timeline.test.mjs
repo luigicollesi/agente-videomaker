@@ -13,6 +13,7 @@ test('Media MCP applies revision-guarded timeline edits to a real film', async (
  let child;
  try {
   await mkdir(join(project,'assets'));
+  await writeFile(join(project,'assets','overlay.png'),Buffer.from('asset retained outside timeline'));
   const initial={stage:{w:1920,h:1080},tracks:[{clips:[{id:'source-clip',src:'assets/sample.mp4',at:0,time:[0,10]}]}]};
   await writeFile(join(project,'film.html'),filmHtml(initial));
   child=spawn(process.execPath,[script],{env:{...process.env,VIDEOMAKER_PROJECT:project},stdio:['pipe','pipe','pipe']});
@@ -78,6 +79,19 @@ test('Media MCP applies revision-guarded timeline edits to a real film', async (
   assert.equal(clips.length,3);
   assert.ok(clips.some(c=>c.id==='source-clip'&&c.time[1]===5));
   assert.ok(clips.some(c=>c.id!=='source-clip'&&c.at===4.5&&c.time[0]===5));
+  const inserted=await call('timeline_insert_asset',{path:'assets/overlay.png',revision:split.revision,at:20,time:[0,3]});
+  assert.ok(inserted.new_clip_id);
+  const inspected=await call('timeline_get_clip',{clip:inserted.new_clip_id});
+  assert.equal(inspected.clip.src,'assets/overlay.png');
+  assert.equal(inspected.clip.at,20);
+  const rejected=await request('tools/call',{name:'timeline_remove_clip',arguments:{clip:inserted.new_clip_id,revision:split.revision}});
+  assert.equal(rejected.result.isError,true);
+  const removed=await call('timeline_remove_clip',{clip:inserted.new_clip_id,revision:inserted.revision});
+  assert.equal(removed.removed_clip_id,inserted.new_clip_id);
+  const afterRemove=readFilmFile(await readFile(join(project,'film.html'),'utf8'));
+  assert.ok(afterRemove.doc,afterRemove.problems.join('; '));
+  assert.ok(!afterRemove.value.tracks.flatMap(t=>t.clips).some(c=>c.id===inserted.new_clip_id));
+  assert.equal((await readFile(join(project,'assets','overlay.png'))).toString(),'asset retained outside timeline');
   const old=await request('tools/call',{name:'timeline_set_playback',arguments:{clip:'source-clip',revision:duplicated.revision,field:'volume',value:0.5}});
   assert.equal(old.result.isError,true);
  } finally {
