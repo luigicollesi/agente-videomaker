@@ -33,7 +33,7 @@ test('Media MCP lists native tools and denies paths outside assets', async () =>
   const init=await request(1,'initialize',{});
   assert.equal(init.result.serverInfo.name,'videomaker-media');
   const listed=await request(2,'tools/list');
-  assert.deepEqual(listed.result.tools.map(t=>t.name),['inspect_image','inspect_video','timeline_overview','timeline_duplicate_clip','timeline_move_clip','timeline_clips','music_analyze','music_overview','music_context','music_cues','reverse_video']);
+  assert.deepEqual(listed.result.tools.map(t=>t.name),['inspect_image','inspect_video','timeline_overview','timeline_set_playback','timeline_duplicate_clip','timeline_move_clip','timeline_clips','music_analyze','music_overview','music_context','music_cues','reverse_video']);
   const denied=await request(3,'tools/call',{name:'inspect_image',arguments:{path:'private.jpg'}});
   assert.equal(denied.result.isError,true);
   const reverseDenied=await request(4,'tools/call',{name:'reverse_video',arguments:{path:'private.jpg',output:'assets/out.mp4'}});
@@ -48,6 +48,10 @@ test('Media MCP lists native tools and denies paths outside assets', async () =>
   assert.equal(badMove.result.isError,true);
   const badDuplicate=await request(11,'tools/call',{name:'timeline_duplicate_clip',arguments:{clip:'missing',at:0,revision:'0000000000000000'}});
   assert.equal(badDuplicate.result.isError,true);
+  const badSpeed=await request(12,'tools/call',{name:'timeline_set_playback',arguments:{clip:'missing',revision:'0000000000000000',field:'speed',value:0}});
+  assert.equal(badSpeed.result.isError,true);
+  const staleVolume=await request(13,'tools/call',{name:'timeline_set_playback',arguments:{clip:'missing',revision:'0000000000000000',field:'volume',value:1}});
+  assert.equal(staleVolume.result.isError,true);
   const badMusicSource=await request(7,'tools/call',{name:'music_analyze',arguments:{path:'private.jpg',output:'assets/analysis.json'}});
   assert.equal(badMusicSource.result.isError,true);
   const invalidInterval=await request(8,'tools/call',{name:'music_cues',arguments:{path:'assets/sample.mp4',start:10,end:2}});
