@@ -342,7 +342,7 @@ async function runText3D(name,args){
    status:name==='text3d_register'?'registered':name==='text3d_apply'?'applied':'font_added',
    ...(result.revision?{revision:result.revision}:{}),
    notes:(result.lines??[]).slice(0,3).map(x=>String(x).slice(0,250)),
-   ...(name==='text3d_font_add'?{next:'Run text3d_preview again before registering'}:{})
+   ...(name==='text3d_font_add'?{next:'Run text3d_preview with replace_preview:true before registering'}:{})
   })}]};
  });
 }
