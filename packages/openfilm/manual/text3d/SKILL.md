@@ -5,6 +5,12 @@ description: Build, convert, verify and publish reusable real Three.js Text3D co
 
 # Videomaker Text3D
 
+## Native authoring/discovery (MCP preferred)
+
+Use `text3d_list` for a compact paginated registry list and `text3d_inspect` for one registered component's parameters. `text3d_create` creates a named draft under the project's `.film/text3d-drafts/<name>`; edit its source using your ordinary project-file editing capabilities, then call `text3d_validate` for structural validation. Validation **does not** prove the rendered appearance or publish the component. Continue using the existing preview/visual verification, register and apply workflow until safe dedicated tools are added. Do not register an unverified draft.
+
+
+
 The canonical contract reference is `examples/text3d/manifest.json`. Generate drafts with `videomaker text3d create <folder>`, customize modules, run `validate`, then `videomaker text3d preview <folder>` to bundle dependencies and verify WebGL before `register`. The shared core owns the renderer, geometry and time; never recreate it when text changes. Experimental versioned manifests, templates and older CLI workflows are unsupported. Do not claim visual fidelity without source-specific visual tests.
 
 The **selected 2D source** is the authority for text layout, font appearance, lighting, glow, entrance/hold/exit, particles, colors, easing and timing. Inspect HTML/CSS/JS, assets, data-props and overrides. Recreate its behavior in three-dimensional geometry; never copy the sample's animation preset. Missing exit animation means no invented exit.
