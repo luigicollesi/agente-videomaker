@@ -350,7 +350,7 @@ export const libraryVerbs = (only) => Object.entries(LIBRARY_VERBS).filter(([ver
  * @param {string} verb @param {Record<string, string | true | (string | true)[]>} flags
  * @returns {Promise<{ code: number, lines: string[] }>}
  */
-export async function libraryGet(verb, flags) {
+export async function libraryGet(verb, flags, projectRoot = null) {
   const spec = LIBRARY_VERBS[verb];
   const wrong = (/** @type {string} */ text) => ({ code: 2, lines: [`openfilm get ${verb}: ${text}`] });
   const { n, ...given } = flags;
@@ -361,7 +361,7 @@ export async function libraryGet(verb, flags) {
   const { prompt, sec, limit, take } = /** @type {Record<string, string | undefined>} */ (given);
   if (take !== undefined) {
     if (take.startsWith('community/') || take.startsWith(`${BUILT_IN}/community/`)) await refreshCommunity();
-    return takeOne(verb, take);
+    return takeOne(verb, take, projectRoot);
   }
   if (!prompt?.trim()) return wrong(`what to look for, please: \`openfilm get ${verb} --prompt "${EXAMPLES[verb]}"\``);
   const seconds = sec === undefined ? undefined : Number(sec);
@@ -418,7 +418,7 @@ const EXAMPLES = /** @type {Record<string, string>} */ ({
  * @param {string} verb @param {string} asked its id, with `openfilm/` or without
  * @returns {Promise<{ code: number, lines: string[] }>}
  */
-async function takeOne(verb, asked) {
+async function takeOne(verb, asked, projectRoot = null) {
   const id = asked.replace(new RegExp(`^${BUILT_IN}/`), '');
   const item = library().items.get(id);
   if (!item || item.cat !== KINDS[LIBRARY_VERBS[verb].kind]) {
@@ -429,7 +429,7 @@ async function takeOne(verb, asked) {
     return { code: 0, lines: [`${item.name.en} is put on a clip in Studio: the person drops it from the library's ${where} onto the clip.`,
       item.kind === 'fade' ? 'To write a fade yourself, overlap the two clips and fade the upper one in: `openfilm get effect --prompt "fade in"` has the motion for it.' : 'Tell the person which one, and on which clip.'] };
   }
-  const root = projectAround('.');
+  const root = projectRoot ?? projectAround('.');
   if (!root) return { code: 2, lines: [`openfilm get: ${resolve('.')} is not in a project; \`openfilm open\` makes one`] };
   if (item.kind === 'motion') {
     const { withPreset } = await import('./clip-motion.mjs');
