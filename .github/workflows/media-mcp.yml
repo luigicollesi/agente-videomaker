@@ -8,6 +8,8 @@ on:
       - "apps/desktop/src/film-mcp-worker.mjs"
       - "apps/desktop/src/mcp/**"
       - "packages/openfilm/src/clip-motion.mjs"
+      - "packages/openfilm/src/text3d-cli.mjs"
+      - "packages/openfilm/studio/server/text3d/**"
       - "packages/openfilm/studio/server/captions.mjs"
       - "packages/openfilm/studio/server/film-subtitle.mjs"
       - "packages/openfilm/library/catalogs/motions.json"
@@ -25,6 +27,8 @@ on:
       - "apps/desktop/src/film-mcp-worker.mjs"
       - "apps/desktop/src/mcp/**"
       - "packages/openfilm/src/clip-motion.mjs"
+      - "packages/openfilm/src/text3d-cli.mjs"
+      - "packages/openfilm/studio/server/text3d/**"
       - "packages/openfilm/studio/server/captions.mjs"
       - "packages/openfilm/studio/server/film-subtitle.mjs"
       - "packages/openfilm/library/catalogs/motions.json"
@@ -61,6 +65,8 @@ jobs:
           node --check apps/desktop/src/media-mcp.mjs
       - name: Check worker syntax
         run: node --check apps/desktop/src/film-mcp-worker.mjs
+      - name: Check Text3D helper syntax
+        run: node --check apps/desktop/src/mcp/text3d-safety.mjs
       - name: MCP protocol, timeline, runtime and locking tests
         run: >-
           node --test
@@ -68,6 +74,7 @@ jobs:
           apps/desktop/src/media-mcp.batch.test.mjs
           apps/desktop/src/media-mcp.captions-motion.test.mjs
           apps/desktop/src/media-mcp.captions.integration.test.mjs
+          apps/desktop/src/media-mcp.text3d.test.mjs
           apps/desktop/src/media-mcp.timeline.test.mjs
           apps/desktop/src/media-mcp.runtime.test.mjs
           apps/desktop/src/media-mcp.lock.test.mjs
