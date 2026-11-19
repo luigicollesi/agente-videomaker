@@ -117,6 +117,7 @@ const image=(data,mime)=>({type:'image',mimeType:mime,data:data.toString('base64
 async function inspect(name,args){
  const path=await safePath(args?.path,name==='inspect_image'?images:videos);
  if(name==='inspect_image'){
+  if((await stat(path)).size>15_000_000)throw Error('Image exceeds 15 MB');
   const data=await readFile(path);
   if(data.length>15_000_000)throw Error('Image exceeds 15 MB');
   return {content:[image(data,extname(path).toLowerCase()==='.png'?'image/png':extname(path).toLowerCase()==='.webp'?'image/webp':'image/jpeg')]};
@@ -160,7 +161,9 @@ async function reverseVideo(args){
  const audio=args?.audio??'mute';
  if(!['mute','reverse','keep'].includes(audio))throw Error('Invalid audio mode');
  const modulePath=require.resolve('openfilm/skills');
- const script=resolve(dirname(modulePath),'../manual/media/scripts/reverse-video.py');
+ const archiveScript=resolve(dirname(modulePath),'../manual/media/scripts/reverse-video.py');
+ const unpackedScript=archiveScript.replace(/([\\/])app\\.asar([\\/])/, '$1app.asar.unpacked$2');
+ const script=unpackedScript!==archiveScript && existsSync(unpackedScript)?unpackedScript:archiveScript;
  const cli=[script,input,output,'--audio',audio];
  if(args?.start!==undefined)cli.push('--start',String(args.start));
  if(args?.end!==undefined)cli.push('--end',String(args.end));
