@@ -7,7 +7,7 @@ description: Build, convert, verify and publish reusable real Three.js Text3D co
 
 ## Native authoring/discovery (MCP preferred)
 
-Use `text3d_list` for a compact paginated registry list and `text3d_inspect` for one registered component's parameters. `text3d_create` creates a named draft under the project's `.film/text3d-drafts/<name>`; edit its source using your ordinary project-file editing capabilities, then call `text3d_validate` for structural validation. Validation **does not** prove the rendered appearance or publish the component. Continue using the existing preview/visual verification, register and apply workflow until safe dedicated tools are added. Do not register an unverified draft.
+Use `text3d_list` for a compact paginated registry list and `text3d_inspect` for one registered component's parameters. `text3d_create` creates a named draft under the project's `.film/text3d-drafts/<name>`; edit its source using your ordinary project-file editing capabilities, then call `text3d_validate` for structural validation. Validation **does not** prove the rendered appearance or publish the component. Use `text3d_preview` with the draft's `folder` to run the existing packaged preview pipeline through an isolated MCP worker, returning the generated preview page under `.film/text3d-drafts/`. Inspect actual rendered frames before approval. Registration and applying to clips still require the existing CLI workflow; do not automatically publish a component. Do not register an unverified draft.
 
 
 
