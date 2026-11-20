@@ -73,15 +73,15 @@ export class PiMcpBridge{
    }
   });
  }
- async discover(query='',limit=6){
+ async discover(query='',limit=6,offset=0){
   const tools=await this.start();
-  if(typeof query!=='string'||query.length>100||!Number.isInteger(limit)||limit<1||limit>10)throw Error('Invalid MCP discovery query or limit');
+  if(typeof query!=='string'||query.length>100||!Number.isInteger(limit)||limit<1||limit>10||!Number.isSafeInteger(offset)||offset<0)throw Error('Invalid MCP discovery query or limit');
   const exact=tools.get(query.trim());
   const words=query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const list=exact?[exact]:[...tools.values()].filter(t=>words.every(w=>(t.name+' '+t.description).toLowerCase().includes(w)));
   // A category search shows brief choices; requesting an exact tool name exposes only its schema.
-  const chosen=list.slice(0,limit).map(t=>({name:t.name,description:String(t.description??'').slice(0,155),...(exact?{inputSchema:t.inputSchema}:{})}));
-  return {total:list.length,tools:chosen,remaining:Math.max(0,list.length-chosen.length),...(exact?{schema_included:true}:{}),...(exact?{}:{next:'Request the exact tool name to read its arguments'})};
+  const chosen=list.slice(offset,offset+limit).map(t=>({name:t.name,description:String(t.description??'').slice(0,155),...(exact?{inputSchema:t.inputSchema}:{})}));
+  return {total:list.length,tools:chosen,remaining:Math.max(0,list.length-offset-chosen.length),next_offset:offset+chosen.length<list.length?offset+chosen.length:null,...(exact?{schema_included:true}:{}),...(exact?{}:{next:'Request the exact tool name to read its arguments'})};
  }
  async call(name,args={}){
   const tools=await this.start();
@@ -111,9 +111,9 @@ export class PiMcpBridge{
 
 export function piMcpTools(bridge){
  return [
-  {name:'videomaker_tools',label:'Videomaker MCP tools',description:'Search native Videomaker MCP tools by category (compact names/descriptions), then query one exact tool name to get only its input schema. This saves context.',
-   parameters:{type:'object',properties:{query:{type:'string',description:'Keyword or tool name fragment'},limit:{type:'integer',minimum:1,maximum:10}},additionalProperties:false},
-   async execute(_id,params){const result=await bridge.discover(params?.query??'',params?.limit??6);return{content:[{type:'text',text:JSON.stringify(result)}],details:{}}}},
+  {name:'videomaker_tools',label:'Videomaker MCP tools',description:'Search native Videomaker MCP tools by category; use offset and limit to read remaining matches, then query one exact tool name to get only its input schema. This saves context.',
+   parameters:{type:'object',properties:{query:{type:'string',description:'Keyword or tool name fragment'},limit:{type:'integer',minimum:1,maximum:10},offset:{type:'integer',minimum:0,description:'Zero-based result offset for paginated discovery'}},additionalProperties:false},
+   async execute(_id,params){const result=await bridge.discover(params?.query??'',params?.limit??6,params?.offset??0);return{content:[{type:'text',text:JSON.stringify(result)}],details:{}}}},
   {name:'videomaker_call',label:'Videomaker MCP',description:'Execute a native Videomaker MCP tool by name, using its exact input schema from videomaker_tools. Prefer this to terminal commands for native capabilities.',
    parameters:{type:'object',properties:{name:{type:'string'},arguments:{type:'object'}},required:['name'],additionalProperties:false},
    async execute(_id,params){return bridge.call(params?.name,params?.arguments??{})}}
