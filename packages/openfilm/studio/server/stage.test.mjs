@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { HOST_FLAG, folderFiles, launch } from '../../src/host.mjs';
 import { filmHtml } from '../../src/film-doc.mjs';
 import { cssEscape, pastedPage } from '../ui/src/lib/layer-paste.ts';
+import { createObject3DDemo } from '../../src/object3d-demo.mjs';
 
 const STAGE = readFileSync(new URL('./stage.js', import.meta.url), 'utf8');
 
@@ -740,4 +741,25 @@ test('a copy whose id needs escaping is found by the selector a paste says (to b
   } finally {
     await stage.close();
   }
+});
+
+test('experimental Object3D canvas selects mesh but passes transparent areas through to 2D clips', { timeout: 90000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'of-stage-object3d-'));
+  await createObject3DDemo(join(dir, 'cube'));
+  writeFileSync(join(dir, 'under.html'), `<!doctype html><html><body style="margin:0;background:transparent"><div id="under-title" style="position:absolute;top:5px;left:5px;width:75px;height:30px;background:#fff;color:#000">Under 3D</div><script>window.film={frame(){}}</script></body></html>`);
+  writeFileSync(join(dir, 'film.html'), filmHtml({ stage: { w: 320, h: 180 }, tracks: [
+    { clips: [{ id: 'cube', src: 'cube/index.html', time: [0, 8] }] },
+    { clips: [{ id: 'under', src: 'under.html', time: [0, 8] }] }
+  ] }));
+  const stage = await stageOf(dir);
+  try {
+    await stage.page.waitForFunction(() => {
+      const frame = [...document.querySelectorAll('iframe')].find(el => el.contentWindow?.__object3dComponent);
+      return Boolean(frame);
+    }, null, { timeout: 15000 });
+    const center = await stage.ask('hit', { x: 160, y: 90, detail: true });
+    assert.equal(center?.clip, 'cube', 'visible cube pixels must select the Object3D clip');
+    const corner = await stage.ask('hit', { x: 20, y: 20, detail: true });
+    assert.equal(corner?.clip, 'under', 'transparent Object3D canvas must not block the 2D title underneath');
+  } finally { await stage.close(); }
 });
