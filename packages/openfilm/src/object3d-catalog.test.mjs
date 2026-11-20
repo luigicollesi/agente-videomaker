@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {listObject3D,inspectObject3D} from './object3d-catalog.mjs';
+import {listObject3D,inspectObject3D,object3DCommand,listObject3DAvailable} from './object3d-catalog.mjs';
 
 test('object catalog only exposes installed assets with matching metadata',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'videomaker-object3d-test-'));
@@ -29,4 +29,22 @@ test('object catalog only exposes installed assets with matching metadata',async
 test('missing object catalog is an empty discoverable collection',async()=>{
  const dir=join(tmpdir(),'nonexistent-object3d-catalog-probe-'+process.pid);
  assert.deepEqual(await listObject3D(dir),[]);
+});
+
+test('native cube and sphere are discoverable and CLI import copies only the requested asset',async()=>{
+ const listing=await listObject3DAvailable();
+ assert.deepEqual(listing.filter(x=>x.type==='procedural').map(x=>x.id),['object3d/cube','object3d/sphere']);
+ const inspected=await object3DCommand(['inspect','object3d/sphere']);
+ assert.equal(JSON.parse(inspected.lines[0]).materials[0],'sphere-material');
+ const root=await mkdtemp(join(tmpdir(),'videomaker-object3d-cli-'));
+ try{
+  await writeFile(join(root,'film.html'),'<!doctype html><html></html>');
+  const imported=await object3DCommand(['take',root,'object3d/sphere']);
+  const receipt=JSON.parse(imported.lines[0]);
+  assert.equal(receipt.status,'imported');
+  assert.equal(receipt.asset,'object3d/sphere');
+  assert.equal(receipt.path,'saved/openfilm/object3d-sphere/index.html');
+  assert.equal(receipt.inserted,false);
+  await assert.rejects(()=>object3DCommand(['take',root,'object3d/not-real']),/Unknown built-in/);
+ }finally{await rm(root,{recursive:true,force:true})}
 });
