@@ -1,5 +1,5 @@
 // Opt-in project asset adapter. It never writes into the original source asset.
-import { realpath, lstat, mkdir } from 'node:fs/promises';
+import { realpath, lstat, mkdir, rm } from 'node:fs/promises';
 import { resolve, relative, isAbsolute, join, extname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { validateSegmentRequest } from './contract.mjs';
@@ -66,6 +66,12 @@ export async function prepareImageJob(projectRoot, assetRelativePath, checkpoint
 }
 export async function segmentProjectImage(args, options) {
   const job = await prepareImageJob(args.projectRoot, args.assetRelativePath, args.checkpoint, args.prompt);
-  const result = await segmentImage(job.request, options);
-  return { id: job.id, source: job.source, folder: job.folder, ...result };
+  try {
+    const result = await segmentImage(job.request, options);
+    return { id: job.id, source: job.source, folder: job.folder, ...result };
+  } catch (error) {
+    // Remove only this job's uncommitted outputs; never touch source or other jobs.
+    try { await rm(job.folder, { recursive: true, force: true }); } catch { /* preserve original failure */ }
+    throw error;
+  }
 }
