@@ -67,3 +67,5 @@ jobs:
         run: pnpm --filter openfilm exec playwright-core install --with-deps chromium-headless-shell
       - name: Verify Scene3D WebGL rendering and deterministic frames
         run: node --test packages/openfilm/src/object3d-demo.visual.test.mjs
+      - name: Verify stage selection and transparency
+        run: node --test --test-name-pattern='experimental Object3D canvas' packages/openfilm/studio/server/stage.test.mjs
