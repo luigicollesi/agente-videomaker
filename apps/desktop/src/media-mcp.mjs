@@ -14,7 +14,7 @@ import { applyOps } from 'openfilm/studio-ops';
 import { listBoards, readCanvas, canvasRevision } from 'openfilm/studio-canvas';
 import { searchLibrary, KINDS, LIBRARY_VERBS, libraryGet } from 'openfilm/library-search';
 import { listText3D } from 'openfilm/text3d-registry';
-import { listObject3DAvailable, inspectObject3DAvailable } from 'openfilm/object3d-catalog';
+import { listObject3DAvailable, inspectObject3DAvailable, object3DCommand } from 'openfilm/object3d-catalog';
 import { orbitCameraKeyframes } from 'openfilm/object3d-camera';
 import { createObject3DDemo } from 'openfilm/object3d-demo';
 import { propertyEdits, batchOps } from './mcp/timeline-actions.mjs';
@@ -70,6 +70,7 @@ const tools=[
  {name:'timeline_duplicate_clip',description:'Duplicate an existing clip at a nonnegative timeline second using Studio, requiring an exact current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_move_clip',description:'Move one clip to a nonnegative timeline second using the Studio edit engine. Requires current revision returned by timeline_overview; stale revisions are refused.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_clips',description:'Read-only bounded list of clips from the current film, with IDs, source, kind and timeline/source timing.',inputSchema:{type:'object',properties:{track:{type:'integer',minimum:0},limit:{type:'integer',minimum:1,maximum:100},offset:{type:'integer',minimum:0}},additionalProperties:false}},
+ {name:'object3d_library_import',description:'Copy the native Object3D cube into the project through Saved, without modifying the film. Insert the returned page using timeline_insert_asset with a current revision.',inputSchema:{type:'object',properties:{id:{type:'string',enum:['object3d/cube']}},required:['id'],additionalProperties:false}},
  {name:'object3d_demo_create',description:'Create an opt-in bundled Three.js cube scene under project assets/object3d. Does not insert or change timeline clips.',inputSchema:{type:'object',properties:{name:{type:'string',pattern:'^[a-z][a-z0-9_-]{0,49}$'}},required:['name'],additionalProperties:false}},
  {name:'object3d_list',description:'List native procedural Object3D library objects and installed validated GLB models.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
  {name:'object3d_camera_orbit_plan',description:'Generate deterministic keyframes for an orbital 3D camera path. Planning only: does not change the film or render scene cameras.',inputSchema:{type:'object',properties:{target:{type:'array',items:{type:'number'},minItems:3,maxItems:3},radius:{type:'number',exclusiveMinimum:0},startAzimuth:{type:'number'},endAzimuth:{type:'number'},elevation:{type:'number'},start:{type:'number',minimum:0},duration:{type:'number',exclusiveMinimum:0},fov:{type:'number',exclusiveMinimum:0,exclusiveMaximum:180}},additionalProperties:false}},
@@ -357,6 +358,12 @@ async function libraryTool(args){
   ...(item.loop!=null?{loop:item.loop}:{})
  }));
  return {content:[{type:'text',text:JSON.stringify({kind:args.kind,query:args.query,worded:found.worded,count:results.length,results})}]};
+}
+async function object3DLibraryImport(args){
+ if(args?.id!=='object3d/cube')throw Error('Unknown built-in Object3D asset');
+ const result=await object3DCommand(['take',project,args.id]);
+ if(!result.ok)throw Error(result.lines?.join(' ')||'Object3D import failed');
+ return {content:[{type:'text',text:result.lines[0]}]};
 }
 async function libraryTake(args){
  if(!Object.hasOwn(KINDS,args?.kind)||typeof args?.id!=='string'||!args.id.trim()||args.id.length>500)throw Error('Invalid library item');
@@ -795,7 +802,7 @@ rl.on('line',async line=>{
   (msg.params.name==='caption_tracks'&&msg.params.arguments?.action==='translate')?
   await heavyJob(()=>captionActions(project,msg.params.name,msg.params?.arguments)):
   await captionActions(project,msg.params.name,msg.params?.arguments)
- )}]}:['text3d_font_add','text3d_register','text3d_apply'].includes(msg.params?.name)?await runText3D(msg.params.name,msg.params?.arguments):msg.params?.name==='object3d_demo_create'?{content:[{type:'text',text:JSON.stringify(await (async()=>{
+ )}]}:['text3d_font_add','text3d_register','text3d_apply'].includes(msg.params?.name)?await runText3D(msg.params.name,msg.params?.arguments):msg.params?.name==='object3d_library_import'?await object3DLibraryImport(msg.params?.arguments):msg.params?.name==='object3d_demo_create'?{content:[{type:'text',text:JSON.stringify(await (async()=>{
     const name=msg.params?.arguments?.name;
     if(typeof name!=='string'||!/^[a-z][a-z0-9_-]{0,49}$/.test(name))throw Error('Invalid Object3D demo name');
     const parent=join(project,'assets','object3d');
