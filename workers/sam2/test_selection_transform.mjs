@@ -25,3 +25,13 @@ test('polygon bounds on original image are deterministic',()=>{
   const poly=toSourcePolygon([{x:150,y:100},{x:350,y:100},{x:350,y:200},{x:150,y:200}],frame,source);
   assert.deepEqual(sourcePolygonBounds(poly,source),[480,270,1441,811]);
 });
+
+test('partially outside polygons are rejected',()=>{
+  const polygon=toSourcePolygon([{x:0,y:0},{x:350,y:100},{x:350,y:200}],frame,source);
+  assert.equal(polygon,null);
+  assert.equal(sourcePolygonBounds(polygon,source),null);
+});
+test('invalid polygons fail closed',()=>{
+  assert.throws(()=>sourcePolygonBounds([[1,2],[3,4]],source));
+  assert.throws(()=>sourcePolygonBounds([[1,2],[3,4],[2000,3]],source));
+});
