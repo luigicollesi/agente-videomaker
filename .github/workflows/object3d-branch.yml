@@ -32,11 +32,12 @@ jobs:
           node --check packages/openfilm/src/object3d-catalog.mjs
           node --check packages/openfilm/src/object3d-camera.mjs
           node --check packages/openfilm/src/object3d-scene.mjs
+          node --check packages/openfilm/src/object3d-demo.mjs
           node --check apps/desktop/src/media-mcp.mjs
           node --check packages/openfilm/bin/openfilm.mjs
       - name: Object3D and legacy category regression
         run: |
-          node --test packages/openfilm/src/object3d-camera.test.mjs packages/openfilm/src/object3d-catalog.test.mjs packages/openfilm/src/object3d-scene.test.mjs
+          node --test packages/openfilm/src/object3d-camera.test.mjs packages/openfilm/src/object3d-catalog.test.mjs packages/openfilm/src/object3d-scene.test.mjs packages/openfilm/src/object3d-demo.test.mjs
           node --test packages/openfilm/studio/ui/src/lib/library-categories.test.ts
       - name: Existing Text3D unit regression
         run: |
@@ -48,3 +49,21 @@ jobs:
       - name: Existing server typecheck diagnostics (not a release gate yet)
         continue-on-error: true
         run: pnpm --filter openfilm exec tsc -p studio/server
+
+  visual-scene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install Chromium and WebGL runtime
+        run: pnpm --filter openfilm exec playwright-core install --with-deps chromium-headless-shell
+      - name: Verify Scene3D WebGL rendering and deterministic frames
+        run: node --test packages/openfilm/src/object3d-demo.visual.test.mjs
