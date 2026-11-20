@@ -6,6 +6,18 @@ import {join} from 'node:path';
 import {createObject3DDemo} from './object3d-demo.mjs';
 import {object3DCommand} from './object3d-catalog.mjs';
 
+test('sphere creates a separate geometry page and rejects unknown shapes',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'videomaker-sphere-demo-'));
+ try{
+  const made=await createObject3DDemo(join(root,'sphere'),{shape:'sphere'});
+  assert.equal(made.shape,'sphere');
+  const html=await readFile(made.page,'utf8');
+  assert.match(html,/data-object3d-shape="sphere"/);
+  assert.match(html,/THREE\\.SphereGeometry/);
+  await assert.rejects(()=>createObject3DDemo(join(root,'invalid'),{shape:'../attack'}),/Unsupported Object3D shape/);
+  await assert.rejects(()=>createObject3DDemo(join(root,'sphere'),{shape:'cube'}),/already exists/);
+ }finally{await rm(root,{recursive:true,force:true})}
+});
 test('opt-in Scene3D demo packages local WebGL dependencies, without touching existing clips',async()=>{
  const root=await mkdtemp(join(tmpdir(),'videomaker-scene-demo-'));
  const target=join(root,'scene-demo');
