@@ -27,13 +27,17 @@ export function toSourcePoint(point, frame, source, sourceRegion = {x:0,y:0,widt
 // Return source-space polygon; caller may derive a prompt box from its bounds.
 export function toSourcePolygon(corners, frame, source, region) {
   if (!Array.isArray(corners) || corners.length < 3) throw new TypeError('Expected polygon with 3+ vertices');
-  return corners.map(point => toSourcePoint(point, frame, source, region));
+  const projected = corners.map(point => toSourcePoint(point, frame, source, region));
+  // Reject partial polygons: ignoring outside vertices could produce an incorrect mask.
+  return projected.includes(null) ? null : projected;
 }
 export function sourcePolygonBounds(polygon, source) {
-  if (!Array.isArray(polygon) || polygon.some(p => p !== null && (!Array.isArray(p) || p.length !== 2 || !p.every(finite))))
+  if (polygon === null) return null;
+  if (!Array.isArray(polygon) || polygon.length < 3 || polygon.some(p => !Array.isArray(p) || p.length !== 2 || !p.every(finite)))
     throw new TypeError('Invalid source polygon');
-  const points = polygon.filter(p => p !== null);
-  if (!points.length) return null;
+  const points = polygon;
+  if (![source?.width, source?.height].every(finite) || source.width <= 0 || source.height <= 0) throw new RangeError('Invalid source dimensions');
+  if (points.some(([x,y]) => x < 0 || y < 0 || x >= source.width || y >= source.height)) throw new RangeError('Polygon outside source');
   const left = Math.min(...points.map(p => p[0])), top = Math.min(...points.map(p => p[1]));
   const right = Math.min(source.width,Math.max(...points.map(p => p[0]))+1);
   const bottom = Math.min(source.height,Math.max(...points.map(p => p[1]))+1);
