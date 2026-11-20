@@ -67,3 +67,11 @@ No phase advances solely from a successful unit suite. Preview and exported fram
 - Native material properties `--object3d-color`, `--object3d-roughness` and `--object3d-metalness` use the existing clip inspector override contract. Geometry and camera motion remain fixed in this initial library sample.
 - Agent discovery includes the procedural cube in `object3d_list` and `object3d_inspect`. To import without timeline mutation, use `object3d_library_import` or `videomaker object3d take <project-folder> object3d/cube` and then the existing revision-guarded timeline tool.
 - New tests cover offline bundle generation, no clobbering, catalog appearance, Saved copy and MCP import. Keep all browser and Text3D regressions as required gates.
+
+## Phase 2B — additional procedural primitive (sphere)
+
+- `object3d/sphere` is a native library asset alongside the existing `object3d/cube`, with a separate cache folder and an immutable project Saved copy.
+- The same Three.js film-page runtime, Stage hit-test, per-clip color/roughness/metalness override contract and deterministic camera frame evaluator serve both primitives.
+- Native `object3d_list`/`object3d_inspect` and `object3d_library_import` expose the sphere without introducing parallel MCP tools; CLI `videomaker object3d take <project> object3d/sphere` uses the same import path.
+- No GLB asset loader or timeline camera control has been activated. No mouse handlers are changed.
+- Approval requires native catalog/preview import, concurrent offline bundle tests, sphere render and material recoloring in Chromium, Text3D regression, Studio typecheck, and existing Stage transparency tests.
