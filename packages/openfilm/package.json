@@ -49,6 +49,7 @@
     "./text3d-registry": "./studio/server/text3d/registry.mjs",
     "./text3d-cli": "./src/text3d-cli.mjs",
     "./object3d-catalog": "./src/object3d-catalog.mjs",
+    "./object3d-camera": "./src/object3d-camera.mjs",
     "./desktop-account": "./studio/server/account.mjs",
     "./studio-ui/*": "./studio/ui/src/*",
     "./package.json": "./package.json"
