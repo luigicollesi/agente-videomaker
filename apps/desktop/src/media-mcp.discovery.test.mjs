@@ -42,6 +42,17 @@ test('MCP reads canvas in compact pages and searches native library', {timeout:6
    assert.notEqual(reply.result?.isError,true,JSON.stringify(reply.result));
    return JSON.parse(reply.result.content[0].text);
   };
+  const catalog=await new Promise((resolve,reject)=>{
+   const key=++id,timer=setTimeout(()=>{pending.delete(key);reject(Error('MCP tools/list timeout'))},10000);
+   pending.set(key,reply=>{clearTimeout(timer);resolve(reply.result?.tools)});
+   child.stdin.write(JSON.stringify({jsonrpc:'2.0',id:key,method:'tools/list',params:{}})+'\n');
+  });
+  const tool=name=>catalog.find(t=>t.name===name)?.inputSchema;
+  assert.deepEqual(tool('timeline_set_playback').oneOf.map(x=>x.properties.field.const),['speed','volume']);
+  assert.deepEqual(tool('caption_tracks').oneOf.map(x=>x.properties.action.const),['new','from_subtitles','sync','translate']);
+  assert.ok(tool('caption_tracks').oneOf[3].required.includes('external_approved'));
+  assert.ok(tool('project_page_update').oneOf[1].required.includes('expected_sha256'));
+  assert.deepEqual(tool('canvas_apply').properties.ops.items.properties.op.enum,['add','set','remove','wire','unwire','version']);
   const boards=await ok('canvas_list');
   assert.ok(boards.boards.some(b=>b.id==='main'));
   const page=await ok('canvas_nodes',{limit:1,offset:0});
