@@ -70,7 +70,7 @@ const tools=[
  {name:'timeline_duplicate_clip',description:'Duplicate an existing clip at a nonnegative timeline second using Studio, requiring an exact current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_move_clip',description:'Move one clip to a nonnegative timeline second using the Studio edit engine. Requires current revision returned by timeline_overview; stale revisions are refused.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_clips',description:'Read-only bounded list of clips from the current film, with IDs, source, kind and timeline/source timing.',inputSchema:{type:'object',properties:{track:{type:'integer',minimum:0},limit:{type:'integer',minimum:1,maximum:100},offset:{type:'integer',minimum:0}},additionalProperties:false}},
- {name:'object3d_library_import',description:'Copy the native Object3D cube into the project through Saved, without modifying the film. Insert the returned page using timeline_insert_asset with a current revision.',inputSchema:{type:'object',properties:{id:{type:'string',enum:['object3d/cube']}},required:['id'],additionalProperties:false}},
+ {name:'object3d_library_import',description:'Copy the native Object3D cube into the project through Saved, without modifying the film. Insert the returned page using timeline_insert_asset with a current revision.',inputSchema:{type:'object',properties:{id:{type:'string',enum:['object3d/cube','object3d/sphere']}},required:['id'],additionalProperties:false}},
  {name:'object3d_demo_create',description:'Create an opt-in bundled Three.js cube scene under project assets/object3d. Does not insert or change timeline clips.',inputSchema:{type:'object',properties:{name:{type:'string',pattern:'^[a-z][a-z0-9_-]{0,49}$'}},required:['name'],additionalProperties:false}},
  {name:'object3d_list',description:'List native procedural Object3D library objects and installed validated GLB models.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
  {name:'object3d_camera_orbit_plan',description:'Generate deterministic keyframes for an orbital 3D camera path. Planning only: does not change the film or render scene cameras.',inputSchema:{type:'object',properties:{target:{type:'array',items:{type:'number'},minItems:3,maxItems:3},radius:{type:'number',exclusiveMinimum:0},startAzimuth:{type:'number'},endAzimuth:{type:'number'},elevation:{type:'number'},start:{type:'number',minimum:0},duration:{type:'number',exclusiveMinimum:0},fov:{type:'number',exclusiveMinimum:0,exclusiveMaximum:180}},additionalProperties:false}},
@@ -360,7 +360,7 @@ async function libraryTool(args){
  return {content:[{type:'text',text:JSON.stringify({kind:args.kind,query:args.query,worded:found.worded,count:results.length,results})}]};
 }
 async function object3DLibraryImport(args){
- if(args?.id!=='object3d/cube')throw Error('Unknown built-in Object3D asset');
+ if(!['object3d/cube','object3d/sphere'].includes(args?.id))throw Error('Unknown built-in Object3D asset');
  const result=await object3DCommand(['take',project,args.id]);
  if(!result.ok)throw Error(result.lines?.join(' ')||'Object3D import failed');
  return {content:[{type:'text',text:result.lines[0]}]};
