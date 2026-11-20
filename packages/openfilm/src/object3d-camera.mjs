@@ -24,7 +24,7 @@ export function cameraPoseAt(frames,time){
   if(time<=first.time)return {position:[...first.position],target:[...first.target],fov:first.fov};
   if(time>=last.time)return {position:[...last.position],target:[...last.target],fov:last.fov};
   const nextIndex=frames.findIndex(f=>f.time>=time),a=frames[nextIndex-1],b=frames[nextIndex];
-  const u=a.easing==='hold'?0:ease(clamp((time-a.time)/(b.time-a.time)),a.easing??'linear');
+  const u=b.easing==='hold'?0:ease(clamp((time-a.time)/(b.time-a.time)),b.easing??'linear');
   return {position:mix(a.position,b.position,u),target:mix(a.target,b.target,u),fov:a.fov+(b.fov-a.fov)*u};
 }
 /** Orbit over a fixed target; azimuth/elevation in degrees, radius in world units. */
