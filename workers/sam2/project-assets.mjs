@@ -1,6 +1,6 @@
 // Opt-in project asset adapter. It never writes into the original source asset.
 import { realpath, lstat, mkdir } from 'node:fs/promises';
-import { resolve, relative, isAbsolute, join, extname, basename } from 'node:path';
+import { resolve, relative, isAbsolute, join, extname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { validateSegmentRequest } from './contract.mjs';
 import { segmentImage } from './runner.mjs';
@@ -29,6 +29,7 @@ export async function resolveProjectImage(projectRoot, assetRelativePath) {
   const assets = await realpath(join(root, 'assets'));
   if (!inside(root, assets)) throw new Error('Asset folder outside project');
   const source = await confinedFile(assets, assetRelativePath);
+  if (!inside(assets, source)) throw new Error('Asset path outside assets folder');
   if (!IMAGES.has(extname(source).toLowerCase())) throw new Error('Unsupported image format');
   return { root, source };
 }
@@ -38,6 +39,8 @@ export async function resolveProjectImage(projectRoot, assetRelativePath) {
  */
 export async function prepareImageJob(projectRoot, assetRelativePath, checkpoint, prompt) {
   const { root, source } = await resolveProjectImage(projectRoot, assetRelativePath);
+  // Validate request before creating any output folders.
+  validateSegmentRequest({ input: source, checkpoint, outputMask: join(root, '.film', 'roto', 'preflight-mask.png'), ...prompt });
   const model = await realpath(checkpoint);
   if (!(await lstat(model)).isFile()) throw new Error('Checkpoint is not a file');
   const film = join(root, '.film');
