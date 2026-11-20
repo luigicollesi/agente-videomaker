@@ -35,6 +35,7 @@ import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 import { communityCatalog, communityReady, fetchCommunity, isCommunity, refreshCommunity } from './community-library.mjs';
 import { setSharedPref, sharedHome, sharedPref } from '../../src/locations.mjs';
+import { OBJECT3D_BUILTIN_ID, isObject3DBuiltInFile, ensureObject3DBuiltIn } from '../../src/object3d-built-in.mjs';
 
 export { refreshCommunity };
 
@@ -129,6 +130,10 @@ async function downloadFile(/** @type {string} */ rel) {
 export function fetchLibrary(/** @type {unknown} */ rel) {
   if (typeof rel !== 'string' || !rel || !SAFE_PLACE.test(rel) || rel.split('/').some((part) => part === '..' || part === '.')) return Promise.resolve(null);
   if (isCommunity(rel)) return fetchCommunity(libraryCache(), rel);
+  /* The built-in cube is generated locally on first demand, with no network
+     download and no writes to projects or the source library. */
+  if (isObject3DBuiltInFile(rel))
+    return ensureObject3DBuiltIn(libraryCache()).then(() => located(rel), () => null);
   const was = fetching.get(rel);
   if (was) return was;
   const here = located(rel);
@@ -165,7 +170,7 @@ export function fetchLibrary(/** @type {unknown} */ rel) {
  * @param {{ id: string, music?: string }} item
  */
 export function partsOf(item) {
-  return [...((isCommunity(item.id) || PUBLISHED.some((part) => item.id.startsWith(part))) ? [item.id] : []), ...(typeof item.music === 'string' ? [item.music] : [])];
+  return [...((item.id === OBJECT3D_BUILTIN_ID || isCommunity(item.id) || PUBLISHED.some((part) => item.id.startsWith(part))) ? [item.id] : []), ...(typeof item.music === 'string' ? [item.music] : [])];
 }
 
 /** Of the things `ids`, those not all here yet (to be fetched before they are put in). @param {unknown} ids */
