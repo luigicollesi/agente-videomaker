@@ -22,3 +22,5 @@ Corporation), fetched likewise.
 The offline Discover snapshot (`skill-catalog-seed.json`) includes OpenFilm's Replicate skill at its pinned commit
 from `openfilm/skill-replicate` (MIT License, © 2026 OpenFilm contributors). The snapshot retains the full license
 and source commit. It is a discovery fallback, not an automatically installed skill.
+
+The bundled default Text3D typeface (`src/assets/helvetiker_regular.typeface.json`) is sourced from the three.js r187 examples font collection (https://github.com/mrdoob/three.js/tree/r187/examples/fonts). The upstream collection attributes its typefaces to MgOpen; see the source repository's `examples/fonts/README.md` for its source and licensing information. The three.js software is MIT-licensed, © three.js authors.
