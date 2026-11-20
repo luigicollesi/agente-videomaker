@@ -1,0 +1,46 @@
+name: Object3D branch safety checks
+
+on:
+  push:
+    branches:
+      - feat/object3d-assets
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: object3d-safety-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Validate source syntax
+        run: |
+          node --check packages/openfilm/src/object3d-catalog.mjs
+          node --check packages/openfilm/src/object3d-camera.mjs
+          node --check apps/desktop/src/media-mcp.mjs
+          node --check packages/openfilm/bin/openfilm.mjs
+      - name: Object3D and legacy category regression
+        run: |
+          node --test packages/openfilm/src/object3d-camera.test.mjs packages/openfilm/src/object3d-catalog.test.mjs
+          node --test packages/openfilm/studio/ui/src/lib/library-categories.test.ts
+      - name: Existing Text3D unit regression
+        run: |
+          node --test packages/openfilm/src/text3d-runtime.test.mjs packages/openfilm/src/text3d-contract.test.mjs packages/openfilm/src/text3d-core.test.mjs
+      - name: MCP discovery and compatibility
+        run: node --test apps/desktop/src/media-mcp.discovery.test.mjs
+      - name: Typecheck
+        run: pnpm typecheck
