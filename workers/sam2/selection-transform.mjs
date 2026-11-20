@@ -30,7 +30,7 @@ export function toSourcePolygon(corners, frame, source, region) {
   return corners.map(point => toSourcePoint(point, frame, source, region));
 }
 export function sourcePolygonBounds(polygon, source) {
-  if (!Array.isArray(polygon) || polygon.some(p => !Array.isArray(p) || p.length !== 2 || !p.every(finite)))
+  if (!Array.isArray(polygon) || polygon.some(p => p !== null && (!Array.isArray(p) || p.length !== 2 || !p.every(finite))))
     throw new TypeError('Invalid source polygon');
   const points = polygon.filter(p => p !== null);
   if (!points.length) return null;
