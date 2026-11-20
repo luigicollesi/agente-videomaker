@@ -39,6 +39,15 @@ export async function inspectObject3DAvailable(id){
 export async function object3DCommand(args){
   const [action,id]=args;
   if(action==='list')return {ok:true,lines:[JSON.stringify(await listObject3DAvailable())]};
+  if(action==='take'&&args.length===3){
+    const project=resolve(args[1]),assetId=args[2];
+    if(assetId!==OBJECT3D_BUILTIN_ID)throw Error('Unknown built-in Object3D asset');
+    if(!(await stat(join(project,'film.html')).catch(()=>null))?.isFile())throw Error('Object3D take requires a film.html project');
+    const {takeSaved}=await import('../studio/server/saved.mjs');
+    const taken=await takeSaved(project,'openfilm/'+assetId);
+    if(!('clip' in taken))throw Error('Object3D asset did not produce a clip');
+    return {ok:true,lines:[JSON.stringify({status:'imported',asset:assetId,path:taken.clip.src,inserted:false,next:'Use timeline_overview and timeline_insert_asset with the current revision'})]};
+  }
   if(action==='demo'&&id&&args.length===2){
     const {createObject3DDemo}=await import('./object3d-demo.mjs');
     const result=await createObject3DDemo(id);
@@ -52,5 +61,5 @@ export async function object3DCommand(args){
     const frames=orbitCameraKeyframes({radius:Number(radius),duration:Number(duration),startAzimuth:Number(startAzimuth),endAzimuth:Number(endAzimuth),elevation:Number(elevation)});
     return {ok:true,lines:[JSON.stringify({status:'planned',applied:false,keyframes:frames})]};
   }
-  return {ok:false,usage:true,lines:['Usage: videomaker object3d list | inspect <asset-id> | demo <new-folder> | orbit <radius> <duration> [startAzimuth] [endAzimuth] [elevation]']};
+  return {ok:false,usage:true,lines:['Usage: videomaker object3d list | inspect <asset-id> | take <project-folder> object3d/cube | demo <new-folder> | orbit <radius> <duration> [startAzimuth] [endAzimuth] [elevation]']};
 }
