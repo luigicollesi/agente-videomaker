@@ -29,3 +29,16 @@ test('runner respects already aborted requests', async () => {
   controller.abort();
   await assert.rejects(segmentImage({ ...base, box: [0, 0, 10, 10] }, { signal: controller.signal }));
 });
+
+test('rejects invalid python executable configuration', async () => {
+  await assert.rejects(segmentImage({ ...base, box: [0, 0, 10, 10] }, { python: '' }), /Invalid Python executable/);
+});
+test('reports missing executable without starting a model', async () => {
+  await assert.rejects(
+    segmentImage({ ...base, box: [0, 0, 10, 10] }, { python: '/missing/roto-python-not-installed' }),
+    /ENOENT/,
+  );
+});
+test('rejects invalid timeout', async () => {
+  await assert.rejects(segmentImage({ ...base, box: [0, 0, 10, 10] }, { timeoutMs: 0 }), /Invalid timeout/);
+});
