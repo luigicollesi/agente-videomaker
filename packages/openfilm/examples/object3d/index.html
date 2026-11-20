@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en" data-object3d-shape="cube"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 :root { --clip-length: 8; --object3d-color: #b92f40; --object3d-roughness: 0.28; --object3d-metalness: 0.35; }
 html,body { margin:0;width:100%;height:100%;overflow:hidden;background:transparent; }
@@ -13,11 +13,13 @@ import * as THREE from 'three';
 import { createScene3D } from './object3d-scene.mjs';
 const canvas=document.querySelector('#scene'),root=document.documentElement;
 const view=createScene3D({THREE,aspect:canvas.width/canvas.height});
-const geometry=new THREE.BoxGeometry(2,2,2);
+const shape=root.dataset.object3dShape;
+if(!['cube','sphere'].includes(shape))throw Error('Unsupported Object3D shape');
+const geometry=shape==='sphere'?new THREE.SphereGeometry(1.35,48,32):new THREE.BoxGeometry(2,2,2);
 const material=new THREE.MeshStandardMaterial({color:0xb92f40,roughness:.28,metalness:.35});
-const cube=new THREE.Mesh(geometry,material);
-cube.name='demo-cube';material.name='cube-material';
-view.addObject('demo-cube',cube);
+const mesh=new THREE.Mesh(geometry,material);
+mesh.name='demo-'+shape;material.name=shape+'-material';
+view.addObject(mesh.name,mesh);
 const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,preserveDrawingBuffer:true});
 renderer.setClearColor(0x000000,0);
 const keys=[
@@ -51,7 +53,7 @@ function hitTest(x,y){
  if(stopped||!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>1||y<0||y>1)return false;
  pointer.set(x*2-1,1-y*2);
  raycaster.setFromCamera(pointer,view.camera);
- return raycaster.intersectObject(cube,false).length>0;
+ return raycaster.intersectObject(mesh,false).length>0;
 }
 function dispose(){
  if(stopped)return;
@@ -59,7 +61,7 @@ function dispose(){
  view.dispose();
  geometry.dispose();material.dispose();renderer.dispose();
 }
-const component={scene:view.scene,camera:view.camera,renderer,hitTest,dispose};
+const component={scene:view.scene,camera:view.camera,renderer,hitTest,dispose,shape};
 window.__object3dComponent=component;
 window.__object3dHitTest=hitTest;
 window.film={ready:Promise.resolve(),frame,frameReadsOverrides:true};
