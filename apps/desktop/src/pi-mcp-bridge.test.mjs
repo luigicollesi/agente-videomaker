@@ -21,7 +21,7 @@ test('embedded Pi discovers and calls exactly the same local MCP service without
   ' {name:"timeline_overview",description:"Read current timeline",inputSchema:{type:"object",properties:{revision:{type:"string",description:"Revision identifier returned by the film editing engine"},track:{type:"integer",description:"Index of track to inspect"},offset:{type:"integer",description:"Pagination offset"},limit:{type:"integer",description:"Maximum paginated entries"}}}},',
   ' {name:"music_context",description:"Read music interval",inputSchema:{type:"object",properties:{start:{type:"number"}}}},',
   ' {name:"inspect_video",description:"Inspect timestamped video frames",inputSchema:{type:"object"}}]};',
-  ' else if(v.method==="tools/call")result=v.params.name==="inspect_video"?{content:[{type:"text",text:JSON.stringify({args:v.params.arguments})}]}:v.params.name==="timeline_overview"&&v.params.arguments?.overflow?{content:Array.from({length:6},(_,i)=>({type:"text",text:String(i)}))}:{content:[{type:"text",text:JSON.stringify({name:v.params.name,args:v.params.arguments,project:process.env.VIDEOMAKER_PROJECT})}]};',
+  ' else if(v.method==="tools/call")result=v.params.name==="inspect_video"?{content:v.params.arguments?.path==="sample.mp4"?(()=>{const a=v.params.arguments,o=a.frame_offset??0,n=a.max_frames??12,l=a.frame_limit??n;const c=[];for(let i=o;i<Math.min(n,o+l);i++){c.push({type:"text",text:"Frame "+(i+1)+"/"+n+" at "+(i+.5).toFixed(3)+" seconds"});c.push({type:"image",mimeType:"image/jpeg",data:Buffer.from(String(i)).toString("base64")});}c.push({type:"text",text:JSON.stringify({total_frames:n,frame_offset:o,next_frame_offset:o+l<n?o+l:null,remaining_frames:Math.max(0,n-o-l)})});return c})():[{type:"text",text:JSON.stringify({args:v.params.arguments})}]}:v.params.name==="timeline_overview"&&v.params.arguments?.overflow?{content:Array.from({length:6},(_,i)=>({type:"text",text:String(i)}))}:{content:[{type:"text",text:JSON.stringify({name:v.params.name,args:v.params.arguments,project:process.env.VIDEOMAKER_PROJECT})}]};',
   ' process.stdout.write(JSON.stringify({jsonrpc:"2.0",id:v.id,result})+"\\n");',
   '});'
  ].join('\n');
@@ -72,6 +72,20 @@ test('embedded Pi discovers and calls exactly the same local MCP service without
   assert.deepEqual(JSON.parse(frames.content[0].text).args,{path:'assets/example.mp4',max_frames:12,frame_offset:4,frame_limit:2});
   const explicitlySized=await bridge.call('inspect_video',{path:'assets/example.mp4',frame_limit:1});
   assert.equal(JSON.parse(explicitlySized.content[0].text).args.frame_limit,1);
+  const seen=[];
+  let next=0;
+  while(next!==null){
+   const result=await bridge.call('inspect_video',{path:'sample.mp4',max_frames:12,frame_offset:next});
+   assert.equal(result.content.length,5);
+   for(let i=0;i<4;i+=2){
+    assert.match(result.content[i].text,/Frame \\d+\\/12 at [0-9.]+ seconds/);
+    seen.push(Number(Buffer.from(result.content[i+1].data,'base64').toString()));
+   }
+   const page=JSON.parse(result.content[4].text);
+   next=page.next_frame_offset;
+   assert.equal(page.remaining_frames,12-seen.length);
+  }
+  assert.deepEqual(seen,Array.from({length:12},(_,i)=>i));
   await assert.rejects(bridge.call('timeline_overview',{overflow:true}),/more than 5 content blocks/);
   const decoded=JSON.parse(output.content[0].text);
   assert.equal(decoded.name,'timeline_overview');
