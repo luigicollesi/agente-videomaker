@@ -13,7 +13,7 @@ test('sphere creates a separate geometry page and rejects unknown shapes',async(
   assert.equal(made.shape,'sphere');
   const html=await readFile(made.page,'utf8');
   assert.match(html,/data-object3d-shape="sphere"/);
-  assert.match(html,/THREE\\.SphereGeometry/);
+  assert.match(html,/THREE\.SphereGeometry/);
   await assert.rejects(()=>createObject3DDemo(join(root,'invalid'),{shape:'../attack'}),/Unsupported Object3D shape/);
   await assert.rejects(()=>createObject3DDemo(join(root,'sphere'),{shape:'cube'}),/already exists/);
  }finally{await rm(root,{recursive:true,force:true})}
