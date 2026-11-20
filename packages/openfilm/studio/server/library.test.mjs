@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { builtInRoot, libraryFavorites, libraryFile, libraryIndex, libraryVoices, setLibraryFavorites, voiceKey } from './library.mjs';
+import { builtInRoot, fetchLibrary, libraryFavorites, libraryFile, libraryFileFetched, libraryIndex, libraryVoices, setLibraryFavorites, voiceKey } from './library.mjs';
 import { takeSaved } from './saved.mjs';
 
 const index = /** @type {{ groups: Record<string, { id: string }[]>, items: any[] }} */ (libraryIndex());
@@ -20,7 +20,7 @@ test('every thing of the library is there, named in each language, in a group of
     /* the things published apart from git (the emoji, the sounds and music) are checked where they are there */
     const apart = /^(stickers\/emoji|audio)\//.test(item.id);
     if (item.kind === 'page' && apart) assert.ok(item.poster && item.still, `${item.id}: its own picture`);
-    if (item.kind === 'page' && !apart) {
+    if (item.kind === 'page' && !apart && item.id !== 'object3d/cube') {
       const about = JSON.parse(readFileSync(join(builtInRoot(), item.id, 'saved.json'), 'utf8'));
       assert.equal(about.kind, 'clip');
       assert.ok(existsSync(join(builtInRoot(), item.id, 'files', about.clip.src)), `${item.id}: its page`);
@@ -142,4 +142,24 @@ test('the voices are the voice-over services\' own, each once, said as `openfilm
   } finally {
     if (was === undefined) delete process.env.OPENFILM_SHARED_HOME; else process.env.OPENFILM_SHARED_HOME = was;
   }
+});
+
+test('Object3D catalog cube is discoverable and imports through existing Saved pipeline',async()=>{
+ const item=index.items.find(i=>i.id==='object3d/cube');
+ assert.equal(item?.cat,'object3d');
+ assert.equal(item?.kind,'page');
+ assert.equal(item?.src,'index.html');
+ assert.equal(item?.durationMs,8000);
+ assert.ok(libraryFile(item.poster),'poster lives in the built-in library');
+ const folder=await fetchLibrary(item.id);
+ assert.ok(folder,'on-demand bundle generated without network');
+ const file=await libraryFileFetched(item.id+'/files/index.html');
+ assert.ok(file && existsSync(file),'library page preview can resolve the bundled HTML');
+ const root=mkdtempSync(join(tmpdir(),'of-library-object3d-'));
+ const taken=await takeSaved(root,'openfilm/object3d/cube');
+ assert.ok('clip' in taken);
+ assert.equal(taken.clip.src,'saved/openfilm/object3d-cube/index.html');
+ assert.deepEqual(taken.clip.time,[0,8]);
+ assert.ok(existsSync(join(root,'saved/openfilm/object3d-cube/vendor/three.module.js')));
+ assert.equal(taken.clip.attrs?.['data-openfilm-content-type'],'object3d');
 });
