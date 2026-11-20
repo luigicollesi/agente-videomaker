@@ -74,6 +74,14 @@ test('MCP reads canvas in compact pages and searches native library', {timeout:6
   assert.equal(invalidTake.result.isError,true);
   const objects=await ok('object3d_list');
   assert.ok(Array.isArray(objects));
+  const created3D=await ok('object3d_demo_create',{name:'preview-cube'});
+  assert.equal(created3D.status,'created');
+  assert.equal(created3D.path,'assets/object3d/preview-cube/index.html');
+  assert.equal(created3D.inserted,false);
+  const duplicate3D=await call('object3d_demo_create',{name:'preview-cube'});
+  assert.equal(duplicate3D.result.isError,true);
+  const invalid3DName=await call('object3d_demo_create',{name:'../escape'});
+  assert.equal(invalid3DName.result.isError,true);
   const missingObject=await call('object3d_inspect',{id:'does-not-exist'});
   assert.equal(missingObject.result.isError,true);
   const orbit=await ok('object3d_camera_orbit_plan',{radius:4,duration:6});
