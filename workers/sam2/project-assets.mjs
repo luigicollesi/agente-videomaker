@@ -39,8 +39,10 @@ export async function resolveProjectImage(projectRoot, assetRelativePath) {
  */
 export async function prepareImageJob(projectRoot, assetRelativePath, checkpoint, prompt) {
   const { root, source } = await resolveProjectImage(projectRoot, assetRelativePath);
-  // Validate request before creating any output folders.
-  validateSegmentRequest({ input: source, checkpoint, outputMask: join(root, '.film', 'roto', 'preflight-mask.png'), ...prompt });
+  // Only selection fields may come from callers; paths are always owned by this adapter.
+  if (!prompt || typeof prompt !== 'object' || Array.isArray(prompt)) throw new TypeError('Invalid selection');
+  const selection = { points: prompt.points, labels: prompt.labels, box: prompt.box, device: prompt.device };
+  validateSegmentRequest({ input: source, checkpoint, outputMask: join(root, '.film', 'roto', 'preflight-mask.png'), ...selection });
   const model = await realpath(checkpoint);
   if (!(await lstat(model)).isFile()) throw new Error('Checkpoint is not a file');
   const film = join(root, '.film');
@@ -58,7 +60,7 @@ export async function prepareImageJob(projectRoot, assetRelativePath, checkpoint
     input: source, checkpoint: model,
     outputMask: join(folder, 'mask.png'),
     outputRgba: join(folder, 'foreground.png'),
-    ...prompt,
+    ...selection,
   });
   return { id, folder, source, request };
 }
