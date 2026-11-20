@@ -31,11 +31,12 @@ jobs:
         run: |
           node --check packages/openfilm/src/object3d-catalog.mjs
           node --check packages/openfilm/src/object3d-camera.mjs
+          node --check packages/openfilm/src/object3d-scene.mjs
           node --check apps/desktop/src/media-mcp.mjs
           node --check packages/openfilm/bin/openfilm.mjs
       - name: Object3D and legacy category regression
         run: |
-          node --test packages/openfilm/src/object3d-camera.test.mjs packages/openfilm/src/object3d-catalog.test.mjs
+          node --test packages/openfilm/src/object3d-camera.test.mjs packages/openfilm/src/object3d-catalog.test.mjs packages/openfilm/src/object3d-scene.test.mjs
           node --test packages/openfilm/studio/ui/src/lib/library-categories.test.ts
       - name: Existing Text3D unit regression
         run: |
