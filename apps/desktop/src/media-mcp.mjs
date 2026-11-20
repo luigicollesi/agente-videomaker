@@ -56,7 +56,7 @@ const tools=[
  {name:'timeline_get_clip',description:'Read a single timeline clip with fields and current revision without dumping film.html.',inputSchema:{type:'object',properties:{clip:{type:'string'}},required:['clip'],additionalProperties:false}},
  {name:'timeline_insert_asset',description:'Insert an existing media file from assets/ or a project-local HTML scene; omit track for automatic track creation. Guarded by film revision.',inputSchema:{type:'object',properties:{path:{type:'string'},revision:{type:'string'},at:{type:'number',minimum:0},track:{type:'integer',minimum:0},time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['path','revision','at'],additionalProperties:false}},
  {name:'timeline_remove_clip',description:'Remove one clip from the timeline with strict revision check; does not delete its source asset.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'}},required:['clip','revision'],additionalProperties:false}},
- {name:'project_page_update',description:'Inspect SHA-256/linked clips or make 1-8 exact source replacements in an existing procedural HTML page used by the film. Refuses locked tracks, stale content and external paths.',inputSchema:{type:'object',properties:{action:{type:'string',enum:['inspect','replace']},path:{type:'string'},expected_sha256:{type:'string',pattern:'^[a-f0-9]{64}$'},revision:{type:'string',pattern:'^[a-f0-9]{16}$'},changes:{type:'array',minItems:1,maxItems:8,items:{type:'object',properties:{find:{type:'string'},replace:{type:'string'}},required:['find','replace'],additionalProperties:false}}},required:['action','path'],oneOf:[{properties:{action:{const:'inspect'}}},{properties:{action:{const:'replace'}},required:['expected_sha256','revision','changes']}],additionalProperties:false}},
+ {name:'project_page_update',description:'Inspect SHA-256/linked clips or make 1-8 exact source replacements in an existing procedural HTML page used by the film. Refuses locked tracks, stale content and external paths.',inputSchema:{type:'object',properties:{action:{type:'string',enum:['inspect','replace']},path:{type:'string'},expected_sha256:{type:'string',pattern:'^[a-f0-9]{64}
  {name:'film_audit',description:'Read-only film integrity check: verified explicit durations, unknown durations, missing sources, and optional expected duration. Never guesses media length.',inputSchema:{type:'object',properties:{expected_seconds:{type:'number',minimum:0,maximum:86400}},additionalProperties:false}},
  {name:'film_preview_range',description:'Native deterministic contact-sheet inspection across a bounded timeline range. Returns verified PNG and warnings; render requires browser/FFmpeg.',inputSchema:{type:'object',properties:{start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0},count:{type:'integer',minimum:2,maximum:12}},required:['start','end'],additionalProperties:false}},
  {name:'film_preview_frame',description:'Render one frame of the current film using native look; returns concise checks and one PNG when small enough. Requires an openable browser/FFmpeg.',inputSchema:{type:'object',properties:{at:{type:'number',minimum:0}},required:['at'],additionalProperties:false}},
@@ -802,14 +802,14 @@ rl.on('line',async line=>{
   measure(msg.method,msg.params?.name,started,failure);
  }
 });
-},revision:{type:'string',pattern:'^[a-f0-9]{16},items:{type:'object',properties:{find:{type:'string'},replace:{type:'string'}},required:['find','replace'],additionalProperties:false}}},required:['action','path'],oneOf:[{properties:{action:{const:'inspect'}}},{properties:{action:{const:'replace'}},required:['expected_sha256','revision','changes']}],additionalProperties:false}},
+},revision:{type:'string',pattern:'^[a-f0-9]{16}
  {name:'film_audit',description:'Read-only film integrity check: verified explicit durations, unknown durations, missing sources, and optional expected duration. Never guesses media length.',inputSchema:{type:'object',properties:{expected_seconds:{type:'number',minimum:0,maximum:86400}},additionalProperties:false}},
  {name:'film_preview_range',description:'Native deterministic contact-sheet inspection across a bounded timeline range. Returns verified PNG and warnings; render requires browser/FFmpeg.',inputSchema:{type:'object',properties:{start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0},count:{type:'integer',minimum:2,maximum:12}},required:['start','end'],additionalProperties:false}},
  {name:'film_preview_frame',description:'Render one frame of the current film using native look; returns concise checks and one PNG when small enough. Requires an openable browser/FFmpeg.',inputSchema:{type:'object',properties:{at:{type:'number',minimum:0}},required:['at'],additionalProperties:false}},
  {name:'film_render',description:'Render the project with native renderer into a NEW file in assets. Requires revision; atomic exclusive publication. Heavy operation.',inputSchema:{type:'object',properties:{revision:{type:'string'},output:{type:'string'},start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0},fps:{type:'number',minimum:1,maximum:60}},required:['revision','output'],additionalProperties:false}},
  {name:'timeline_overview',description:'Read-only overview of the current project film, its revision, stage and number of tracks/clips.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
  {name:'timeline_split_clip',description:'Split one clip using explicit source-time intervals and timeline second, as required by Studio. Current revision required. Source timings must be provided accurately.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},at:{type:'number',exclusiveMinimum:0},left_time:{type:'array',items:{type:'number'},minItems:2,maxItems:2},right_time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['clip','revision','at'],additionalProperties:false}},
- {name:'timeline_set_playback',description:'Set clip playback speed (0.1..100) or volume (0..4) using Studio. Requires current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},field:{type:'string',enum:['speed','volume']},value:{type:'number'}},required:['clip','revision','field','value'],oneOf:[{properties:{field:{const:'speed'},value:{type:'number',minimum:0.1,maximum:100}}},{properties:{field:{const:'volume'},value:{type:'number',minimum:0,maximum:4}}}],additionalProperties:false}},
+ {name:'timeline_set_playback',description:'Set clip playback speed (0.1..100) or volume (0..4) using Studio. Requires current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},field:{type:'string',enum:['speed','volume']},value:{type:'number'}},required:['clip','revision','field','value'],additionalProperties:false}},
  {name:'timeline_duplicate_clip',description:'Duplicate an existing clip at a nonnegative timeline second using Studio, requiring an exact current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_move_clip',description:'Move one clip to a nonnegative timeline second using the Studio edit engine. Requires current revision returned by timeline_overview; stale revisions are refused.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_clips',description:'Read-only bounded list of clips from the current film, with IDs, source, kind and timeline/source timing.',inputSchema:{type:'object',properties:{track:{type:'integer',minimum:0},limit:{type:'integer',minimum:1,maximum:100},offset:{type:'integer',minimum:0}},additionalProperties:false}},
@@ -926,20 +926,17 @@ async function inspect(name,args){
  const probe=JSON.parse((await exec('ffprobe',['-v','error','-show_entries','format=duration','-of','json',path])).toString());
  const duration=Number(probe.format?.duration);
  const start=args?.start??0,end=args?.end??duration,n=args?.max_frames??12;
- const offset=args?.frame_offset??0,limit=args?.frame_limit??n;
- if(!Number.isFinite(duration)||duration<=0||!Number.isFinite(start)||!Number.isFinite(end)||start<0||end>duration+.01||end<=start||!Number.isInteger(n)||n<1||n>24||!Number.isSafeInteger(offset)||offset<0||!Number.isInteger(limit)||limit<1||limit>24)throw Error('Invalid interval or frame count');
+ if(!Number.isFinite(duration)||duration<=0||!Number.isFinite(start)||!Number.isFinite(end)||start<0||end>duration+.01||end<=start||!Number.isInteger(n)||n<1||n>24)throw Error('Invalid interval or frame count');
  const folder=await mkdtemp(join(tmpdir(),'videomaker-media-mcp-'));
  try{
   const content=[];
-  for(let i=offset;i<Math.min(n,offset+limit);i++){
+  for(let i=0;i<n;i++){
    const time=start+(Math.min(end,duration)-start)*(i+.5)/n;
    const dest=join(folder,`frame-${i}.jpg`);
    await exec('ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-y','-ss',time.toFixed(5),'-i',path,'-frames:v','1','-vf','scale=960:-2:force_original_aspect_ratio=decrease','-q:v','4',dest],15000);
    content.push({type:'text',text:`Frame ${i+1}/${n} at ${time.toFixed(3)} seconds`});
    content.push(image(await readFile(dest),'image/jpeg'));
   }
-  const returned=Math.max(0,Math.min(n,offset+limit)-offset);
-  content.push({type:'text',text:JSON.stringify({total_frames:n,frame_offset:offset,returned_frames:returned,remaining_frames:Math.max(0,n-offset-returned),next_frame_offset:offset+returned<n?offset+returned:null})});
   return {content};
  }finally{await rm(folder,{recursive:true,force:true})}
 }
@@ -1555,7 +1552,7 @@ rl.on('line',async line=>{
  {name:'film_render',description:'Render the project with native renderer into a NEW file in assets. Requires revision; atomic exclusive publication. Heavy operation.',inputSchema:{type:'object',properties:{revision:{type:'string'},output:{type:'string'},start:{type:'number',minimum:0},end:{type:'number',exclusiveMinimum:0},fps:{type:'number',minimum:1,maximum:60}},required:['revision','output'],additionalProperties:false}},
  {name:'timeline_overview',description:'Read-only overview of the current project film, its revision, stage and number of tracks/clips.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
  {name:'timeline_split_clip',description:'Split one clip using explicit source-time intervals and timeline second, as required by Studio. Current revision required. Source timings must be provided accurately.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},at:{type:'number',exclusiveMinimum:0},left_time:{type:'array',items:{type:'number'},minItems:2,maxItems:2},right_time:{type:'array',items:{type:'number'},minItems:2,maxItems:2}},required:['clip','revision','at'],additionalProperties:false}},
- {name:'timeline_set_playback',description:'Set clip playback speed (0.1..100) or volume (0..4) using Studio. Requires current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},field:{type:'string',enum:['speed','volume']},value:{type:'number'}},required:['clip','revision','field','value'],oneOf:[{properties:{field:{const:'speed'},value:{type:'number',minimum:0.1,maximum:100}}},{properties:{field:{const:'volume'},value:{type:'number',minimum:0,maximum:4}}}],additionalProperties:false}},
+ {name:'timeline_set_playback',description:'Set clip playback speed (0.1..100) or volume (0..4) using Studio. Requires current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},revision:{type:'string'},field:{type:'string',enum:['speed','volume']},value:{type:'number'}},required:['clip','revision','field','value'],additionalProperties:false}},
  {name:'timeline_duplicate_clip',description:'Duplicate an existing clip at a nonnegative timeline second using Studio, requiring an exact current revision.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_move_clip',description:'Move one clip to a nonnegative timeline second using the Studio edit engine. Requires current revision returned by timeline_overview; stale revisions are refused.',inputSchema:{type:'object',properties:{clip:{type:'string'},at:{type:'number',minimum:0},revision:{type:'string'}},required:['clip','at','revision'],additionalProperties:false}},
  {name:'timeline_clips',description:'Read-only bounded list of clips from the current film, with IDs, source, kind and timeline/source timing.',inputSchema:{type:'object',properties:{track:{type:'integer',minimum:0},limit:{type:'integer',minimum:1,maximum:100},offset:{type:'integer',minimum:0}},additionalProperties:false}},
@@ -1672,20 +1669,17 @@ async function inspect(name,args){
  const probe=JSON.parse((await exec('ffprobe',['-v','error','-show_entries','format=duration','-of','json',path])).toString());
  const duration=Number(probe.format?.duration);
  const start=args?.start??0,end=args?.end??duration,n=args?.max_frames??12;
- const offset=args?.frame_offset??0,limit=args?.frame_limit??n;
- if(!Number.isFinite(duration)||duration<=0||!Number.isFinite(start)||!Number.isFinite(end)||start<0||end>duration+.01||end<=start||!Number.isInteger(n)||n<1||n>24||!Number.isSafeInteger(offset)||offset<0||!Number.isInteger(limit)||limit<1||limit>24)throw Error('Invalid interval or frame count');
+ if(!Number.isFinite(duration)||duration<=0||!Number.isFinite(start)||!Number.isFinite(end)||start<0||end>duration+.01||end<=start||!Number.isInteger(n)||n<1||n>24)throw Error('Invalid interval or frame count');
  const folder=await mkdtemp(join(tmpdir(),'videomaker-media-mcp-'));
  try{
   const content=[];
-  for(let i=offset;i<Math.min(n,offset+limit);i++){
+  for(let i=0;i<n;i++){
    const time=start+(Math.min(end,duration)-start)*(i+.5)/n;
    const dest=join(folder,`frame-${i}.jpg`);
    await exec('ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-y','-ss',time.toFixed(5),'-i',path,'-frames:v','1','-vf','scale=960:-2:force_original_aspect_ratio=decrease','-q:v','4',dest],15000);
    content.push({type:'text',text:`Frame ${i+1}/${n} at ${time.toFixed(3)} seconds`});
    content.push(image(await readFile(dest),'image/jpeg'));
   }
-  const returned=Math.max(0,Math.min(n,offset+limit)-offset);
-  content.push({type:'text',text:JSON.stringify({total_frames:n,frame_offset:offset,returned_frames:returned,remaining_frames:Math.max(0,n-offset-returned),next_frame_offset:offset+returned<n?offset+returned:null})});
   return {content};
  }finally{await rm(folder,{recursive:true,force:true})}
 }
