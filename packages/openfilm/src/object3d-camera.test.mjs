@@ -14,7 +14,7 @@ test('orbit returns circular path of constant radius with stable target',()=>{
  assert.ok(f.length>=9);
  for(const p of f)assert.ok(Math.abs(Math.hypot(...p.position)-4)<1e-10);
  assert.deepEqual(f[0].target,[0,0,0]);
- assert.deepEqual(f[0].position.map(x=>Math.round(x*1e9)),f.at(-1).position.map(x=>Math.round(x*1e9)));
+ assert.ok(f[0].position.every((x,i)=>Math.abs(x-f.at(-1).position[i])<1e-9));
 });
 test('rejects invalid frames and orbit inputs',()=>{
  assert.throws(()=>validateCameraKeyframes([{time:0,position:[0,0,1],target:[0,0,0],fov:45},{time:0,position:[1,0,1],target:[0,0,0],fov:45}]));
