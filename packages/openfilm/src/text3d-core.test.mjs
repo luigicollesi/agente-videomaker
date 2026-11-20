@@ -8,13 +8,7 @@ import {createText3DCore} from './text3d-core.mjs';
 import {validateText3DInstance} from './text3d-contract.mjs';
 
 test('v2 core composes native and external motion with deterministic seeks',async()=>{
- // Some package installations omit Three.js example font files; use a local geometric
- // fixture for this renderer/motion test instead of relying on non-runtime assets.
- const fixtureGlyph={ha:650,x_min:0,x_max:500,o:'m 0 0 l 500 0 l 500 700 l 0 700 l 0 0'};
- const fixture={glyphs:Object.fromEntries([...new Set('ABCEGST?')].map(c=>[c,fixtureGlyph])),familyName:'Test Fixture',ascender:800,descender:-200,underlinePosition:-100,underlineThickness:50,boundingBox:{yMin:-200,xMin:0,yMax:800,xMax:650},resolution:1000};
- let raw;
- try{raw=JSON.parse(await readFile(new URL('../node_modules/three/examples/fonts/helvetiker_regular.typeface.json',import.meta.url),'utf8'))}
- catch(e){if(e?.code!=='ENOENT')throw e;raw=fixture}
+ const raw=JSON.parse(await readFile(new URL('./assets/helvetiker_regular.typeface.json',import.meta.url),'utf8'));
  const font=new FontLoader().parse(raw);
  const calls=[];
  class FakeRenderer{
