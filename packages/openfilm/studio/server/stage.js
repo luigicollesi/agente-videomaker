@@ -109,12 +109,12 @@
   const shown = () => clips()
     .filter((c) => c.el && c.kind !== 'sound' && c.el.style.visibility === 'visible' && !(Number(c.el.style.opacity || 1) <= 0))
     .sort((a, b) => a.ti - b.ti);
-  /** Text3D uses a transparent full-frame canvas. Its visible pixels, not its page box,
+  /** Text3D and opt-in Object3D pages use transparent full-frame canvases. Visible pixels, not page boxes,
    * determine whether it receives a stage click; other page types retain their original hit rules.
-   * WebGL drawing buffers are preserved by Text3D's renderer.
+   * WebGL drawing buffers are preserved by each 3D page renderer.
    */
-  const text3DPixel = (c, p) => {
-    if (!c.win?.__text3dComponent) return null;
+  const scene3DPixel = (c, p) => {
+    if (!c.win?.__text3dComponent && !c.win?.__object3dComponent) return null;
     try {
       const canvas = c.win.document.querySelector('canvas');
       if (!canvas || !canvas.clientWidth || !canvas.clientHeight) return null;
@@ -130,9 +130,8 @@
       if (rgba[3] > 16) return true;
       // Some WebGL effects do not contribute coverage to the alpha channel.
       // Raycast against the actual glyph mesh as a second, narrowly scoped test.
-      return typeof c.win.__text3dHitTest === 'function'
-        ? c.win.__text3dHitTest(p.x / c.w, p.y / c.h) === true
-        : false;
+      const hitTest = c.win?.__text3dComponent ? c.win.__text3dHitTest : c.win.__object3dHitTest;
+      return typeof hitTest === 'function' ? hitTest(p.x / c.w, p.y / c.h) === true : false;
     } catch {
       return null; // WebGL unavailable: leave legacy selection behavior intact.
     }
@@ -143,9 +142,9 @@
       if (pictures && c.kind === 'page') continue;
       const p = matrixOf(c).inverse().transformPoint(new DOMPoint(x, y));
       if (p.x < 0 || p.y < 0 || p.x > c.w || p.y > c.h) continue;
-      // A full-stage Text3D canvas is a rendering surface, not an opaque selection box.
+      // A full-stage 3D canvas is a rendering surface, not an opaque selection box.
       // Let clicks on transparent pixels fall through to clips underneath.
-      if (c.win?.__text3dComponent && text3DPixel(c, p) !== true) continue;
+      if ((c.win?.__text3dComponent || c.win?.__object3dComponent) && scene3DPixel(c, p) !== true) continue;
       return c;
     }
     return null;
@@ -631,7 +630,7 @@
 
   /** All layers under a point of a clip's page, the smallest first (equal areas: the one drawn later first). */
   const layersAt = (c, x, y, includeLocked) => {
-    if (c.win?.__text3dComponent) return []; // the canvas is a surface, not an editable page layer
+    if (c.win?.__text3dComponent || c.win?.__object3dComponent) return []; // 3D canvas is not an editable DOM layer
     const doc = c.win.document;
     /* what is really at the point: a line's own stroke, not the box around it (a diagonal line's box covers the words
        beside it, and as the smaller box it was taken for them) */
@@ -670,14 +669,14 @@
     const inside = (c) => { const p = matrixOf(c).inverse().transformPoint(new DOMPoint(x, y)); return p.x >= 0 && p.y >= 0 && p.x <= c.w && p.y <= c.h ? p : null; };
     if (held) {
       const own = shown().find((c) => c.kind === 'page' && c.win && c.win.document === held.ownerDocument && inside(c));
-      if (own && (!own.win?.__text3dComponent || text3DPixel(own, inside(own)) === true)) return own;
+      if (own && (!(own.win?.__text3dComponent || own.win?.__object3dComponent) || scene3DPixel(own, inside(own)) === true)) return own;
     }
     const top = clipAt(x, y);
     if (!top || top.kind !== 'page' || !top.win) return top;
     for (const c of shown()) {
       const p = inside(c);
       if (!p) continue;
-      if (c.win?.__text3dComponent && text3DPixel(c, p) !== true) continue;
+      if ((c.win?.__text3dComponent || c.win?.__object3dComponent) && scene3DPixel(c, p) !== true) continue;
       if (c.kind !== 'page' || !c.win) break;
       if (layersAt(c, p.x, p.y, includeLocked).some((h) => !fillsPage(c, h))) return c;
     }
