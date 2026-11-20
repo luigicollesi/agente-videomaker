@@ -32,3 +32,11 @@ test('creates isolated job outputs under .film', async () => fixture(async root 
   assert.ok(job.request.outputMask.startsWith(join(root, '.film', 'roto')));
   assert.notEqual(job.request.outputMask, job.source);
 }));
+
+test('caller cannot override internal source or output paths', async () => fixture(async root => {
+  const job = await prepareImageJob(root, 'subject.png', join(root, 'weights.pt'), {
+    box: [0,0,10,10], input: '/tmp/elsewhere.png', outputMask: '/tmp/unsafe.png'
+  });
+  assert.equal(job.source, join(root, 'assets', 'subject.png'));
+  assert.ok(job.request.outputMask.startsWith(join(root, '.film', 'roto')));
+}));
