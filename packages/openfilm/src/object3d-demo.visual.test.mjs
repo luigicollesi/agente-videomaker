@@ -48,7 +48,18 @@ test('packaged Object3D cube renders real transparent WebGL, deterministic seek 
    let differing=0;
    for(let i=0;i<first.bytes.length;i++)if(Math.abs(first.bytes[i]-replay.bytes[i])>8)differing++;
    const ended=await sample(8);
+   const canvas=document.querySelector('canvas');
+   const pixel=()=>{const out=new Uint8Array(4);gl.readPixels(Math.floor(gl.drawingBufferWidth/2),Math.floor(gl.drawingBufferHeight/2),1,1,gl.RGBA,gl.UNSIGNED_BYTE,out);return [...out];};
+   await window.film.frame(2);
+   const beforeMaterial=pixel();
+   document.documentElement.style.setProperty('--object3d-color','#00ff00');
+   document.documentElement.style.setProperty('--object3d-roughness','0.9');
+   document.documentElement.style.setProperty('--object3d-metalness','0.1');
+   await window.film.frame(2);
+   const afterMaterial=pixel();
+   const material=window.__object3dComponent.scene.children.flatMap(x=>x.children??[]).find(x=>x.name==='demo-cube')?.material;
    return {first:first.visible,changed:changed.visible,end:ended.visible,differing,
+      beforeMaterial,afterMaterial,roughness:material?.roughness,metalness:material?.metalness,
       realMesh:window.__object3dComponent.scene.children.some(n=>n.children?.some(m=>m.isMesh)),
       hitCenter:window.__object3dHitTest(.5,.5),
       hitCorner:window.__object3dHitTest(0,0)};
@@ -59,6 +70,10 @@ test('packaged Object3D cube renders real transparent WebGL, deterministic seek 
   assert.equal(result.end,0,'final frame is transparent');
   assert.ok(result.differing<100,'same absolute time should reproduce same pixels');
   assert.equal(result.realMesh,true);
+  assert.ok(result.beforeMaterial[0]>result.beforeMaterial[1],'default material is red');
+  assert.ok(result.afterMaterial[1]>result.afterMaterial[0],'CSS variable recolors the same 3D mesh');
+  assert.equal(result.roughness,0.9);
+  assert.equal(result.metalness,0.1);
   assert.equal(result.hitCenter,true);
   assert.equal(result.hitCorner,false);
   assert.deepEqual(errors,[]);
