@@ -455,7 +455,7 @@ export async function startStudio({ port = 4747, key, openBrowser = systemBrowse
            tries over the viewer's picture */
         const file = await libraryFileFetched(parts.slice(2).join('/'));
         if (!file) throw new HttpError(404, 'no such file');
-        const type = /** @type {Record<string, string>} */ ({ '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.otf': 'font/otf' })[extname(file).toLowerCase()];
+        const type = /** @type {Record<string, string>} */ ({ '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.json': 'application/json', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.otf': 'font/otf' })[extname(file).toLowerCase()];
         if (!type) return sendMedia(req, res, file, { check: true });
         res.writeHead(200, { 'content-type': type, 'cache-control': 'private, no-cache' });
         return res.end(readFileSync(file));
