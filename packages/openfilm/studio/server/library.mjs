@@ -133,7 +133,7 @@ export function fetchLibrary(/** @type {unknown} */ rel) {
   /* The built-in cube is generated locally on first demand, with no network
      download and no writes to projects or the source library. */
   if (isObject3DBuiltInFile(rel))
-    return ensureObject3DBuiltIn(libraryCache()).then(() => located(rel), () => null);
+    return ensureObject3DBuiltIn(libraryCache(), rel.split('/').slice(0, 2).join('/')).then(() => located(rel), () => null);
   const was = fetching.get(rel);
   if (was) return was;
   const here = located(rel);
