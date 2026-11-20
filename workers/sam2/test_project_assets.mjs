@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, symlink, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, symlink, rm, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { resolveProjectImage, prepareImageJob } from './project-assets.mjs';
+import { resolveProjectImage, prepareImageJob, segmentProjectImage } from './project-assets.mjs';
 
 async function fixture(fn) {
   const root = await mkdtemp(join(tmpdir(), 'roto-assets-'));
@@ -39,4 +39,15 @@ test('caller cannot override internal source or output paths', async () => fixtu
   });
   assert.equal(job.source, join(root, 'assets', 'subject.png'));
   assert.ok(job.request.outputMask.startsWith(join(root, '.film', 'roto')));
+}));
+
+test('failed worker removes only its own job directory and preserves source', async () => fixture(async root => {
+  const source = join(root, 'assets', 'subject.png');
+  const before = await readFile(source);
+  await assert.rejects(segmentProjectImage({
+    projectRoot: root, assetRelativePath: 'subject.png',
+    checkpoint: join(root, 'weights.pt'), prompt: {box:[0,0,10,10]}
+  }, { python: '/missing/roto-python-not-installed' }), /ENOENT/);
+  assert.deepEqual(await readdir(join(root, '.film', 'roto')), []);
+  assert.deepEqual(await readFile(source), before);
 }));
