@@ -1,7 +1,7 @@
 /** Object3D asset registry: installed GLB files and native procedural library items. */
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, resolve, relative, isAbsolute, sep } from 'node:path';
-import { OBJECT3D_BUILTIN, OBJECT3D_BUILTIN_ID } from './object3d-built-in.mjs';
+import { OBJECT3D_BUILTINS, getObject3DBuiltIn } from './object3d-built-in.mjs';
 const ID=/^[a-z0-9][a-z0-9_-]{0,63}$/;
 export async function listObject3D(root=join(import.meta.dirname,'../library/object3d')){
   const base=resolve(root);
@@ -30,10 +30,11 @@ export async function inspectObject3D(id,root){
 }
 /** Discover native procedural objects and installed GLBs through the same agent API. */
 export async function listObject3DAvailable(){
- return [OBJECT3D_BUILTIN,...await listObject3D()];
+ return [...OBJECT3D_BUILTINS,...await listObject3D()];
 }
 export async function inspectObject3DAvailable(id){
- if(id===OBJECT3D_BUILTIN_ID)return OBJECT3D_BUILTIN;
+ const builtIn=getObject3DBuiltIn(id);
+ if(builtIn)return builtIn;
  return inspectObject3D(id);
 }
 export async function object3DCommand(args){
@@ -41,7 +42,7 @@ export async function object3DCommand(args){
   if(action==='list')return {ok:true,lines:[JSON.stringify(await listObject3DAvailable())]};
   if(action==='take'&&args.length===3){
     const project=resolve(args[1]),assetId=args[2];
-    if(assetId!==OBJECT3D_BUILTIN_ID)throw Error('Unknown built-in Object3D asset');
+    if(!getObject3DBuiltIn(assetId))throw Error('Unknown built-in Object3D asset');
     if(!(await stat(join(project,'film.html')).catch(()=>null))?.isFile())throw Error('Object3D take requires a film.html project');
     const {takeSaved}=await import('../studio/server/saved.mjs');
     const taken=await takeSaved(project,'openfilm/'+assetId);
@@ -61,5 +62,5 @@ export async function object3DCommand(args){
     const frames=orbitCameraKeyframes({radius:Number(radius),duration:Number(duration),startAzimuth:Number(startAzimuth),endAzimuth:Number(endAzimuth),elevation:Number(elevation)});
     return {ok:true,lines:[JSON.stringify({status:'planned',applied:false,keyframes:frames})]};
   }
-  return {ok:false,usage:true,lines:['Usage: videomaker object3d list | inspect <asset-id> | take <project-folder> object3d/cube | demo <new-folder> | orbit <radius> <duration> [startAzimuth] [endAzimuth] [elevation]']};
+  return {ok:false,usage:true,lines:['Usage: videomaker object3d list | inspect <asset-id> | take <project-folder> object3d/<cube|sphere> | demo <new-folder> | orbit <radius> <duration> [startAzimuth] [endAzimuth] [elevation]']};
 }
