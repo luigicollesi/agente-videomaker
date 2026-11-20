@@ -33,12 +33,15 @@ jobs:
           node --check packages/openfilm/src/object3d-camera.mjs
           node --check packages/openfilm/src/object3d-scene.mjs
           node --check packages/openfilm/src/object3d-demo.mjs
+          node --check packages/openfilm/src/object3d-built-in.mjs
           node --check apps/desktop/src/media-mcp.mjs
           node --check packages/openfilm/bin/openfilm.mjs
       - name: Object3D and legacy category regression
         run: |
-          node --test packages/openfilm/src/object3d-camera.test.mjs packages/openfilm/src/object3d-catalog.test.mjs packages/openfilm/src/object3d-scene.test.mjs packages/openfilm/src/object3d-demo.test.mjs
+          node --test packages/openfilm/src/object3d-camera.test.mjs packages/openfilm/src/object3d-catalog.test.mjs packages/openfilm/src/object3d-scene.test.mjs packages/openfilm/src/object3d-demo.test.mjs packages/openfilm/src/object3d-built-in.test.mjs
           node --test packages/openfilm/studio/ui/src/lib/library-categories.test.ts
+      - name: Native Object3D library integration
+        run: node --test --test-name-pattern='Object3D' packages/openfilm/studio/server/library.test.mjs
       - name: Existing Text3D unit regression
         run: |
           node --test packages/openfilm/src/text3d-runtime.test.mjs packages/openfilm/src/text3d-contract.test.mjs packages/openfilm/src/text3d-core.test.mjs
