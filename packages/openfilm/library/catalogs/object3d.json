@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "groups": {
+    "object3d": [
+      {
+        "id": "geometric",
+        "name": {
+          "en": "Geometric",
+          "es": "Geométricos",
+          "ja": "幾何学",
+          "ko": "기하학",
+          "zh-CN": "几何图形"
+        }
+      }
+    ]
+  },
+  "items": [
+    {
+      "id": "object3d/cube",
+      "cat": "object3d",
+      "group": "geometric",
+      "name": {
+        "en": "3D Cube",
+        "es": "Cubo 3D",
+        "ja": "3D キューブ",
+        "ko": "3D 큐브",
+        "zh-CN": "3D 立方体"
+      },
+      "kind": "page",
+      "durationMs": 8000,
+      "src": "index.html",
+      "poster": "object3d/posters/cube.svg",
+      "still": true,
+      "about": "Reusable Three.js cube scene with deterministic camera motion. Material customization and camera keyframe editing are not yet available.",
+      "tags": [
+        "3d",
+        "cube",
+        "object",
+        "geometry",
+        "camera",
+        "scene",
+        "webgl",
+        "threejs"
+      ]
+    }
+  ]
+}
