@@ -3,6 +3,8 @@
 import argparse
 import json
 import sys
+import os
+import tempfile
 from pathlib import Path
 
 
@@ -70,14 +72,28 @@ def main(argv=None):
             multimask_output=False,
         )
     mask = (masks[0].astype(np.uint8) * 255)
-    out = Path(args.output_mask)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    Image.fromarray(mask, mode="L").save(out)
-    if args.output_rgba:
-        rgba = np.dstack((frame, mask))
-        dst = Path(args.output_rgba)
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        Image.fromarray(rgba, mode="RGBA").save(dst)
+    # Stage all outputs first. Inference errors never leave half-written final files.
+    out = Path(args.output_mask).resolve()
+    rgba_out = Path(args.output_rgba).resolve() if args.output_rgba else None
+    if len({str(source.resolve()), str(checkpoint.resolve()), str(out), *([str(rgba_out)] if rgba_out else [])}) != (4 if rgba_out else 3):
+        raise ValueError("Input, checkpoint and output paths must be distinct")
+    outputs = [(out, Image.fromarray(mask, mode="L"))]
+    if rgba_out:
+        outputs.append((rgba_out, Image.fromarray(np.dstack((frame, mask)), mode="RGBA")))
+    staged = []
+    try:
+        for dest, image in outputs:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            fd, path = tempfile.mkstemp(prefix=".roto-", suffix=".png", dir=dest.parent)
+            os.close(fd)
+            staged.append((path, dest))
+            image.save(path, format="PNG")
+        for path, dest in staged:
+            os.replace(path, dest)
+    finally:
+        for path, _ in staged:
+            if os.path.exists(path):
+                os.unlink(path)
     print(json.dumps({
         "ok": True, "model": "sam2.1_hiera_tiny", "device": device,
         "width": width, "height": height,
