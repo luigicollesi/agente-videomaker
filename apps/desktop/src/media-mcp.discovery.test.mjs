@@ -74,6 +74,9 @@ test('MCP reads canvas in compact pages and searches native library', {timeout:6
   assert.equal(invalidTake.result.isError,true);
   const objects=await ok('object3d_list');
   assert.ok(Array.isArray(objects));
+  assert.ok(objects.some(item=>item.id==='object3d/cube'&&item.type==='procedural'&&item.editable===true));
+  const cube=await ok('object3d_inspect',{id:'object3d/cube'});
+  assert.ok(cube.materials.includes('cube-material'));
   const created3D=await ok('object3d_demo_create',{name:'preview-cube'});
   assert.equal(created3D.status,'created');
   assert.equal(created3D.path,'assets/object3d/preview-cube/index.html');
