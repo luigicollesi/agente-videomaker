@@ -40,3 +40,11 @@ Confirm local package/script manager matches the repository scripts before execu
 - Migrate Text3D into shared scene only after stable Object3D camera operations, visual tests and legacy compatibility.
 
 No phase advances solely from a successful unit suite. Preview and exported frames must be inspected.
+
+## Implementation checkpoint — current branch
+
+- Phase 0: automated regression checks added, including a branch-only Actions workflow.
+- The TypeScript server baseline currently has diagnostics in unrelated `canvas.mjs`, `fonts.mjs` and `jianying-captions.mjs`; this branch does not change those modules. CI records them separately as diagnostic failures, never as passing typechecks.
+- A missing optional Three.js example typeface blocked both existing Text3D creation and MCP tests. The matching r187 Helvetiker typeface is now bundled under `src/assets/` and used in creation/registration, avoiding any remote dependency.
+- Phase 1A: `src/object3d-scene.mjs` provides an opt-in Three.js scene graph, bounds-based selection focus and deterministic camera evaluation, but allocates NO WebGL renderer and is NOT mounted in Studio. The legacy Text3D canvas remains unchanged.
+- Do not claim Phase 1 completion until Studio preview and export of a scene are tested.
