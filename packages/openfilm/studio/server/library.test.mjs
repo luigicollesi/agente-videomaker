@@ -20,7 +20,7 @@ test('every thing of the library is there, named in each language, in a group of
     /* the things published apart from git (the emoji, the sounds and music) are checked where they are there */
     const apart = /^(stickers\/emoji|audio)\//.test(item.id);
     if (item.kind === 'page' && apart) assert.ok(item.poster && item.still, `${item.id}: its own picture`);
-    if (item.kind === 'page' && !apart && item.id !== 'object3d/cube') {
+    if (item.kind === 'page' && !apart && !item.id.startsWith('object3d/')) {
       const about = JSON.parse(readFileSync(join(builtInRoot(), item.id, 'saved.json'), 'utf8'));
       assert.equal(about.kind, 'clip');
       assert.ok(existsSync(join(builtInRoot(), item.id, 'files', about.clip.src)), `${item.id}: its page`);
@@ -162,4 +162,17 @@ test('Object3D catalog cube is discoverable and imports through existing Saved p
  assert.deepEqual(taken.clip.time,[0,8]);
  assert.ok(existsSync(join(root,'saved/openfilm/object3d-cube/vendor/three.module.js')));
  assert.equal(taken.clip.attrs?.['data-openfilm-content-type'],'object3d');
+ const sphere=index.items.find(i=>i.id==='object3d/sphere');
+ assert.equal(sphere?.kind,'page');
+ assert.equal(sphere?.cat,'object3d');
+ assert.ok(libraryFile(sphere.poster));
+ const sphereFolder=await fetchLibrary('object3d/sphere');
+ assert.ok(sphereFolder);
+ assert.ok(await libraryFileFetched('object3d/sphere/files/index.html'));
+ const sphereTaken=await takeSaved(root,'openfilm/object3d/sphere');
+ assert.ok('clip' in sphereTaken);
+ assert.equal(sphereTaken.clip.src,'saved/openfilm/object3d-sphere/index.html');
+ assert.ok(existsSync(join(root,'saved/openfilm/object3d-sphere/vendor/three.module.js')));
+ assert.ok(existsSync(join(root,'saved/openfilm/object3d-cube/index.html')),'sphere import preserves cube');
+
 });
