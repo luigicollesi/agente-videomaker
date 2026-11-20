@@ -48,3 +48,13 @@ No phase advances solely from a successful unit suite. Preview and exported fram
 - A missing optional Three.js example typeface blocked both existing Text3D creation and MCP tests. The matching r187 Helvetiker typeface is now bundled under `src/assets/` and used in creation/registration, avoiding any remote dependency.
 - Phase 1A: `src/object3d-scene.mjs` provides an opt-in Three.js scene graph, bounds-based selection focus and deterministic camera evaluation, but allocates NO WebGL renderer and is NOT mounted in Studio. The legacy Text3D canvas remains unchanged.
 - Do not claim Phase 1 completion until Studio preview and export of a scene are tested.
+
+## Phase 1B — opt-in Stage/film-page integration
+
+- New bundled sample `examples/object3d/index.html` renders a real Three.js cube with deterministic camera movement and a transparent WebGL canvas.
+- `videomaker object3d demo <new-folder>` packages local Three.js modules, the shared Scene3D core and camera evaluator; the command refuses to overwrite existing directories.
+- The MCP `object3d_demo_create` safely writes a demo into project `assets/object3d/<name>/index.html`. Timeline insertion is a separate revision-guarded MCP operation.
+- Studio stage accepts `__object3dComponent` and `__object3dHitTest` for visible 3D pixels while retaining the existing Text3D hit testing behavior. Transparent pixels pass through to lower clips.
+- Unit tests verify packaging and MCP validation. Visual tests use headless Chromium to verify mesh, transparency, absolute time seek, and the stage's click-through behavior.
+- No new editor overlay, mouse gesture changes, automatic camera keyframes, GLB import or scene Inspector have been enabled. The Object3D library tab does not yet expose installable models.
+- Preview and browser-stage tests must pass before expanding to timeline camera editing; MP4 export remains a separate acceptance gate.
