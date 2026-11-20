@@ -31,10 +31,39 @@
       "src": "index.html",
       "poster": "object3d/posters/cube.svg",
       "still": true,
-      "about": "Reusable Three.js cube scene with deterministic camera motion. Material customization and camera keyframe editing are not yet available.",
+      "about": "Reusable procedural Three.js cube scene with editable color, roughness and metalness. Camera keyframe editing is planned.",
       "tags": [
         "3d",
         "cube",
+        "object",
+        "geometry",
+        "camera",
+        "scene",
+        "webgl",
+        "threejs"
+      ]
+    },
+    {
+      "id": "object3d/sphere",
+      "cat": "object3d",
+      "group": "geometric",
+      "name": {
+        "en": "3D Sphere",
+        "es": "Esfera 3D",
+        "ja": "3D 球",
+        "ko": "3D 구",
+        "zh-CN": "3D 球体"
+      },
+      "kind": "page",
+      "durationMs": 8000,
+      "src": "index.html",
+      "poster": "object3d/posters/sphere.svg",
+      "still": true,
+      "about": "Reusable procedural sphere, editable color, roughness and metalness. Camera keyframe editing is planned.",
+      "tags": [
+        "3d",
+        "sphere",
+        "ball",
         "object",
         "geometry",
         "camera",
