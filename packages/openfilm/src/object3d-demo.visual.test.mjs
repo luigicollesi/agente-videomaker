@@ -12,6 +12,7 @@ test('packaged Object3D cube renders real transparent WebGL, deterministic seek 
  let server,browser;
  try{
   await createObject3DDemo(join(root,'cube'));
+  await createObject3DDemo(join(root,'sphere'),{shape:'sphere'});
   server=createServer(async(req,res)=>{
    try{
     const name=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
@@ -77,6 +78,35 @@ test('packaged Object3D cube renders real transparent WebGL, deterministic seek 
   assert.equal(result.hitCenter,true);
   assert.equal(result.hitCorner,false);
   assert.deepEqual(errors,[]);
+  await page.goto('http://127.0.0.1:'+server.address().port+'/sphere/index.html');
+  await page.waitForFunction(()=>Boolean(window.film&&window.__object3dComponent),null,{timeout:20000});
+  const sphere=await page.evaluate(async()=>{
+    await window.film.frame(2);
+    const view=window.__object3dComponent;
+    const mesh=view.scene.children.flatMap(x=>x.children??[]).find(x=>x.name==='demo-sphere');
+    const canvas=document.querySelector('canvas');
+    const gl=canvas.getContext('webgl2');
+    const px=new Uint8Array(4);
+    gl.readPixels(Math.floor(gl.drawingBufferWidth/2),Math.floor(gl.drawingBufferHeight/2),1,1,gl.RGBA,gl.UNSIGNED_BYTE,px);
+    const before=[...px];
+    document.documentElement.style.setProperty('--object3d-color','#00ff00');
+    await window.film.frame(2);
+    gl.readPixels(Math.floor(gl.drawingBufferWidth/2),Math.floor(gl.drawingBufferHeight/2),1,1,gl.RGBA,gl.UNSIGNED_BYTE,px);
+    const after=[...px];
+    return {geometry:mesh?.geometry?.type,material:mesh?.material?.name,
+      hit:window.__object3dHitTest(.5,.5),miss:window.__object3dHitTest(0,0),
+      before,after,shape:view.shape};
+  });
+  assert.equal(sphere.shape,'sphere');
+  assert.equal(sphere.geometry,'SphereGeometry');
+  assert.equal(sphere.material,'sphere-material');
+  assert.equal(sphere.hit,true);
+  assert.equal(sphere.miss,false);
+  assert.ok(sphere.before[3]>100,'sphere must be visible');
+  assert.ok(sphere.before[0]>sphere.before[1],'sphere begins red');
+  assert.ok(sphere.after[1]>sphere.after[0],'sphere responds to material overrides');
+  assert.deepEqual(errors,[]);
+
  }finally{
   await browser?.close();
   if(server)await new Promise(ok=>server.close(()=>ok(null)));
