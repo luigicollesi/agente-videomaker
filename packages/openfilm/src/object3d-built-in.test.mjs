@@ -24,6 +24,27 @@ test('built-in cube generates one offline Saved bundle and can be reused', async
  } finally { await rm(root,{recursive:true,force:true}) }
 });
 
+test('sphere and cube create independent offline bundles with stable part IDs',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'videomaker-object-library-shapes-'));
+ try{
+  const cube=await ensureObject3DBuiltIn(root);
+  const sphere=await ensureObject3DBuiltIn(root,'object3d/sphere');
+  assert.notEqual(cube,sphere);
+  const cubeHTML=await readFile(join(cube,'files','index.html'),'utf8');
+  const sphereHTML=await readFile(join(sphere,'files','index.html'),'utf8');
+  assert.match(cubeHTML,/data-object3d-shape="cube"/);
+  assert.match(sphereHTML,/data-object3d-shape="sphere"/);
+  const cubeBefore=await readFile(join(cube,'saved.json'),'utf8');
+  const sphereBefore=await readFile(join(sphere,'saved.json'),'utf8');
+  assert.equal(await ensureObject3DBuiltIn(root,'object3d/sphere'),sphere);
+  assert.equal(await readFile(join(cube,'saved.json'),'utf8'),cubeBefore);
+  assert.equal(await readFile(join(sphere,'saved.json'),'utf8'),sphereBefore);
+  assert.equal(isObject3DBuiltInFile('object3d/sphere/files/index.html'),true);
+  assert.equal(isObject3DBuiltInFile('object3d/sphere-old'),false);
+  await assert.rejects(()=>ensureObject3DBuiltIn(root,'object3d/unknown'),/Unknown native/);
+ }finally{await rm(root,{recursive:true,force:true})}
+});
+
 test('incomplete existing cached cube is not overwritten or silently accepted',async()=>{
  const root=await mkdtemp(join(tmpdir(),'videomaker-object-library-incomplete-'));
  try{
