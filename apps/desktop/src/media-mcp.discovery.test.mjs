@@ -45,7 +45,7 @@ test('MCP reads canvas in compact pages and searches native library', {timeout:6
   const catalog=await new Promise((resolve,reject)=>{
    const key=++id,timer=setTimeout(()=>{pending.delete(key);reject(Error('MCP tools/list timeout'))},10000);
    pending.set(key,reply=>{clearTimeout(timer);resolve(reply.result?.tools)});
-   child.stdin.write(JSON.stringify({jsonrpc:'2.0',id:key,method:'tools/list',params:{}})+'\\n');
+   child.stdin.write(JSON.stringify({jsonrpc:'2.0',id:key,method:'tools/list',params:{}})+'\n');
   });
   const tool=name=>catalog.find(t=>t.name===name)?.inputSchema;
   assert.deepEqual(tool('timeline_set_playback').oneOf.map(x=>x.properties.field.const),['speed','volume']);
