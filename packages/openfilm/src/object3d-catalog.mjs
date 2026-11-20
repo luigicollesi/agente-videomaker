@@ -1,6 +1,7 @@
-/** Object 3D asset registry. Only installed, validated GLB files are listed. */
+/** Object3D asset registry: installed GLB files and native procedural library items. */
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, resolve, relative, isAbsolute, sep } from 'node:path';
+import { OBJECT3D_BUILTIN, OBJECT3D_BUILTIN_ID } from './object3d-built-in.mjs';
 const ID=/^[a-z0-9][a-z0-9_-]{0,63}$/;
 export async function listObject3D(root=join(import.meta.dirname,'../library/object3d')){
   const base=resolve(root);
@@ -27,15 +28,23 @@ export async function inspectObject3D(id,root){
   if(!item)throw Error('Object3D asset is not installed');
   return item;
 }
+/** Discover native procedural objects and installed GLBs through the same agent API. */
+export async function listObject3DAvailable(){
+ return [OBJECT3D_BUILTIN,...await listObject3D()];
+}
+export async function inspectObject3DAvailable(id){
+ if(id===OBJECT3D_BUILTIN_ID)return OBJECT3D_BUILTIN;
+ return inspectObject3D(id);
+}
 export async function object3DCommand(args){
   const [action,id]=args;
-  if(action==='list')return {ok:true,lines:[JSON.stringify(await listObject3D())]};
+  if(action==='list')return {ok:true,lines:[JSON.stringify(await listObject3DAvailable())]};
   if(action==='demo'&&id&&args.length===2){
     const {createObject3DDemo}=await import('./object3d-demo.mjs');
     const result=await createObject3DDemo(id);
     return {ok:true,lines:[JSON.stringify(result)]};
   }
-  if(action==='inspect'&&id)return {ok:true,lines:[JSON.stringify(await inspectObject3D(id))]};
+  if(action==='inspect'&&id)return {ok:true,lines:[JSON.stringify(await inspectObject3DAvailable(id))]};
   if(action==='orbit'){
     const {orbitCameraKeyframes}=await import('./object3d-camera.mjs');
     const [radius,duration,startAzimuth='0',endAzimuth='360',elevation='15']=args.slice(1);
