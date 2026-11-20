@@ -91,7 +91,7 @@ export function PropertiesSection({ host, commit }: {
   const motion3D = new Set(['--text3d-events']);
   const supports3DRotation = is3D && (shown.some(p=>p.type==='var'&&p.var==='--text3d-rotation-x') || controls?.vars.some(v=>v.name==='--text3d-rotation-x'));
   const supports3DDepth = is3D && (shown.some(p=>p.type==='var'&&p.var==='--text3d-depth') || controls?.vars.some(v=>v.name==='--text3d-depth'));
-  const builtIn3D: ComponentProp[] = [
+  const builtIn3D: Extract<ComponentProp, { type: 'var' }>[] = [
     ...(supports3DDepth ? [{name:'Depth',type:'var' as const,var:'--text3d-depth'}] : []),
     ...(supports3DRotation ? [
       {name:'Rotation X',type:'var' as const,var:'--text3d-rotation-x'},
