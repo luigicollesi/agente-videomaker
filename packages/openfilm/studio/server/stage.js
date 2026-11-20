@@ -1726,10 +1726,10 @@
       const c = pageAt(x, y, Boolean(includeLocked), nodeOf(cycleFrom) ?? nodeOf(from));
       if (!c || c.kind !== 'page' || !c.win) return null;
       const p = matrixOf(c).inverse().transformPoint(new DOMPoint(x, y));
-      if (c.win.__text3dComponent) {
-        // The actual glyph is selectable as a whole Text3D clip; never expose
+      if (c.win.__text3dComponent || c.win.__object3dComponent) {
+        // The visible 3D geometry is selectable as a whole clip; never expose
         // the full-screen canvas as an editable HTML layer.
-        if (text3DPixel(c, p) !== true) return null;
+        if (scene3DPixel(c, p) !== true) return null;
         if (!detail) {
           const rect = mapRect(matrixOf(c), {left:0,top:0,width:c.w,height:c.h});
           return {handle:0,clip:c.id,rect};
@@ -1764,7 +1764,7 @@
     box({ x, y, w, h, all }) {
       const out = [];
       for (const c of shown()) {
-        if (c.kind !== 'page' || !c.win || c.win.__text3dComponent) continue;
+        if (c.kind !== 'page' || !c.win || c.win.__text3dComponent || c.win.__object3dComponent) continue;
         const M = matrixOf(c);
         const inside = layersOf(c.win.document).filter((el) => {
           if (!(kindOf(el) || isGroup(el))) return false;
