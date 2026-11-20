@@ -77,10 +77,18 @@ test('MCP reads canvas in compact pages and searches native library', {timeout:6
   assert.ok(objects.some(item=>item.id==='object3d/cube'&&item.type==='procedural'&&item.editable===true));
   const cube=await ok('object3d_inspect',{id:'object3d/cube'});
   assert.ok(cube.materials.includes('cube-material'));
+  assert.ok(objects.some(item=>item.id==='object3d/sphere'&&item.editable===true));
+  const sphere=await ok('object3d_inspect',{id:'object3d/sphere'});
+  assert.ok(sphere.parts.includes('demo-sphere'));
   const imported3D=await ok('object3d_library_import',{id:'object3d/cube'});
   assert.equal(imported3D.status,'imported');
   assert.equal(imported3D.path,'saved/openfilm/object3d-cube/index.html');
   assert.equal(imported3D.inserted,false);
+  const importedSphere=await ok('object3d_library_import',{id:'object3d/sphere'});
+  assert.equal(importedSphere.status,'imported');
+  assert.equal(importedSphere.path,'saved/openfilm/object3d-sphere/index.html');
+  assert.equal(importedSphere.inserted,false);
+
   const invalidImport=await call('object3d_library_import',{id:'../other'});
   assert.equal(invalidImport.result.isError,true);
   const created3D=await ok('object3d_demo_create',{name:'preview-cube'});
