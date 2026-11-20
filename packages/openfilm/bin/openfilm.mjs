@@ -9,7 +9,7 @@ const USAGE = `videomaker — a film is a function of time: given t, it draws th
   videomaker render  [a-b]               the MP4, saved beside film.html
   videomaker get     [what] [--options]  media: free from OpenFilm's library (music, sounds, transitions…), else a connected service
   videomaker canvas  [apply <steps>]     the canvas beside the edit: read it, or lay out notes, files and what to make on it
-  videomaker object3d <action>         list and inspect installed 3D models
+  videomaker object3d <action>         list, inspect and import 3D assets
   videomaker text3d  <action>            inspect, validate and register reusable 3D text components
   videomaker skills                      the skills this film can be made with; \`videomaker skill <name>\` prints one
   videomaker update                      the newest OpenFilm; Studio starts again on it
@@ -35,7 +35,7 @@ const COMMAND_HELP = {
   Starts OpenFilm Studio if it is not running and prints its address. A Studio page already open, in any browser,
   switches to the project, and nothing more opens; otherwise open the address in your built-in browser, and if no
   page connects within 15 s, Studio opens the person's browser (OPENFILM_NO_BROWSER=1: never).`,
-  object3d: `videomaker object3d list\nvideomaker object3d inspect <asset-id>\nvideomaker object3d demo <new-folder>\n\n  List installed GLB assets, inspect them, or create an opt-in standalone test scene page.\n  The demo does not insert itself on the timeline; import its index.html as a page clip.`,
+  object3d: `videomaker object3d list\nvideomaker object3d inspect <asset-id>\nvideomaker object3d take <project-folder> object3d/cube\nvideomaker object3d demo <new-folder>\n\n  List procedural/GLB assets, import a built-in model to a project's Saved folder, or create a standalone test scene.\n  The demo does not insert itself on the timeline; import its index.html as a page clip.`,
   text3d: `videomaker text3d list [source-id]\nvideomaker text3d inspect <source-id>\nvideomaker text3d validate <folder>\nvideomaker text3d register <folder>\nvideomaker text3d apply <project-folder> <clip-id> <component-id>\n\n  Validates a generated Text3D component with manifest.json, index.html and component.js. Register copies an immutable bundle into the Saved library and promotes the new version.`,
   skills: `videomaker skills
 
