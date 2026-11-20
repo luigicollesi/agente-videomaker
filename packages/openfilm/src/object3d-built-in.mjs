@@ -9,16 +9,25 @@ import { createObject3DDemo } from './object3d-demo.mjs';
 
 export const OBJECT3D_BUILTIN_ID = 'object3d/cube';
 const VERSION = 'scene3d-cube-1';
+const EDITABLE_PROPS = [
+  { name: 'Color', type: 'var', var: '--object3d-color' },
+  { name: 'Roughness', type: 'var', var: '--object3d-roughness' },
+  { name: 'Metalness', type: 'var', var: '--object3d-metalness' }
+];
 const META = {
   version: 2,
   kind: 'clip',
-  clip: { src: 'index.html', time: [0, 8], attrs: { 'data-openfilm-content-type': 'object3d' } },
+  clip: { src: 'index.html', time: [0, 8], attrs: {
+    'data-openfilm-content-type': 'object3d',
+    'data-props': JSON.stringify(EDITABLE_PROPS)
+  } },
   durationMs: 8000
 };
 export const OBJECT3D_BUILTIN = Object.freeze({
   id: OBJECT3D_BUILTIN_ID, name: '3D Cube', type: 'procedural',
   category: 'object3d', parts: ['demo-cube'], materials: ['cube-material'],
-  path: 'openfilm/object3d/cube', ready: true, editable: false
+  path: 'openfilm/object3d/cube', ready: true, editable: true,
+  editableProperties: ['color','roughness','metalness']
 });
 export const isObject3DBuiltInFile = rel =>
   rel === OBJECT3D_BUILTIN_ID || rel.startsWith(OBJECT3D_BUILTIN_ID + '/');
@@ -29,7 +38,6 @@ const complete = async folder => {
   const page = await stat(join(folder, 'files', 'index.html')).catch(() => null);
   return meta?.kind === 'clip' && meta.clip?.src === 'index.html' && page?.isFile() === true;
 };
-let current = null;
 /** Build exclusively in the shared library cache; never write into source/library or projects. */
 export async function ensureObject3DBuiltIn(cacheRoot) {
   if (typeof cacheRoot !== 'string' || !cacheRoot) throw Error('Object3D cache root is required');
