@@ -30,6 +30,11 @@ export async function inspectObject3D(id,root){
 export async function object3DCommand(args){
   const [action,id]=args;
   if(action==='list')return {ok:true,lines:[JSON.stringify(await listObject3D())]};
+  if(action==='demo'&&id&&args.length===2){
+    const {createObject3DDemo}=await import('./object3d-demo.mjs');
+    const result=await createObject3DDemo(id);
+    return {ok:true,lines:[JSON.stringify(result)]};
+  }
   if(action==='inspect'&&id)return {ok:true,lines:[JSON.stringify(await inspectObject3D(id))]};
   if(action==='orbit'){
     const {orbitCameraKeyframes}=await import('./object3d-camera.mjs');
@@ -38,5 +43,5 @@ export async function object3DCommand(args){
     const frames=orbitCameraKeyframes({radius:Number(radius),duration:Number(duration),startAzimuth:Number(startAzimuth),endAzimuth:Number(endAzimuth),elevation:Number(elevation)});
     return {ok:true,lines:[JSON.stringify({status:'planned',applied:false,keyframes:frames})]};
   }
-  return {ok:false,usage:true,lines:['Usage: videomaker object3d list | inspect <asset-id> | orbit <radius> <duration> [startAzimuth] [endAzimuth] [elevation]']};
+  return {ok:false,usage:true,lines:['Usage: videomaker object3d list | inspect <asset-id> | demo <new-folder> | orbit <radius> <duration> [startAzimuth] [endAzimuth] [elevation]']};
 }
