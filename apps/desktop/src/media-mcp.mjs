@@ -34,7 +34,7 @@ const pythonBinary=()=>process.env.VIDEOMAKER_PYTHON || (process.platform==='win
 const schema={type:'object',properties:{path:{type:'string',description:'Media path inside project/assets'}} ,required:['path']};
 const tools=[
  {name:'inspect_image',description:'Inspect an image from this project Media. Returns visual image content, not a filename description.',inputSchema:schema},
- {name:'inspect_video',description:'Inspect a video from this project Media. Returns timestamped image frames. Sampled frames do not guarantee exact event boundaries.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',minimum:0},max_frames:{type:'integer',minimum:1,maximum:24}},required:['path']}},
+ {name:'inspect_video',description:'Inspect a video from this project Media. Returns timestamped image frames. Sampled frames do not guarantee exact event boundaries.',inputSchema:{type:'object',properties:{...schema.properties,start:{type:'number',minimum:0},end:{type:'number',minimum:0},max_frames:{type:'integer',minimum:1,maximum:24},frame_offset:{type:'integer',minimum:0,description:'Zero-based frame index for pagination'},frame_limit:{type:'integer',minimum:1,maximum:24,description:'Frames returned in this call; omit for legacy all-frames response'}},required:['path']}},
  {name:'library_search',description:'Search built-in free offline media library; concise ranked results, no terminal or copied assets.',inputSchema:{type:'object',properties:{kind:{type:'string',enum:['music','sound','transition','effect','filter','sticker','text','template']},query:{type:'string',minLength:1},limit:{type:'integer',minimum:1,maximum:20},duration:{type:'number',minimum:0}},required:['kind','query'],additionalProperties:false}},
  {name:'canvas_manage_board',description:'Create, rename or trash a Canvas board through authenticated Studio. Revision required for rename/delete; deletion needs explicit confirmation.',inputSchema:{type:'object',properties:{action:{type:'string',enum:['create','rename','delete']},board:{type:'string'},revision:{type:'string'},name:{type:'string'},from:{type:'string'},from_revision:{type:'string'},confirm_delete:{type:'boolean'}},required:['action'],additionalProperties:false}},
  {name:'captions_transcribe',description:'Transcribe 1–3 pending audio sources via the configured Studio provider. May incur provider costs. Call only after explicit user approval.',inputSchema:{type:'object',properties:{srcs:{type:'array',items:{type:'string'},minItems:1,maxItems:3},external_approved:{type:'boolean'}},required:['srcs','external_approved'],additionalProperties:false}},
@@ -180,17 +180,20 @@ async function inspect(name,args){
  const probe=JSON.parse((await exec('ffprobe',['-v','error','-show_entries','format=duration','-of','json',path])).toString());
  const duration=Number(probe.format?.duration);
  const start=args?.start??0,end=args?.end??duration,n=args?.max_frames??12;
- if(!Number.isFinite(duration)||duration<=0||!Number.isFinite(start)||!Number.isFinite(end)||start<0||end>duration+.01||end<=start||!Number.isInteger(n)||n<1||n>24)throw Error('Invalid interval or frame count');
+ const offset=args?.frame_offset??0,limit=args?.frame_limit??n;
+ if(!Number.isFinite(duration)||duration<=0||!Number.isFinite(start)||!Number.isFinite(end)||start<0||end>duration+.01||end<=start||!Number.isInteger(n)||n<1||n>24||!Number.isSafeInteger(offset)||offset<0||!Number.isInteger(limit)||limit<1||limit>24)throw Error('Invalid interval or frame count');
  const folder=await mkdtemp(join(tmpdir(),'videomaker-media-mcp-'));
  try{
   const content=[];
-  for(let i=0;i<n;i++){
+  for(let i=offset;i<Math.min(n,offset+limit);i++){
    const time=start+(Math.min(end,duration)-start)*(i+.5)/n;
    const dest=join(folder,`frame-${i}.jpg`);
    await exec('ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-y','-ss',time.toFixed(5),'-i',path,'-frames:v','1','-vf','scale=960:-2:force_original_aspect_ratio=decrease','-q:v','4',dest],15000);
    content.push({type:'text',text:`Frame ${i+1}/${n} at ${time.toFixed(3)} seconds`});
    content.push(image(await readFile(dest),'image/jpeg'));
   }
+  const returned=Math.max(0,Math.min(n,offset+limit)-offset);
+  content.push({type:'text',text:JSON.stringify({total_frames:n,frame_offset:offset,returned_frames:returned,remaining_frames:Math.max(0,n-offset-returned),next_frame_offset:offset+returned<n?offset+returned:null})});
   return {content};
  }finally{await rm(folder,{recursive:true,force:true})}
 }
