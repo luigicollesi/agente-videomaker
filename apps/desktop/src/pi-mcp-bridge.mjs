@@ -88,9 +88,12 @@ export class PiMcpBridge{
   if(typeof name!=='string'||!tools.has(name))throw Error('Unknown MCP tool; discover it first');
   if(args===null||typeof args!=='object'||Array.isArray(args))throw Error('MCP arguments must be an object');
   if(Buffer.byteLength(JSON.stringify(args))>MAX_ARGUMENTS)throw Error('MCP arguments exceed 40 KB');
-  const result=await this.request('tools/call',{name,arguments:args},3650000);
+  const callArgs=name==='inspect_video'&&args.frame_limit===undefined?{...args,frame_limit:2}:args;
+  const result=await this.request('tools/call',{name,arguments:callArgs},3650000);
   if(result?.isError)throw Error((result.content??[]).filter(b=>b.type==='text').map(b=>b.text).join(' ').slice(0,900)||'MCP tool failed');
-  const content=(result?.content??[]).filter(c=>c?.type==='text'||c?.type==='image').slice(0,5).map(c=>c.type==='text'?{type:'text',text:String(c.text??'').slice(0,40000)}:{type:'image',mimeType:c.mimeType??'image/png',data:c.data});
+  const blocks=(result?.content??[]).filter(c=>c?.type==='text'||c?.type==='image');
+  if(blocks.length>5)throw Error('MCP tool returned more than 5 content blocks; use tool pagination instead of dropping results');
+  const content=blocks.map(c=>c.type==='text'?{type:'text',text:String(c.text??'').slice(0,40000)}:{type:'image',mimeType:c.mimeType??'image/png',data:c.data});
   if(Buffer.byteLength(JSON.stringify(content))>MAX_RESPONSE)throw Error('MCP tool result exceeded Pi transfer limit');
   return {content:content.length?content:[{type:'text',text:'Operation completed'}],details:{mcpTool:name}};
  }
