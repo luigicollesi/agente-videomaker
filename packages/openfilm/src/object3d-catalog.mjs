@@ -31,5 +31,12 @@ export async function object3DCommand(args){
   const [action,id]=args;
   if(action==='list')return {ok:true,lines:[JSON.stringify(await listObject3D())]};
   if(action==='inspect'&&id)return {ok:true,lines:[JSON.stringify(await inspectObject3D(id))]};
-  return {ok:false,usage:true,lines:['Usage: videomaker object3d list | inspect <asset-id>']};
+  if(action==='orbit'){
+    const {orbitCameraKeyframes}=await import('./object3d-camera.mjs');
+    const [radius,duration,startAzimuth='0',endAzimuth='360',elevation='15']=args.slice(1);
+    if([radius,duration].some(x=>x===undefined))return {ok:false,usage:true,lines:['Usage: videomaker object3d orbit <radius> <duration> [startAzimuth] [endAzimuth] [elevation]']};
+    const frames=orbitCameraKeyframes({radius:Number(radius),duration:Number(duration),startAzimuth:Number(startAzimuth),endAzimuth:Number(endAzimuth),elevation:Number(elevation)});
+    return {ok:true,lines:[JSON.stringify({status:'planned',applied:false,keyframes:frames})]};
+  }
+  return {ok:false,usage:true,lines:['Usage: videomaker object3d list | inspect <asset-id> | orbit <radius> <duration> [startAzimuth] [endAzimuth] [elevation]']};
 }
