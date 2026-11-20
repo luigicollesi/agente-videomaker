@@ -78,7 +78,7 @@ test('embedded Pi discovers and calls exactly the same local MCP service without
    const result=await bridge.call('inspect_video',{path:'sample.mp4',max_frames:12,frame_offset:next});
    assert.equal(result.content.length,5);
    for(let i=0;i<4;i+=2){
-    assert.match(result.content[i].text,/Frame \\d+\\/12 at [0-9.]+ seconds/);
+    assert.ok(result.content[i].text.startsWith('Frame '+(seen.length+1)+'/12 at '));
     seen.push(Number(Buffer.from(result.content[i+1].data,'base64').toString()));
    }
    const page=JSON.parse(result.content[4].text);
