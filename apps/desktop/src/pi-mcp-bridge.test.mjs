@@ -33,6 +33,32 @@ test('embedded Pi discovers and calls exactly the same local MCP service without
   assert.equal(found.total,1);
   assert.equal(found.tools[0].name,'timeline_overview');
   assert.equal(found.tools[0].inputSchema,undefined,'category search should not fill context with tool schemas');
+  assert.equal(found.next_offset,null);
+  assert.equal(found.remaining,0);
+  const invalidOffsets=[-1,1.5,Number.MAX_SAFE_INTEGER+1];
+  for(const offset of invalidOffsets)await assert.rejects(bridge.discover('timeline',3,offset),/Invalid MCP discovery/);
+  const originalCatalog=bridge.catalog;
+  const generated=Array.from({length:15},(_,i)=>({
+   name:'timeline_extra_'+String(i).padStart(2,'0'),
+   description:'Timeline operation '+i,
+   inputSchema:{type:'object',properties:{index:{type:'integer'}}}
+  }));
+  for(const tool of generated)originalCatalog.set(tool.name,tool);
+  const all=[];let offset=0;
+  do{
+   const page=await tools[0].execute('discovery-page',{query:'timeline',limit:6,offset});
+   const parsed=JSON.parse(page.content[0].text);
+   assert.equal(parsed.total,16);
+   assert.ok(parsed.tools.every(x=>x.inputSchema===undefined));
+   all.push(...parsed.tools.map(x=>x.name));
+   offset=parsed.next_offset;
+   if(offset!==null)assert.equal(parsed.remaining,16-offset);
+  }while(offset!==null);
+  assert.equal(new Set(all).size,16);
+  assert.ok(all.includes('timeline_extra_14'));
+  assert.equal((await bridge.discover('timeline',6,99)).remaining,0);
+  assert.equal((await bridge.discover('timeline',6,99)).next_offset,null);
+  for(const tool of generated)originalCatalog.delete(tool.name);
   const exact=await bridge.discover('timeline_overview',3);
   assert.equal(exact.schema_included,true);
   assert.equal(exact.tools[0].inputSchema.type,'object');
