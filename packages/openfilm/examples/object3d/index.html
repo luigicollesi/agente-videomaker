@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root { --clip-length: 8; }
+html,body { margin:0;width:100%;height:100%;overflow:hidden;background:transparent; }
+canvas { display:block;width:100%;height:100%;pointer-events:none; }
+</style>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+</head><body>
+<canvas id="scene" width="960" height="540" aria-label="Experimental Object3D scene"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { createScene3D } from './object3d-scene.mjs';
+const canvas=document.querySelector('#scene'),root=document.documentElement;
+const view=createScene3D({THREE,aspect:canvas.width/canvas.height});
+const geometry=new THREE.BoxGeometry(2,2,2);
+const material=new THREE.MeshStandardMaterial({color:0xb92f40,roughness:.28,metalness:.35});
+const cube=new THREE.Mesh(geometry,material);
+view.addObject('demo-cube',cube);
+const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,preserveDrawingBuffer:true});
+renderer.setClearColor(0x000000,0);
+const keys=[
+ {time:0,position:[0,0,8],target:[0,0,0],fov:45},
+ {time:4,position:[5,2,6],target:[0,0,0],fov:45,easing:'ease-in-out'},
+ {time:8,position:[0,0,8],target:[0,0,0],fov:45,easing:'ease-in-out'}
+];
+let stopped=false;
+async function frame(time){
+ if(stopped)return;
+ const width=Math.max(1,canvas.clientWidth||canvas.width),height=Math.max(1,canvas.clientHeight||canvas.height);
+ if(canvas.width!==width||canvas.height!==height)renderer.setSize(width,height,false);
+ view.resize(width/height);
+ const length=parseFloat(getComputedStyle(root).getPropertyValue('--clip-length'));
+ const duration=Number.isFinite(length)&&length>0?length:8;
+ const t=Number.isFinite(Number(time))?Number(time):0;
+ // Camera keyframes are normalized to the clip duration (timeline owns total length).
+ view.frame(Math.max(0,Math.min(8,(t/duration)*8)),keys);
+ renderer.clear();
+ if(t>=0&&t<duration)renderer.render(view.scene,view.camera);
+}
+const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
+function hitTest(x,y){
+ if(stopped||!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>1||y<0||y>1)return false;
+ pointer.set(x*2-1,1-y*2);
+ raycaster.setFromCamera(pointer,view.camera);
+ return raycaster.intersectObject(cube,false).length>0;
+}
+function dispose(){
+ if(stopped)return;
+ stopped=true;
+ view.dispose();
+ geometry.dispose();material.dispose();renderer.dispose();
+}
+const component={scene:view.scene,camera:view.camera,renderer,hitTest,dispose};
+window.__object3dComponent=component;
+window.__object3dHitTest=hitTest;
+window.film={ready:Promise.resolve(),frame,frameReadsOverrides:true};
+await frame(0);
+</script></body></html>
