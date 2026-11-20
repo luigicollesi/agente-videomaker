@@ -37,7 +37,7 @@ import { useLibraryArrangement } from './arrangement';
 type Category = 'media' | 'skill' | 'voice' | 'captions' | LibraryCategory;
 /* OpenFilm's order (the person's own in Settings › Advanced, lib/library-categories): the media, the skills, then the
    templates, the most a film is made with at once */
-export const CATEGORIES: Category[] = ['media', 'skill', 'template', 'captions', 'voice', 'sound', 'music', 'text', 'text3d', 'sticker', 'filter', 'effect', 'transition'];
+export const CATEGORIES: Category[] = ['media', 'skill', 'template', 'captions', 'voice', 'sound', 'music', 'text', 'text3d', 'object3d', 'sticker', 'filter', 'effect', 'transition'];
 
 /** The side bar's starred line: a category's things the person starred ('' is all of it, else one of its groups). */
 const FAVORITES = STARRED;
@@ -445,7 +445,7 @@ export function LibraryDrawer({ media, mediaScope, onMediaScope, mediaRequest, a
             >
               {/* the one shown: its icon and name in the accent, nothing else */}
               <CategoryIcon id={id} on={cat === id} size={18} />
-              {t(`assetDrawer.cat_${id}`)}
+              {id === 'object3d' ? 'Object 3D' : t(`assetDrawer.cat_${id}`)}
             </button>
           ))}
         </nav>
