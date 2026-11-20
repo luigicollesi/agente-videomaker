@@ -35,7 +35,7 @@ const COMMAND_HELP = {
   Starts OpenFilm Studio if it is not running and prints its address. A Studio page already open, in any browser,
   switches to the project, and nothing more opens; otherwise open the address in your built-in browser, and if no
   page connects within 15 s, Studio opens the person's browser (OPENFILM_NO_BROWSER=1: never).`,
-  object3d: `videomaker object3d list\nvideomaker object3d inspect <asset-id>\nvideomaker object3d take <project-folder> object3d/cube\nvideomaker object3d demo <new-folder>\n\n  List procedural/GLB assets, import a built-in model to a project's Saved folder, or create a standalone test scene.\n  The demo does not insert itself on the timeline; import its index.html as a page clip.`,
+  object3d: `videomaker object3d list\nvideomaker object3d inspect <asset-id>\nvideomaker object3d take <project-folder> object3d/<cube|sphere>\nvideomaker object3d demo <new-folder>\n\n  List procedural/GLB assets, import a built-in model to a project's Saved folder, or create a standalone test scene.\n  The demo does not insert itself on the timeline; import its index.html as a page clip.`,
   text3d: `videomaker text3d list [source-id]\nvideomaker text3d inspect <source-id>\nvideomaker text3d validate <folder>\nvideomaker text3d register <folder>\nvideomaker text3d apply <project-folder> <clip-id> <component-id>\n\n  Validates a generated Text3D component with manifest.json, index.html and component.js. Register copies an immutable bundle into the Saved library and promotes the new version.`,
   skills: `videomaker skills
 
