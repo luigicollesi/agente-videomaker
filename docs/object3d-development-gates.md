@@ -58,3 +58,12 @@ No phase advances solely from a successful unit suite. Preview and exported fram
 - Unit tests verify packaging and MCP validation. Visual tests use headless Chromium to verify mesh, transparency, absolute time seek, and the stage's click-through behavior.
 - No new editor overlay, mouse gesture changes, automatic camera keyframes, GLB import or scene Inspector have been enabled. The Object3D library tab does not yet expose installable models.
 - Preview and browser-stage tests must pass before expanding to timeline camera editing; MP4 export remains a separate acceptance gate.
+
+## Phase 2A — first native reusable object
+
+- The Object3D library category is populated by `library/catalogs/object3d.json` with one procedural cube and a static SVG poster, including localized names.
+- The bundle is built offline into the shared library cache on demand by `object3d-built-in.mjs`, using the same validated self-contained scene page as the demo; it never modifies `library/` source files or existing project clips.
+- The ordinary `takeSaved` flow copies the bundle into `saved/openfilm/object3d-cube/` for manual drag/drop. Source assets are immutable; project copies can change independently.
+- Native material properties `--object3d-color`, `--object3d-roughness` and `--object3d-metalness` use the existing clip inspector override contract. Geometry and camera motion remain fixed in this initial library sample.
+- Agent discovery includes the procedural cube in `object3d_list` and `object3d_inspect`. To import without timeline mutation, use `object3d_library_import` or `videomaker object3d take <project-folder> object3d/cube` and then the existing revision-guarded timeline tool.
+- New tests cover offline bundle generation, no clobbering, catalog appearance, Saved copy and MCP import. Keep all browser and Text3D regressions as required gates.
