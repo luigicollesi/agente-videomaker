@@ -18,3 +18,14 @@ test('a saved order naming a category twice still shows it once', () => {
   assert.equal(new Set(ids).size, ids.length);
   assert.equal(ids.filter((id) => id === 'sticker').length, 1);
 });
+
+test('Object 3D appears next to Text 3D without changing saved category preferences',()=>{
+ const all=['media','skill','text','text3d','object3d','sticker'] as const;
+ const oldPrefs={order:['skill','text3d','sticker'],off:['sticker']};
+ const snapshot=JSON.stringify(oldPrefs);
+ const result=arrangedCategories(all,oldPrefs);
+ assert.deepEqual(result.map(x=>x.id),['media','skill','text','text3d','object3d','sticker']);
+ assert.equal(result.find(x=>x.id==='object3d')?.on,true);
+ assert.equal(result.find(x=>x.id==='sticker')?.on,false);
+ assert.equal(JSON.stringify(oldPrefs),snapshot);
+});
