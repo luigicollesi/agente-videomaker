@@ -112,7 +112,7 @@ export async function text3DCommand(args, { expectedRevision } = {}) {
    const target=resolve(rest[0]);
    await cp(new URL('../examples/text3d/',import.meta.url),target,{recursive:true,errorOnExist:true,force:false});
    await mkdir(join(target,'assets'),{recursive:true});
-   await copyFile(new URL(import.meta.resolve('three/examples/fonts/helvetiker_regular.typeface.json')),join(target,'assets/font.json'));
+   await copyFile(new URL('./assets/helvetiker_regular.typeface.json',import.meta.url),join(target,'assets/font.json'));
    return {ok:true,lines:['Text3D draft created: '+target]};
   }
   if(action==='font-add'&&(rest.length===2||rest.length===3)){
@@ -216,7 +216,7 @@ export async function text3DCommand(args, { expectedRevision } = {}) {
       [new URL('./three.core.js',moduleMain),'three.core.js'],
       [new URL(import.meta.resolve('three/addons/geometries/TextGeometry.js')),'geometries/TextGeometry.js'],
       [new URL(import.meta.resolve('three/addons/loaders/FontLoader.js')),'loaders/FontLoader.js'],
-      [new URL(import.meta.resolve('three/examples/fonts/helvetiker_regular.typeface.json')),'fonts/helvetiker_regular.typeface.json'],
+      [new URL('./assets/helvetiker_regular.typeface.json',import.meta.url),'fonts/helvetiker_regular.typeface.json'],
       [new URL('../LICENSE',moduleMain),'LICENSE.txt']
     ];
     for(const [url,path] of vendorFiles){
