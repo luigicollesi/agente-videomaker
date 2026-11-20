@@ -35,7 +35,7 @@ import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 import { communityCatalog, communityReady, fetchCommunity, isCommunity, refreshCommunity } from './community-library.mjs';
 import { setSharedPref, sharedHome, sharedPref } from '../../src/locations.mjs';
-import { OBJECT3D_BUILTIN_ID, isObject3DBuiltInFile, ensureObject3DBuiltIn } from '../../src/object3d-built-in.mjs';
+import { isObject3DBuiltInFile, ensureObject3DBuiltIn } from '../../src/object3d-built-in.mjs';
 
 export { refreshCommunity };
 
@@ -170,7 +170,7 @@ export function fetchLibrary(/** @type {unknown} */ rel) {
  * @param {{ id: string, music?: string }} item
  */
 export function partsOf(item) {
-  return [...((item.id === OBJECT3D_BUILTIN_ID || isCommunity(item.id) || PUBLISHED.some((part) => item.id.startsWith(part))) ? [item.id] : []), ...(typeof item.music === 'string' ? [item.music] : [])];
+  return [...((isObject3DBuiltInFile(item.id) || isCommunity(item.id) || PUBLISHED.some((part) => item.id.startsWith(part))) ? [item.id] : []), ...(typeof item.music === 'string' ? [item.music] : [])];
 }
 
 /** Of the things `ids`, those not all here yet (to be fetched before they are put in). @param {unknown} ids */
