@@ -17,6 +17,7 @@ test('built-in cube generates one offline Saved bundle and can be reused', async
    assert.equal(manifest.kind,'clip');
    assert.deepEqual(manifest.clip.time,[0,8]);
    assert.equal(manifest.clip.attrs['data-openfilm-content-type'],'object3d');
+   assert.deepEqual(JSON.parse(manifest.clip.attrs['data-props']).map(p=>p.var),['--object3d-color','--object3d-roughness','--object3d-metalness']);
    for(const file of ['files/index.html','files/object3d-scene.mjs','files/object3d-camera.mjs','files/vendor/three.module.js','files/vendor/three.core.js'])
      assert.ok((await stat(join(paths[0],file))).isFile(),file);
    assert.equal(await ensureObject3DBuiltIn(root),paths[0]);
