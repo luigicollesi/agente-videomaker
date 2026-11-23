@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {initialSelection, beginSelection, moveSelection, finishSelection, cancelSelection, clearSelection} from './selection-session.mjs';
+const p=(x,y)=>({x,y});
+test('disabled behavior: starting requires an explicit command',()=>{assert.deepEqual(initialSelection(),{active:null,marks:[]});});
+test('records box after deliberate drag',()=>{let s=beginSelection(initialSelection(),1,p(10,20),'box');s=moveSelection(s,1,p(40,50));const r=finishSelection(s,1,p(40,50));assert.deepEqual(r.result,{kind:'box',a:p(10,20),b:p(40,50)});assert.equal(r.state.active,null);});
+test('ignores small box drag, preventing false selection',()=>{const r=finishSelection(beginSelection(initialSelection(),1,p(1,1),'box'),1,p(2,2));assert.equal(r.result,null);});
+test('point labels work for positive and negative prompts',()=>{for(const [mode,label] of [['include',1],['exclude',0]]){const r=finishSelection(beginSelection(initialSelection(),1,p(1,2),mode),1,p(1,2));assert.equal(r.result.label,label);}});
+test('other pointer cannot interrupt existing gesture',()=>{const s=beginSelection(initialSelection(),1,p(1,2),'box');assert.equal(beginSelection(s,2,p(2,3),'box'),s);assert.equal(moveSelection(s,2,p(5,6)),s);assert.equal(finishSelection(s,2,p(5,6)).result,null);});
+test('cancel discards drag and leaves completed marks',()=>{const s=beginSelection(initialSelection(),1,p(1,2),'box');assert.deepEqual(cancelSelection(s).marks,[]);assert.deepEqual(clearSelection(),initialSelection());});
+test('invalid inputs fail before affecting state',()=>{assert.throws(()=>beginSelection(initialSelection(),1,p(NaN,2),'box'));assert.throws(()=>beginSelection(initialSelection(),1,p(1,2),'erase'));});
